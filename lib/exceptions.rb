@@ -1,0 +1,2 @@
+class ConcurrencyException < Exception
+end
