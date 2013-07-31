@@ -1,5 +1,6 @@
 require 'lib/exceptions'
 require 'lib/uuid_generator'
+require 'lib/registry'
 
 # CAVEAT: this is not threadsafe nor distribution-friendly
 # Code smell caveat:
@@ -106,6 +107,7 @@ class UnitOfWork
     @valid = true
     @committed = false
     @object_tracker = ObjectTracker.new(ALL_STATES)
+    UnitOfWorkRegistry::Registry.instance<< self
   end
 
   def self.mapper= mapper
@@ -188,7 +190,7 @@ class UnitOfWork
     raise RuntimeError, "Cannot complete without commit/rollback" unless @committed
 
     ALL_STATES.each { |st| clear_all_objects_in_state(st) }
-    # TODO: Remove UOW from the Registry
+    UnitOfWorkRegistry::Registry.instance.delete(self)
     @valid = false
   end
 

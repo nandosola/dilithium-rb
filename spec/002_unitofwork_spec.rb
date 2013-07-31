@@ -21,7 +21,7 @@ describe UnitOfWork do
   end
 
   it "correctly registers itself with the Registry" do
-    pending
+    UnitOfWorkRegistry::Registry.instance[@uow.uuid.to_sym].should eq(@uow)
   end
 
   it "correctly registers an object with a UnitOfWork" do

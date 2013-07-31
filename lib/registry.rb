@@ -11,7 +11,10 @@ module UnitOfWorkRegistry
       @@registry[uow]
     end
     def <<(uow)
-      @@registry[uow.uuid]<< uow
+      @@registry[uow.uuid.to_sym] = uow
+    end
+    def delete(uow)
+      @@registry.delete(uow.uuid.to_sym)
     end
     # TODO create/read file for each UOW
     def marshall_dump
@@ -24,8 +27,7 @@ module UnitOfWorkRegistry
     def self.extended(base_class)
       base_class.instance_eval {
         def fetch_from_registry(uuid, obj_id)
-          uow = Registry.instance[uuid]
-          #TODO Implement an id map so that fetching is quicker
+          uow = Registry.instance[uuid.to_sym]
           (uow.nil?) ? nil : uow.fetch_object_by_id(base_class, obj_id)
         end
       }
