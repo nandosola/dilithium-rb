@@ -1,38 +1,22 @@
 require 'lib/exceptions'
 require 'lib/uuid_generator'
 
-
-=begin
-require 'singleton'
-class UnitOfWorkRegistry
-  include Singleton
-  # TODO create/read file for each UOW
-  def marshall
-  end
-  def unmarshall
-  end
-end
-
-$unit_of_work_registry = UnitOfWorkRegistry.new
-=end
-
+# CAVEAT: this is not threadsafe nor distribution-friendly
 # Code smell caveat:
 # These methods are needed for concurrency control and should be included in the domain object
 # this is an optimization so that there's no need to build/traverse a list.
 # TODO maybe the registry should store nodename/class/id/UoW/state - this would allow easier distribution!
-module UnitOfWorkMixin
+module UnitOfWorkEntityService
   def assign_unit_of_work(uow, state)
-    # TODO Tell Repository that this object belongs to this UOW so that it can cache it
     units_of_work[uow.uuid] = state
   end
 
   def unassign_unit_of_work(uow)
-    # TODO Tell Repository that this object doesn't belong to this UOW any more
     units_of_work.delete(uow.uuid)
   end
 
   def units_of_work
-    @units_of_work ||= {}
+    @units_of_work ||= {} # do not maintain state
   end
 
   def has_unit_of_work?
@@ -40,7 +24,65 @@ module UnitOfWorkMixin
   end
 end
 
-# CAVEAT: this is not threadsafe nor distribution-friendly
+class ObjectTracker
+  attr_reader :allowed_states
+
+  class TrackedObject
+    attr_accessor :object, :state
+    def initialize(obj, st, outer)
+      @object = obj
+      @state = st
+      @parent = outer
+      check_valid_state(st)
+    end
+    def state=(st)
+      check_valid_state(st)
+      @state = st
+    end
+    def check_valid_state(st)
+      raise RuntimeException, "State is not valid. Allowed states are #{@parent.allowed_states}" unless \
+        @parent.allowed_states.include?(st)
+    end
+  end
+
+  def initialize(states_array)
+    @allowed_states = states_array
+    @tracker = []
+  end
+
+  def track(obj, st)
+    @tracker<< TrackedObject.new(obj, st, self) if find_object(obj).nil?
+  end
+  alias_method :add, :track
+
+  def untrack(tracked_obj)
+    if tracked_obj.is_a?(TrackedObject)
+      @tracker.delete(tracked_obj)
+    else
+      raise ArgumentError, "Only a TrackedObject can be untracked. Got: #{tracked_obj.class}"
+    end
+  end
+  alias_method :delete, :untrack
+
+  def find_object(obj)
+    found_obj = @tracker.select {|to| obj === to.object}
+    if found_obj.empty?
+      nil
+    else
+      if 1 == found_obj.count
+        found_obj.first
+      else
+        raise RuntimeException, "Found same tracked object in #{found_obj.count} different states"
+      end
+    end
+  end
+
+  def find_by_state(st)
+    @tracker.select {|to| st == to.state}
+  end
+
+end
+
 class UnitOfWork
   STATE_NEW = :new
   STATE_DIRTY = :dirty
@@ -53,19 +95,12 @@ class UnitOfWork
     @uuid = UUIDGenerator.generate
     @valid = true
     @committed = false
-    @tracked_objects = {}
-    ALL_STATES.each { |st| @tracked_objects[st] = []}
+    @object_tracker = ObjectTracker.new(ALL_STATES)
   end
 
   def self.mapper= mapper
     raise RuntimeError, "Mapper can only be defined once" unless @mapper.nil?
     @@mapper = mapper
-  end
-
-  def self.find_by_id id
-  end
-
-  def self.find_by_object obj
   end
 
   def register_clean(obj)
@@ -104,64 +139,70 @@ class UnitOfWork
     true
   end
 
-  def register_entity(obj, state)
-    raise RuntimeError, "Invalid Unit of Work" unless @valid
-
-    old_state = obj.units_of_work[self.uuid]
-    @tracked_objects[old_state].delete obj unless old_state.nil?
-    @tracked_objects[state] << obj
-
-    obj.assign_unit_of_work(self, state)
-    @committed = false
-  end
-
   def rollback
-    raise RuntimeError, "Invalid Unit of Work" unless @valid
-    @tracked_objects[STATE_DIRTY].each { |obj| @@mapper.reload(obj) }
-    @tracked_objects[STATE_DELETED].each { |obj| @@mapper.reload(obj) }
+    check_valid_uow
+    @object_tracker.find_by_state(STATE_DIRTY).each { |tr_obj| @@mapper.reload(tr_obj.object) }
+    @object_tracker.find_by_state(STATE_DELETED).each { |tr_obj| @@mapper.reload(tr_obj.object) }
 
     move_all_objects(STATE_DELETED, STATE_DIRTY)
     @committed = true
   end
 
   def commit
-    raise RuntimeError, "Invalid Unit of Work" unless @valid
+    check_valid_uow
 
     # TODO: Check optimistic concurrency (in a subclass)
     @@mapper.transaction do
-      @tracked_objects[STATE_NEW].each { |obj| @@mapper.save(obj) }
-      @tracked_objects[STATE_DIRTY].each { |obj| @@mapper.save(obj) }
-      @tracked_objects[STATE_DELETED].each { |obj| @@mapper.delete(obj) }
+      @object_tracker.find_by_state(STATE_NEW).each { |tr_obj| @@mapper.save(tr_obj.object) }
+      @object_tracker.find_by_state(STATE_DIRTY).each { |tr_obj| @@mapper.save(tr_obj.object) }
+      @object_tracker.find_by_state(STATE_DELETED).each { |tr_obj| @@mapper.delete(tr_obj.object) }
 
-      clear_state(STATE_DELETED)
+      clear_all_objects_in_state(STATE_DELETED)
       move_all_objects(STATE_NEW, STATE_DIRTY)
       @committed = true
     end
   end
 
   def complete
-    raise RuntimeError, "Invalid Unit of Work" unless @valid
+    check_valid_uow
     #TODO Perhaps check the actual saved status of objects in memory?
     raise RuntimeError, "Cannot complete without commit/rollback" unless @committed
 
-    ALL_STATES.each { |st| clear_state(st) }
-
+    ALL_STATES.each { |st| clear_all_objects_in_state(st) }
     # TODO: Remove UOW from the Registry
-
     @valid = false
   end
 
   private
+  def register_entity(obj, state)
+    check_valid_uow
 
-  def move_all_objects(from, to)
-    @tracked_objects[from].each { |obj| obj.assign_unit_of_work(self, to) }
-    @tracked_objects[to] += @tracked_objects[from]
-    @tracked_objects[from].clear
+    found_tr_obj = @object_tracker.find_object(obj)
+    if found_tr_obj.nil?
+      @object_tracker.track(obj, state)
+    else
+      found_tr_obj.state = state
+    end
+    obj.assign_unit_of_work(self, state)
+    @committed = false
   end
 
-  def clear_state(state)
-    @tracked_objects[state].each { |obj| obj.unassign_unit_of_work(self)}
-    @tracked_objects[state].clear
+  def move_all_objects(from_state, to_state)
+    @object_tracker.find_by_state(from_state).each do |tr_obj|
+      tr_obj.object.assign_unit_of_work(self, to_state)
+      tr_obj.state = to_state
+    end
+  end
+
+  def clear_all_objects_in_state(state)
+    @object_tracker.find_by_state(state).each do |tr_obj|
+      tr_obj.object.unassign_unit_of_work(self)
+      @object_tracker.untrack(tr_obj)
+    end
+  end
+
+  def check_valid_uow
+    raise RuntimeError, "Invalid Unit of Work" unless @valid
   end
 end
 

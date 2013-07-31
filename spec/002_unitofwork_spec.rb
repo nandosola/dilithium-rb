@@ -7,7 +7,7 @@ describe UnitOfWork do
 
     class UnitOfWork
       def tracked_objects
-        @tracked_objects
+        @object_tracker
       end
     end
     UnitOfWork.mapper = SequelMapper.new
@@ -26,7 +26,9 @@ describe UnitOfWork do
   it "correctly registers an object with a UnitOfWork" do
     @uow.register_clean(@a_user)
 
-    @uow.tracked_objects[UnitOfWork::STATE_CLEAN].should include(@a_user)
+    found_tracked_objects = @uow.tracked_objects.find_by_state(UnitOfWork::STATE_CLEAN)
+    found_tracked_objects.size.should eq(1)
+    found_tracked_objects.first.object.should eq(@a_user)
 
     u = @a_user.units_of_work
     u.length.should eq(1)
@@ -37,8 +39,10 @@ describe UnitOfWork do
     @a_user.name = 'Andrew'
     @uow.register_dirty(@a_user)
 
-    @uow.tracked_objects[UnitOfWork::STATE_CLEAN].length.should eq(0)
-    @uow.tracked_objects[UnitOfWork::STATE_DIRTY].should include(@a_user)
+    @uow.tracked_objects.find_by_state(UnitOfWork::STATE_CLEAN).length.should eq(0)
+    found_tracked_objects = @uow.tracked_objects.find_by_state(UnitOfWork::STATE_DIRTY)
+    found_tracked_objects.size.should eq(1)
+    found_tracked_objects.first.object.should eq(@a_user)
 
     @a_user.units_of_work[@uow.uuid].should eq UnitOfWork::STATE_DIRTY
   end
@@ -47,8 +51,8 @@ describe UnitOfWork do
     @uow.commit
     @uow.valid.should eq(true)
 
-    @uow.tracked_objects[UnitOfWork::STATE_DIRTY].length.should eq(1)
-    @uow.tracked_objects[UnitOfWork::STATE_DIRTY][0].should eq(@a_user)
+    @uow.tracked_objects.find_by_state(UnitOfWork::STATE_DIRTY).length.should eq(1)
+    @uow.tracked_objects.find_by_state(UnitOfWork::STATE_DIRTY)[0].object.should eq(@a_user)
     @uow.valid.should eq(true)
     @a_user.units_of_work[@uow.uuid].should == UnitOfWork::STATE_DIRTY
 
@@ -59,8 +63,8 @@ describe UnitOfWork do
   it "deletes objects registered for deletion when calling commit" do
     @uow.register_deleted(@a_user)
 
-    @uow.tracked_objects[UnitOfWork::STATE_DIRTY].length.should eq(0)
-    @uow.tracked_objects[UnitOfWork::STATE_DELETED].should include(@a_user)
+    @uow.tracked_objects.find_by_state(UnitOfWork::STATE_DIRTY).length.should eq(0)
+    @uow.tracked_objects.find_by_state(UnitOfWork::STATE_DELETED)[0].object.should eq(@a_user)
 
     @a_user.units_of_work[@uow.uuid].should eq UnitOfWork::STATE_DELETED
 
@@ -68,7 +72,7 @@ describe UnitOfWork do
 
     User[:id=>1].should be_nil
     @a_user.units_of_work.length.should eq(0)
-    @uow.tracked_objects[UnitOfWork::STATE_DELETED].length.should eq(0)
+    @uow.tracked_objects.find_by_state(UnitOfWork::STATE_DELETED).length.should eq(0)
   end
 
   it "saves new objects and marks them as dirty when calling commit" do
@@ -86,8 +90,8 @@ describe UnitOfWork do
     @uow.rollback
 
     @uow.valid.should eq(true)
-    @uow.tracked_objects[UnitOfWork::STATE_DIRTY].length.should eq(1)
-    @uow.tracked_objects[UnitOfWork::STATE_DIRTY][0].should eq(@a_user)
+    @uow.tracked_objects.find_by_state(UnitOfWork::STATE_DIRTY).length.should eq(1)
+    @uow.tracked_objects.find_by_state(UnitOfWork::STATE_DIRTY)[0].object.should eq(@a_user)
     @uow.valid.should eq(true)
     @a_user.units_of_work[@uow.uuid].should == UnitOfWork::STATE_DIRTY
   end
