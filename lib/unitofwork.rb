@@ -51,7 +51,7 @@ class ObjectTracker
   end
 
   def track(obj, st)
-    @tracker<< TrackedObject.new(obj, st, self) if find_object(obj).nil?
+    @tracker<< TrackedObject.new(obj, st, self) if fetch_object(obj).nil?
   end
   alias_method :add, :track
 
@@ -59,12 +59,12 @@ class ObjectTracker
     if tracked_obj.is_a?(TrackedObject)
       @tracker.delete(tracked_obj)
     else
-      raise ArgumentError, "Only a TrackedObject can be untracked. Got: #{tracked_obj.class}"
+      raise ArgumentError, "Only a TrackedObject can be untracked. Got: #{tracked_obj.class} instead"
     end
   end
   alias_method :delete, :untrack
 
-  def find_object(obj)
+  def fetch_object(obj)
     found_obj = @tracker.select {|to| obj === to.object}
     if found_obj.empty?
       nil
@@ -77,10 +77,20 @@ class ObjectTracker
     end
   end
 
-  def find_by_state(st)
+  def fetch_by_state(st)
     @tracker.select {|to| st == to.state}
   end
 
+  def fetch_by_class(klazz, search_id=nil)
+    filter = lambda do |obj|
+      if search_id.nil?
+        obj.object.is_a?(klazz)
+      else
+        obj.object.is_a?(klazz) && search_id == obj.object.id
+      end
+    end
+    @tracker.select {|to| filter.call(to) }
+  end
 end
 
 class UnitOfWork
@@ -101,6 +111,15 @@ class UnitOfWork
   def self.mapper= mapper
     raise RuntimeError, "Mapper can only be defined once" unless @mapper.nil?
     @@mapper = mapper
+  end
+
+  def fetch_object_by_id(obj_class, obj_id)
+    found_tr_obj = @object_tracker.fetch_by_class(obj_class, obj_id)
+    if found_tr_obj.empty?
+      nil
+    else
+      found_tr_obj.first
+    end
   end
 
   def register_clean(obj)
@@ -141,8 +160,8 @@ class UnitOfWork
 
   def rollback
     check_valid_uow
-    @object_tracker.find_by_state(STATE_DIRTY).each { |tr_obj| @@mapper.reload(tr_obj.object) }
-    @object_tracker.find_by_state(STATE_DELETED).each { |tr_obj| @@mapper.reload(tr_obj.object) }
+    @object_tracker.fetch_by_state(STATE_DIRTY).each { |tr_obj| @@mapper.reload(tr_obj.object) }
+    @object_tracker.fetch_by_state(STATE_DELETED).each { |tr_obj| @@mapper.reload(tr_obj.object) }
 
     move_all_objects(STATE_DELETED, STATE_DIRTY)
     @committed = true
@@ -153,9 +172,9 @@ class UnitOfWork
 
     # TODO: Check optimistic concurrency (in a subclass)
     @@mapper.transaction do
-      @object_tracker.find_by_state(STATE_NEW).each { |tr_obj| @@mapper.save(tr_obj.object) }
-      @object_tracker.find_by_state(STATE_DIRTY).each { |tr_obj| @@mapper.save(tr_obj.object) }
-      @object_tracker.find_by_state(STATE_DELETED).each { |tr_obj| @@mapper.delete(tr_obj.object) }
+      @object_tracker.fetch_by_state(STATE_NEW).each { |tr_obj| @@mapper.save(tr_obj.object) }
+      @object_tracker.fetch_by_state(STATE_DIRTY).each { |tr_obj| @@mapper.save(tr_obj.object) }
+      @object_tracker.fetch_by_state(STATE_DELETED).each { |tr_obj| @@mapper.delete(tr_obj.object) }
 
       clear_all_objects_in_state(STATE_DELETED)
       move_all_objects(STATE_NEW, STATE_DIRTY)
@@ -177,7 +196,7 @@ class UnitOfWork
   def register_entity(obj, state)
     check_valid_uow
 
-    found_tr_obj = @object_tracker.find_object(obj)
+    found_tr_obj = @object_tracker.fetch_object(obj)
     if found_tr_obj.nil?
       @object_tracker.track(obj, state)
     else
@@ -188,14 +207,14 @@ class UnitOfWork
   end
 
   def move_all_objects(from_state, to_state)
-    @object_tracker.find_by_state(from_state).each do |tr_obj|
+    @object_tracker.fetch_by_state(from_state).each do |tr_obj|
       tr_obj.object.assign_unit_of_work(self, to_state)
       tr_obj.state = to_state
     end
   end
 
   def clear_all_objects_in_state(state)
-    @object_tracker.find_by_state(state).each do |tr_obj|
+    @object_tracker.fetch_by_state(state).each do |tr_obj|
       tr_obj.object.unassign_unit_of_work(self)
       @object_tracker.untrack(tr_obj)
     end

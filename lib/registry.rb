@@ -26,7 +26,7 @@ module UnitOfWorkRegistry
         def fetch_from_registry(uuid, obj_id)
           uow = Registry.instance[uuid]
           #TODO Implement an id map so that fetching is quicker
-          (uow.nil?) ? nil : uow.find_by_id(base_class, obj_id)
+          (uow.nil?) ? nil : uow.fetch_object_by_id(base_class, obj_id)
         end
       }
     end
