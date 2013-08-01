@@ -15,7 +15,7 @@ end
 
 class User < Sequel::Model
   extend Repository::Sequel::User
-  extend TransactionRegistry::FinderService::ClassMethods
-  include TransactionRegistry::FinderService::InstanceMethods
+  extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
+  include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
 end
 

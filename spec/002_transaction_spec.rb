@@ -18,7 +18,7 @@ describe UnitOfWork::Transaction do
   end
 
   it "correctly registers itself into the Registry" do
-    TransactionRegistry::Registry.instance[@transaction.uuid.to_sym].should eq(@transaction)
+    UnitOfWork::TransactionRegistry::Registry.instance[@transaction.uuid.to_sym].should eq(@transaction)
   end
 
   it "correctly registers an object with a Transaction" do
