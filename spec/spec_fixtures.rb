@@ -1,4 +1,6 @@
-module SpecHelpers
+require_relative 'fixtures/user'
+
+module SpecFixtures
   def insert_test_users
     items = DB[:users]
     items.insert(:name => 'Alice', :email => 'alice@example.net')

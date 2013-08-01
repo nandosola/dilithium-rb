@@ -1,5 +1,3 @@
-require 'models/user'
-
 describe UnitOfWork::Transaction do
   before(:all) do
     insert_test_users
@@ -19,7 +17,7 @@ describe UnitOfWork::Transaction do
     @transaction.uuid.should =~ /^[0-9a-f]{32}$/
   end
 
-  it "correctly registers itself with the Registry" do
+  it "correctly registers itself into the Registry" do
     TransactionRegistry::Registry.instance[@transaction.uuid.to_sym].should eq(@transaction)
   end
 

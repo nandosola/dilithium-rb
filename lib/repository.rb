@@ -9,17 +9,5 @@ module Repository
         self.all
       end
     end
-
-    module User
-      include Base
-
-      def fetch_by_email email
-        self[email:email]
-      end
-      def fetch_by_name name
-        self[name:name]
-      end
-    end
-
   end
 end

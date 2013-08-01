@@ -1,5 +1,3 @@
-require 'models/user'
-
 describe User do
 
   before(:all) do

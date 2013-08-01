@@ -11,8 +11,8 @@ DB.create_table :users do
 end
 
 $:<< File.join(File.dirname(__FILE__), '..')
-require_relative 'spec_helpers'
-include SpecHelpers
+require_relative 'spec_fixtures'
+include SpecFixtures
 
 Dir[ File.join(File.dirname(__FILE__),'*_spec.rb') ].sort.each do |path|
   require path
