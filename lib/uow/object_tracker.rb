@@ -81,7 +81,7 @@ module UnitOfWork
     def track(obj, st)
       @tracker<< TrackedObject.new(obj, st, self) if fetch_tracked_object(obj).nil?
     end
-    alias_method :add, :track
+    alias_method :<<, :track
 
     def untrack(obj)
       tracked_object = fetch_tracked_object(obj)
