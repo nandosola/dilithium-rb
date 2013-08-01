@@ -28,21 +28,74 @@ end
 class ObjectTracker
   attr_reader :allowed_states
 
+  protected
   class TrackedObject
     attr_accessor :object, :state
+
     def initialize(obj, st, outer)
       @object = obj
       @state = st
       @parent = outer
       check_valid_state(st)
     end
+
     def state=(st)
       check_valid_state(st)
       @state = st
     end
+
     def check_valid_state(st)
-      raise RuntimeException, "State is not valid. Allowed states are #{@parent.allowed_states}" unless \
+      raise RuntimeError, "State is not valid. Allowed states are #{@parent.allowed_states}" unless \
         @parent.allowed_states.include?(st)
+    end
+  end
+
+  public
+  class TrackedObjectSearchResult
+    ARRAY_T = :array; SINGLE_T = :single
+    RETURN_TYPES = [ARRAY_T, SINGLE_T]
+    attr_reader :object, :state
+
+    class << self
+      protected :new
+    end
+
+    def initialize(tracked_object)
+      @object = tracked_object.object
+      @state = tracked_object.state
+    end
+
+    def self.factory(results, return_type=ARRAY_T)
+      TrackedObjectSearchResult.check_results_array(results)
+
+      if RETURN_TYPES.include?(return_type)
+
+        if SINGLE_T == return_type
+          TrackedObjectSearchResult.check_single_or_empty_result(results)
+        end
+
+        if results.nil? || results.empty?
+          (SINGLE_T == return_type) ? nil : []
+        else
+          res = results.map {|to| TrackedObjectSearchResult.new(to)}
+          (SINGLE_T == return_type) ? res.first : res
+        end
+
+      else
+        raise ArgumentError, "Unknown return_type: #{return_type}. Valid types are: #{RETURN_TYPES}"
+      end
+    end
+
+    def self.check_results_array(results)
+      unless results.is_a?(Array)
+        raise ArgumentError, "First argument must be an Array. Found: #{results.class} instead"
+      end
+    end
+
+    def self.check_single_or_empty_result(results)
+      if 1 < results.count
+        raise RuntimeError, "Found same object #{results.count} times!"
+      end
     end
   end
 
@@ -52,34 +105,31 @@ class ObjectTracker
   end
 
   def track(obj, st)
-    @tracker<< TrackedObject.new(obj, st, self) if fetch_object(obj).nil?
+    @tracker<< TrackedObject.new(obj, st, self) if fetch_tracked_object(obj).nil?
   end
   alias_method :add, :track
 
-  def untrack(tracked_obj)
-    if tracked_obj.is_a?(TrackedObject)
-      @tracker.delete(tracked_obj)
-    else
-      raise ArgumentError, "Only a TrackedObject can be untracked. Got: #{tracked_obj.class} instead"
-    end
+  def untrack(obj)
+    tracked_object = fetch_tracked_object(obj)
+    ObjectTracker.check_not_nil(tracked_object)
+    @tracker.delete(tracked_object)
   end
   alias_method :delete, :untrack
 
-  def fetch_object(obj)
-    found_obj = @tracker.select {|to| obj === to.object}
-    if found_obj.empty?
-      nil
-    else
-      if 1 == found_obj.count
-        found_obj.first
-      else
-        raise RuntimeException, "Found same tracked object in #{found_obj.count} different states"
-      end
-    end
+  def change_object_state(obj, st)
+    tracked_object = fetch_tracked_object(obj)
+    ObjectTracker.check_not_nil(tracked_object)
+    tracked_object.state = st
   end
 
   def fetch_by_state(st)
-    @tracker.select {|to| st == to.state}
+    found_array = @tracker.select {|to| st == to.state}
+    TrackedObjectSearchResult.factory(found_array)
+  end
+
+  def fetch_object(obj)
+    found_array = @tracker.select {|to| obj === to.object}
+    TrackedObjectSearchResult.factory(found_array, TrackedObjectSearchResult::SINGLE_T)
   end
 
   def fetch_by_class(klazz, search_id=nil)
@@ -90,7 +140,28 @@ class ObjectTracker
         obj.object.is_a?(klazz) && search_id == obj.object.id
       end
     end
-    @tracker.select {|to| filter.call(to) }
+    found_array = @tracker.select {|to| filter.call(to) }
+
+    if search_id.nil?
+      TrackedObjectSearchResult.factory(found_array)
+    else
+      TrackedObjectSearchResult.factory(found_array, TrackedObjectSearchResult::SINGLE_T)
+    end
+  end
+
+  private
+  def fetch_tracked_object(obj)
+    found_array = @tracker.select {|to| obj === to.object}
+    TrackedObjectSearchResult.check_single_or_empty_result(found_array)
+    found_array[0]
+  end
+
+  def self.check_not_nil(tracked_object)
+    if tracked_object.nil?
+      raise RuntimeError, "Object #{obj.inspect} is not tracked!"
+    else
+      tracked_object
+    end
   end
 end
 
@@ -116,12 +187,11 @@ class UnitOfWork
   end
 
   def fetch_object_by_id(obj_class, obj_id)
-    found_tr_obj = @object_tracker.fetch_by_class(obj_class, obj_id)
-    if found_tr_obj.empty?
-      nil
-    else
-      found_tr_obj.first
-    end
+    @object_tracker.fetch_by_class(obj_class, obj_id)
+  end
+
+  def fetch_object(obj)
+    @object_tracker.fetch_object(obj)
   end
 
   def register_clean(obj)
@@ -162,8 +232,8 @@ class UnitOfWork
 
   def rollback
     check_valid_uow
-    @object_tracker.fetch_by_state(STATE_DIRTY).each { |tr_obj| @@mapper.reload(tr_obj.object) }
-    @object_tracker.fetch_by_state(STATE_DELETED).each { |tr_obj| @@mapper.reload(tr_obj.object) }
+    @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @@mapper.reload(res.object) }
+    @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @@mapper.reload(res.object) }
 
     move_all_objects(STATE_DELETED, STATE_DIRTY)
     @committed = true
@@ -173,10 +243,11 @@ class UnitOfWork
     check_valid_uow
 
     # TODO: Check optimistic concurrency (in a subclass)
+    # TODO handle Sequel::DatabaseError
     @@mapper.transaction do
-      @object_tracker.fetch_by_state(STATE_NEW).each { |tr_obj| @@mapper.save(tr_obj.object) }
-      @object_tracker.fetch_by_state(STATE_DIRTY).each { |tr_obj| @@mapper.save(tr_obj.object) }
-      @object_tracker.fetch_by_state(STATE_DELETED).each { |tr_obj| @@mapper.delete(tr_obj.object) }
+      @object_tracker.fetch_by_state(STATE_NEW).each { |res| @@mapper.save(res.object) }
+      @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @@mapper.save(res.object) }
+      @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @@mapper.delete(res.object) }
 
       clear_all_objects_in_state(STATE_DELETED)
       move_all_objects(STATE_NEW, STATE_DIRTY)
@@ -198,27 +269,27 @@ class UnitOfWork
   def register_entity(obj, state)
     check_valid_uow
 
-    found_tr_obj = @object_tracker.fetch_object(obj)
-    if found_tr_obj.nil?
+    res = @object_tracker.fetch_object(obj)
+    if res.nil?
       @object_tracker.track(obj, state)
     else
-      found_tr_obj.state = state
+      @object_tracker.change_object_state(res.object, state)
     end
     obj.assign_unit_of_work(self, state)
     @committed = false
   end
 
   def move_all_objects(from_state, to_state)
-    @object_tracker.fetch_by_state(from_state).each do |tr_obj|
-      tr_obj.object.assign_unit_of_work(self, to_state)
-      tr_obj.state = to_state
+    @object_tracker.fetch_by_state(from_state).each do |res|
+      res.object.assign_unit_of_work(self, to_state)
+      @object_tracker.change_object_state(res.object, to_state)
     end
   end
 
   def clear_all_objects_in_state(state)
-    @object_tracker.fetch_by_state(state).each do |tr_obj|
-      tr_obj.object.unassign_unit_of_work(self)
-      @object_tracker.untrack(tr_obj)
+    @object_tracker.fetch_by_state(state).each do |res|
+      res.object.unassign_unit_of_work(self)
+      @object_tracker.untrack(res.object)
     end
   end
 
