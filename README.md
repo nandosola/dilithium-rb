@@ -62,7 +62,7 @@ end
 ```
 
 For a simple Sinatra web application:
-```
+```ruby
 post '/activities/user/new' do
 
   transaction = UnitOfWork::Transaction.new()
