@@ -90,6 +90,10 @@ put '/transactions/:uuid/user/:id/update' do
 end
 ```
 
+### TO-DO
+* Process COMPLETE and CANCEL URI commands
+* ...
+
 ### License
 Licensed under the [New BSD License](http://opensource.org/licenses/BSD-3-Clause). See LICENSE file for more details.
 
