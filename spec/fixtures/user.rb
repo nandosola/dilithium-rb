@@ -1,6 +1,4 @@
-require 'lib/mapper'
-require 'lib/repository'
-require 'lib/unit_of_work'
+require 'lib/sequel-uow'
 
 module Repository::Sequel
   module User

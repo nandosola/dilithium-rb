@@ -36,6 +36,7 @@ spec/reports
 test/tmp
 test/version_tmp
 tmp
+uml.png
 
 # YARD artifacts
 .yardoc
