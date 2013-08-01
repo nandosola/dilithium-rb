@@ -1,25 +1,25 @@
-module Sequel
-  module BaseRepository
+module Repository
+  module Sequel
 
-    def fetch_by_id id
-      self[id:id]
+    module Base
+      def fetch_by_id id
+        self[id:id]
+      end
+      def fetch_all
+        self.all
+      end
     end
-    def fetch_all
-      self.all
-    end
-  end
 
-  module UserRepository
-    include BaseRepository
+    module User
+      include Base
 
-    def fetch_by_email email
-      self[email:email]
+      def fetch_by_email email
+        self[email:email]
+      end
+      def fetch_by_name name
+        self[name:name]
+      end
     end
-    def fetch_by_name name
-      self[name:name]
-    end
+
   end
 end
-
-# TODO cache all domain objects assigned to a UoW
-

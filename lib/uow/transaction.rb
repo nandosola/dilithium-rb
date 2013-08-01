@@ -79,7 +79,7 @@ module UnitOfWork
       check_valid_uow
 
       # TODO: Check optimistic concurrency (in a subclass)
-      # TODO handle Sequel::DatabaseError
+      # TODO handle Repository::DatabaseError
       @@mapper.transaction do
         @object_tracker.fetch_by_state(STATE_NEW).each { |res| @@mapper.save(res.object) }
         @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @@mapper.save(res.object) }
@@ -128,22 +128,24 @@ module UnitOfWork
     end
 
     def check_valid_uow
-      raise RuntimeError, "Invalid Unit of Work" unless @valid
+      raise RuntimeError, "Invalid Transaction" unless @valid
     end
   end
 
-  class ReadWriteLockingTransaction < Transaction
-    def check_register_clean(obj)
-      raise ConcurrencyException, 'object is not clean' unless \
-        obj.transaction.nil? || obj.unit_of_work[:state] == STATE_CLEAN
-    end
+=begin TODO
+    class ReadWriteLockingTransaction < Transaction
+      def check_register_clean(obj)
+        raise ConcurrencyException, 'object is not clean' unless \
+          obj.transaction.nil? || obj.unit_of_work[:state] == STATE_CLEAN
+      end
 
-    def check_register_dirty(obj)
-      raise ConcurrencyException, 'object is not clean' unless obj.transaction.nil?
-    end
+      def check_register_dirty(obj)
+        raise ConcurrencyException, 'object is not clean' unless obj.transaction.nil?
+      end
 
-    def check_register_deleted(obj)
-      raise ConcurrencyException, 'object is not clean' unless obj.transaction.nil?
+      def check_register_deleted(obj)
+        raise ConcurrencyException, 'object is not clean' unless obj.transaction.nil?
+      end
     end
-  end
+=end
 end

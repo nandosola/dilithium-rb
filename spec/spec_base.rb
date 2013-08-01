@@ -11,7 +11,7 @@ DB.create_table :users do
 end
 
 $:<< File.join(File.dirname(__FILE__), '..')
-require_relative 'helpers'
+require_relative 'spec_helpers'
 include SpecHelpers
 
 Dir[ File.join(File.dirname(__FILE__),'*_spec.rb') ].sort.each do |path|

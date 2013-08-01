@@ -10,7 +10,7 @@ describe UnitOfWork::Transaction do
         @object_tracker
       end
     end
-    UnitOfWork::Transaction.mapper = SequelMapper.new
+    UnitOfWork::Transaction.mapper = Mapper::Sequel.new
     @transaction = UnitOfWork::Transaction.new
     @a_user = User.fetch_by_id(1)
   end
