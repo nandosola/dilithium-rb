@@ -1,2 +1,0 @@
-class ConcurrencyException < Exception
-end

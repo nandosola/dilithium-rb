@@ -18,7 +18,7 @@ describe User do
     User.fetch_by_name('Charly').id.should eq(3)
   end
 
-  it "does not allow persistence operations without being assigned to a UnitOfWork" do
+  it "does not allow persistence operations without being assigned to a Transaction" do
     pending "not implemented yet"
   end
 
