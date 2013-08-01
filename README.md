@@ -14,8 +14,9 @@ First install the gem `gem 'sequel-uow', :git => 'git://github.com/nandosola/seq
 
 ### Sample usage
 Until a [real Data Mapper pattern](http://datamapper.org/articles/the_great_refactoring.html)
-is implemented in Rubby, our domain objects must extend `Sequel::Model`. The gem includes
-a dedicates FinderService facade to be used by our domain objects:
+is implemented in Rubby, our domain objects must extend `Sequel::Model`.
+
+The gem includes a FinderService facade to be used by our domain objects so that their active transactions can be found:
 
 ```ruby
 require 'sequel-uow'
