@@ -3,27 +3,6 @@ require 'lib/uuid_generator'
 require 'lib/registry'
 
 # CAVEAT: this is not threadsafe nor distribution-friendly
-# Code smell caveat:
-# These methods are needed for concurrency control and should be included in the domain object
-# this is an optimization so that there's no need to build/traverse a list.
-# TODO maybe the registry should store nodename/class/id/UoW/state - this would allow easier distribution!
-module UnitOfWorkEntityService
-  def assign_unit_of_work(uow, state)
-    units_of_work[uow.uuid] = state
-  end
-
-  def unassign_unit_of_work(uow)
-    units_of_work.delete(uow.uuid)
-  end
-
-  def units_of_work
-    @units_of_work ||= {} # do not maintain state
-  end
-
-  def has_unit_of_work?
-    !unit_of_work.empty?
-  end
-end
 
 class ObjectTracker
   attr_reader :allowed_states
@@ -273,22 +252,20 @@ class UnitOfWork
     if res.nil?
       @object_tracker.track(obj, state)
     else
+      # TODO validate state transitions (ie. DIRTY-> CLEAN)
       @object_tracker.change_object_state(res.object, state)
     end
-    obj.assign_unit_of_work(self, state)
     @committed = false
   end
 
   def move_all_objects(from_state, to_state)
     @object_tracker.fetch_by_state(from_state).each do |res|
-      res.object.assign_unit_of_work(self, to_state)
       @object_tracker.change_object_state(res.object, to_state)
     end
   end
 
   def clear_all_objects_in_state(state)
     @object_tracker.fetch_by_state(state).each do |res|
-      res.object.unassign_unit_of_work(self)
       @object_tracker.untrack(res.object)
     end
   end

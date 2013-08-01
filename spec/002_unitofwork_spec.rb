@@ -33,12 +33,20 @@ describe UnitOfWork do
 
     u = @a_user.units_of_work
     u.length.should eq(1)
-    @a_user.units_of_work[@uow.uuid].should eq UnitOfWork::STATE_CLEAN
+    found_uow = @a_user.units_of_work[0]
+    found_uow.unit_of_work.should eq(@uow)
+    found_uow.state.should eq(UnitOfWork::STATE_CLEAN)
+
+    @b_user = User.fetch_by_id(2)
+    @b_user.units_of_work.should be_empty
   end
 
   it "fetches a specific tracked object from the tracked object's class and its id" do
     @uow.fetch_object_by_id(@a_user.class, @a_user.id).object.should eq(@a_user)
     @uow.fetch_object_by_id(@a_user.class, 42).should be_nil
+
+    User.fetch_from_unit_of_work(@uow.uuid, @a_user.id).object.should eq(@a_user)
+    User.fetch_from_unit_of_work('c0ffeeb4b3', 42).should be_nil
   end
 
   it "correctly moves an object between states" do
@@ -50,7 +58,9 @@ describe UnitOfWork do
     found_tracked_objects.size.should eq(1)
     found_tracked_objects.first.object.should eq(@a_user)
 
-    @a_user.units_of_work[@uow.uuid].should eq UnitOfWork::STATE_DIRTY
+    found_uow = @a_user.units_of_work
+    found_uow.size.should eq(1)
+    found_uow[0].state.should eq(UnitOfWork::STATE_DIRTY)
   end
 
   it "correctly saves changes to dirty objects when calling commit" do
@@ -60,7 +70,7 @@ describe UnitOfWork do
     @uow.tracked_objects.fetch_by_state(UnitOfWork::STATE_DIRTY).length.should eq(1)
     @uow.tracked_objects.fetch_by_state(UnitOfWork::STATE_DIRTY)[0].object.should eq(@a_user)
     @uow.valid.should eq(true)
-    @a_user.units_of_work[@uow.uuid].should == UnitOfWork::STATE_DIRTY
+    @a_user.units_of_work[0].state.should eq(UnitOfWork::STATE_DIRTY)
 
     @a_user = User.fetch_by_id(1)
     @a_user.name.should eq('Andrew')
@@ -72,7 +82,7 @@ describe UnitOfWork do
     @uow.tracked_objects.fetch_by_state(UnitOfWork::STATE_DIRTY).length.should eq(0)
     @uow.tracked_objects.fetch_by_state(UnitOfWork::STATE_DELETED)[0].object.should eq(@a_user)
 
-    @a_user.units_of_work[@uow.uuid].should eq UnitOfWork::STATE_DELETED
+    @a_user.units_of_work[0].state.should eq(UnitOfWork::STATE_DELETED)
 
     @uow.commit
 
@@ -99,7 +109,7 @@ describe UnitOfWork do
     @uow.tracked_objects.fetch_by_state(UnitOfWork::STATE_DIRTY).length.should eq(1)
     @uow.tracked_objects.fetch_by_state(UnitOfWork::STATE_DIRTY)[0].object.should eq(@a_user)
     @uow.valid.should eq(true)
-    @a_user.units_of_work[@uow.uuid].should == UnitOfWork::STATE_DIRTY
+    @a_user.units_of_work[0].state.should eq(UnitOfWork::STATE_DIRTY)
   end
 
   it "sets deleted objects to dirty and reloads dirty and deleted objects when calling rollback" do
