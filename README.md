@@ -1,17 +1,13 @@
 Sequel + Unit Of Work
 ---------------------
-This is an experiment that attempts to apply some DDD/PoEA best practices on top of Sequel's Active Record layer
-(blasphemy!):
+This is an experiment (not yet thead safe!!!) that attempts to apply some PoEA best practices on top of Sequel's Active Record layer
+(blasphemy!). The goal is being able to manage both transactions and concurrency with an ORM-agnostic aproach. Here you'll find some
+interesting patterns:
 
 * Repository
 * Mapper
-
-The goal is managing both transactions and concurrency with an ORM-agnostic aproach. Because of that, additional
-DDD/PoEA patterns have been implemented:
-
 * Unit Of Work (UoW) with Offline Pessimistic Locking
-* A Registry for finding active UoW
-
+* A Registry for finding active UoWs
 
 ### Installation
 First install the gem `gem 'sequel-uow', :git => 'git://github.com/nandosola/sequel-uow.git'`
@@ -92,6 +88,8 @@ end
 
 ### TO-DO
 * Process COMPLETE and CANCEL URI commands
+* Thread safety
+* UML docs
 * ...
 
 ### License
