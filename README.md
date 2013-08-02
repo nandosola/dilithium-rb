@@ -9,13 +9,14 @@ interesting patterns:
 * Unit Of Work (UoW) with Offline Pessimistic Locking
 * A Registry for finding active UoWs
 
+Until a real Data Mapper pattern (in [DataMapper](http://datamapper.org/articles/the_great_refactoring.html) or [ROM](http://rom-rb.org/))
+is implemented in Rubby, our domain objects must extend `Sequel::Model`. To this date, Sequel is the most lightweight Ruby ORM. It also 
+supports a "dataset" mode, which could be used by `sequel-uow` in the future instead of twisting the concepts behind `Sequel::Model`.
+
 ### Installation
 First install the gem via Bundler: `gem 'sequel-uow', :git => 'git://github.com/nandosola/sequel-uow.git'`
 
 ### Sample usage
-Until a [real Data Mapper pattern](http://datamapper.org/articles/the_great_refactoring.html)
-is implemented in Rubby, our domain objects must extend `Sequel::Model`.
-
 The gem includes a `FinderService` facade to be used by our domain objects so that their active transactions can be found:
 
 ```ruby
