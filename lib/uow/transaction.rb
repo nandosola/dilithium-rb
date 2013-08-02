@@ -78,7 +78,7 @@ module UnitOfWork
     def commit
       check_valid_uow
 
-      # TODO: Check optimistic concurrency (in a subclass)
+      # TODO: Check optimistic concurrency (in a subclass) - it has an additional :stale state
       # TODO handle Repository::DatabaseError
       @@mapper.transaction do
         @object_tracker.fetch_by_state(STATE_NEW).each { |res| @@mapper.save(res.object) }

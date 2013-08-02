@@ -10,13 +10,13 @@ interesting patterns:
 * A Registry for finding active UoWs
 
 ### Installation
-First install the gem `gem 'sequel-uow', :git => 'git://github.com/nandosola/sequel-uow.git'`
+First install the gem via Bundler: `gem 'sequel-uow', :git => 'git://github.com/nandosola/sequel-uow.git'`
 
 ### Sample usage
 Until a [real Data Mapper pattern](http://datamapper.org/articles/the_great_refactoring.html)
 is implemented in Rubby, our domain objects must extend `Sequel::Model`.
 
-The gem includes a FinderService facade to be used by our domain objects so that their active transactions can be found:
+The gem includes a `FinderService` facade to be used by our domain objects so that their active transactions can be found:
 
 ```ruby
 require 'sequel-uow'
@@ -58,7 +58,18 @@ class User < Sequel::Model
 end
 ```
 
-For a simple Sinatra web application:
+`UnitOfWork::Transaction` instances handle the states and their persistence:
+
+* `register_new`
+* `register_clean`
+* `register_dirty`
+* `register_deleted`
+* `commit`
+* `rollback`
+* `complete`
+
+
+For a simple Sinatra, CRUD-like web application:
 ```ruby
 post '/activities/user/new' do
 
@@ -70,6 +81,7 @@ end
 
 # ...
 
+# update command
 put '/transactions/:uuid/user/:id/update' do
 
   parsed_body = JsonParserService.parse(body)  # To be implemented by the developer
@@ -88,9 +100,14 @@ end
 ```
 
 ### TO-DO
-* Process COMPLETE and CANCEL URI commands
+* Validate state transitions
+* Process URI CRUD commands as a group of `Transaction` operations
+* Aggregate handling
+* Example/test with complex (multi-object) transaction
 * Thread safety
-* UML docs
+* Serialize state-keeping structures to files
+* Optimistic offline concurrency handler
+* RDocs & UML docs
 * ...
 
 ### License
