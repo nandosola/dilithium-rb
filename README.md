@@ -87,7 +87,7 @@ put '/transactions/:uuid/user/:id/update' do
   parsed_body = JsonParserService.parse(body)  # To be implemented by the developer
 
   result = User.fetch_from_transaction(:uuid, :id)
-    # returns a TrackedObjectSearchResult or nil
+    # returns a TransactionRegistry::Registry::SearchResult or nil
 
   user = result.object
   transaction = result.transaction
