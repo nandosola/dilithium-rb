@@ -41,12 +41,12 @@ module UnitOfWork
     end
 
     def register_deleted(obj)
-      check_register_dirty(obj)
+      check_register_deleted(obj)
       register_entity(obj, STATE_DELETED)
     end
 
     def register_new(obj)
-      check_register_dirty(obj)
+      check_register_new(obj)
       register_entity(obj, STATE_NEW)
     end
 

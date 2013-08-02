@@ -30,7 +30,7 @@ module UnitOfWork
       def find_transactions(obj)
         @@registry.reduce([]) do |m,(uuid,tr)|
           res = tr.fetch_object(obj)
-          if !res.nil? && obj === res.object
+          if !res.nil? && obj == res.object
             m<< SearchResult.new(tr, res)
           else
             m

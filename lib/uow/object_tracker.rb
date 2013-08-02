@@ -102,7 +102,8 @@ module UnitOfWork
     end
 
     def fetch_object(obj)
-      found_array = @tracker.select {|to| obj === to.object}
+
+      found_array = @tracker.select {|to| obj == to.object}
       TrackedObjectSearchResult.factory(found_array, TrackedObjectSearchResult::SINGLE_T)
     end
 
@@ -125,7 +126,7 @@ module UnitOfWork
 
     private
     def fetch_tracked_object(obj)
-      found_array = @tracker.select {|to| obj === to.object}
+      found_array = @tracker.select {|to| obj == to.object}
       TrackedObjectSearchResult.check_single_or_empty_result(found_array)
       found_array[0]
     end

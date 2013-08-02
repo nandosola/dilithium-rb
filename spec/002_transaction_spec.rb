@@ -11,6 +11,8 @@ describe UnitOfWork::Transaction do
     UnitOfWork::Transaction.mapper = Mapper::Sequel.new
     @transaction = UnitOfWork::Transaction.new
     @a_user = User.fetch_by_id(1)
+    @b_user = User.fetch_by_id(2)
+    @new_user = User.new
   end
 
   it "has a unique identifier" do
@@ -34,7 +36,6 @@ describe UnitOfWork::Transaction do
     res.transaction.should eq(@transaction)
     res.state.should eq(UnitOfWork::Transaction::STATE_CLEAN)
 
-    @b_user = User.fetch_by_id(2)
     @b_user.transactions.should be_empty
   end
 
@@ -69,7 +70,6 @@ describe UnitOfWork::Transaction do
     @transaction.valid.should eq(true)
     @a_user.transactions[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
 
-    @a_user = User.fetch_by_id(1)
     @a_user.name.should eq('Andrew')
   end
 
@@ -89,11 +89,36 @@ describe UnitOfWork::Transaction do
   end
 
   it "saves new objects and marks them as dirty when calling commit" do
-    pending
+    @transaction.register_new(@new_user)
+    @new_user.set_all({name:'Danny', email:'danny@example.net' })
+
+    found_tracked_objects = @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_NEW)
+    found_tracked_objects.size.should eq(1)
+    found_tracked_objects.first.object.should eq(@new_user)
+
+    res = @new_user.transactions
+    res.size.should eq(1)
+    res[0].object.should eq(@new_user)
+    res[0].transaction.should eq(@transaction)
+    res[0].state.should eq(UnitOfWork::Transaction::STATE_NEW)
+
+    @transaction.commit
+    User[name:'Danny'].should_not be_nil
+
+    res = @new_user.transactions
+    res.size.should eq(1)
+    res[0].object.should eq(@new_user)
+    res[0].transaction.should eq(@transaction)
+    res[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
   end
 
   it "removes deleted objects from the transaction when calling commit" do
-    pending
+    @transaction.register_deleted(@new_user)
+    @transaction.commit
+    User[name:'Danny'].should be_nil
+    found_tracked_object = @transaction.tracked_objects.fetch_object(@new_user)
+    found_tracked_object.should be_nil
+    @new_user.transactions.should be_empty
   end
 
   it "does not affect objects when calling rollback" do
