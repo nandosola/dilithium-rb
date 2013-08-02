@@ -1,6 +1,6 @@
 Sequel + Unit Of Work
 ---------------------
-This is an experiment (not yet thead safe!!!) that attempts to apply some PoEA best practices on top of Sequel's Active Record layer
+This is an experiment (not yet thread safe!!!) that attempts to apply some PoEA best practices on top of Sequel's Active Record layer
 (blasphemy!). The goal is being able to manage both transactions and concurrency with an ORM-agnostic aproach. Here you'll find some
 interesting patterns:
 
@@ -76,7 +76,7 @@ post '/activities/user/new' do
   transaction = UnitOfWork::Transaction.new()
   a_user = User.new()
   transaction.register_new(a_user)
-  # ... return 201
+  [201, "{id: #{transaction.uuid}}"]  # commands could be sent as hypermedia
 end
 
 # ...
@@ -96,6 +96,7 @@ put '/transactions/:uuid/user/:id/update' do
   user.set_all(parsed_body)
   transaction.commit
   transaction.complete
+  200
 end
 ```
 
