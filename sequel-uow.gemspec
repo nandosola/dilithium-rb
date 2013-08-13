@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
   s.files = Dir['./LICENSE']
   s.files += Dir['lib/**/*']
 
-  s.add_runtime_dependency 'sequel', '~> 4.0.0'
+  s.add_runtime_dependency 'sequel', '~> 4.1.0'
 
   s.add_development_dependency 'rake', '~> 0.9.6'
   s.add_development_dependency 'sqlite3', '~> 1.3.7'
