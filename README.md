@@ -112,6 +112,10 @@ end
 * RDocs & UML docs
 * ...
 
+### See also
+
+The [datamappify](https://github.com/fredwu/datamappify) project is very interesting.
+
 ### License
 Licensed under the [New BSD License](http://opensource.org/licenses/BSD-3-Clause). See LICENSE file for more details.
 
