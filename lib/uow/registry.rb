@@ -18,8 +18,8 @@ module UnitOfWork
       def initialize
         @@registry = {}
       end
-      def [](tr)
-        @@registry[tr]
+      def [](tr_uuid)
+        @@registry[tr_uuid]
       end
       def <<(tr)
         @@registry[tr.uuid.to_sym] = tr
