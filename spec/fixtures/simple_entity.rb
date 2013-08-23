@@ -19,3 +19,9 @@ class User < BaseEntity
   extend Repository::Sequel::UserCustomFinders
 end
 
+
+$database.create_table :users do
+  primary_key :id
+  String :name
+  String :email
+end

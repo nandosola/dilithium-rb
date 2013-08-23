@@ -7,7 +7,7 @@ module Repository
         base.instance_eval do
 
           def fetch_by_id(id, eager=true)
-            root_name = self.to_s.split('::').last.downcase
+            root_name = self.to_s.split('::').last.underscore.downcase
             root_table = root_name.pluralize
             found_h = DB[root_table.to_sym].where(id:id).all.first
             unless found_h.nil?
@@ -42,7 +42,7 @@ module Repository
 
           def attach_children
             if defined?(self.class::CHILDREN) and self.class::CHILDREN.is_a?(Array) and !self.class::CHILDREN.empty?
-              parent_name = self.class.to_s.split('::').last.downcase
+              parent_name = self.class.to_s.split('::').last.underscore.downcase
               self.class::CHILDREN.each do |child_name|
                 children_h = DB[child_name].where("#{parent_name}_id".to_sym=> self.id).all
                 unless children_h.nil?

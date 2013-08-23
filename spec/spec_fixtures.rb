@@ -1,4 +1,5 @@
 require_relative 'fixtures/simple_entity'
+require_relative 'fixtures/aggregate_root'
 
 module SpecFixtures
   def insert_test_users

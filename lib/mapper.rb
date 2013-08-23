@@ -5,8 +5,8 @@ module Mapper
     def self.included(base)
       base.class_eval do
         def create(parent_identity={})
-          check_uow_transaction
-          parent_name = self.class.to_s.split('::').last.downcase
+          check_uow_transaction if parent_identity.empty?  # It's the root
+          parent_name = self.class.to_s.split('::').last.underscore.downcase
           parent_table = parent_name.pluralize
 
           DB.transaction(:rollback=> :reraise) do
@@ -42,7 +42,7 @@ module Mapper
 
         def delete
           check_uow_transaction
-          name = self.class.to_s.split('::').last.downcase
+          name = self.class.to_s.split('::').last.underscore.downcase
           table = name.pluralize
 
           DB.transaction(:rollback=> :reraise) do
@@ -52,7 +52,7 @@ module Mapper
 
         def update
           check_uow_transaction
-          name = self.class.to_s.split('::').last.downcase
+          name = self.class.to_s.split('::').last.underscore.downcase
           table = name.pluralize
 
           DB.transaction(:rollback=> :reraise) do

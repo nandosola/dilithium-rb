@@ -89,7 +89,7 @@ class BaseEntity
 
       define_method("make_#{child.to_s.singularize}".to_sym) do |in_h|
         a_child = Object.const_get(child.to_s.singularize.camelize).new(in_h)
-        a_child.send("#{self.class.to_s.split('::').last.downcase}=".to_sym, self)
+        a_child.send("#{self.class.to_s.split('::').last.underscore.downcase}=".to_sym, self)
         prev = self.instance_variable_get("@#{child}".to_sym)
         self.instance_variable_set("@#{child}".to_sym, prev<<a_child)
         a_child

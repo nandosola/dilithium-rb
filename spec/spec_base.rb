@@ -6,13 +6,6 @@ require 'logger'
 $database = Sequel.sqlite
 #$database.logger = Logger.new($stdout)
 
-# create an items table
-$database.create_table :users do
-  primary_key :id
-  String :name
-  String :email
-end
-
 $:<< File.join(File.dirname(__FILE__), '..')
 require_relative 'spec_fixtures'
 include SpecFixtures
