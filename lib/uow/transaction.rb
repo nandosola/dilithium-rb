@@ -2,6 +2,9 @@
 
 module UnitOfWork
   class Transaction
+
+    DB = $database
+
     STATE_NEW = :new
     STATE_DIRTY = :dirty
     STATE_CLEAN = :clean
@@ -17,11 +20,6 @@ module UnitOfWork
       TransactionRegistry::Registry.instance<< self
     end
 
-    def self.mapper= mapper
-      raise RuntimeError, "Mapper can only be defined once" unless @mapper.nil?
-      @@mapper = mapper
-    end
-
     def fetch_object_by_id(obj_class, obj_id)
       @object_tracker.fetch_by_class(obj_class, obj_id)
     end
@@ -29,6 +27,8 @@ module UnitOfWork
     def fetch_object(obj)
       @object_tracker.fetch_object(obj)
     end
+
+    # TODO only is_a?BasicEntity can be registered in a transaction
 
     def register_clean(obj)
       check_register_clean(obj)
@@ -68,8 +68,8 @@ module UnitOfWork
 
     def rollback
       check_valid_uow
-      @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @@mapper.reload(res.object) }
-      @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @@mapper.reload(res.object) }
+      @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| res.object.reload }
+      @object_tracker.fetch_by_state(STATE_DELETED).each { |res| res.object.reload }
 
       move_all_objects(STATE_DELETED, STATE_DIRTY)
       @committed = true
@@ -80,10 +80,10 @@ module UnitOfWork
 
       # TODO: Check optimistic concurrency (in a subclass) - it has an additional :stale state
       # TODO handle Repository::DatabaseError
-      @@mapper.transaction do
-        @object_tracker.fetch_by_state(STATE_NEW).each { |res| @@mapper.save(res.object) }
-        @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @@mapper.save(res.object) }
-        @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @@mapper.delete(res.object) }
+      DB.transaction do
+        @object_tracker.fetch_by_state(STATE_NEW).each { |res| res.object.create }
+        @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| res.object.update }
+        @object_tracker.fetch_by_state(STATE_DELETED).each { |res| res.object.delete }
 
         clear_all_objects_in_state(STATE_DELETED)
         move_all_objects(STATE_NEW, STATE_DIRTY)

@@ -8,7 +8,6 @@ describe UnitOfWork::Transaction do
         @object_tracker
       end
     end
-    UnitOfWork::Transaction.mapper = Mapper::Sequel.new
     @transaction = UnitOfWork::Transaction.new
     @a_user = User.fetch_by_id(1)
     @b_user = User.fetch_by_id(2)
@@ -48,7 +47,7 @@ describe UnitOfWork::Transaction do
   end
 
   it "correctly moves an object between states" do
-    @a_user.name = 'Andrew'
+    @a_user.name= 'Andrew'
     @transaction.register_dirty(@a_user)
 
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_CLEAN).length.should eq(0)
@@ -83,14 +82,14 @@ describe UnitOfWork::Transaction do
 
     @transaction.commit
 
-    User[:id=>1].should be_nil
+    User.fetch_by_id(1).should be_nil
     @a_user.transactions.length.should eq(0)
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DELETED).length.should eq(0)
   end
 
   it "saves new objects and marks them as dirty when calling commit" do
     @transaction.register_new(@new_user)
-    @new_user.set_all({name:'Danny', email:'danny@example.net' })
+    @new_user.make({name:'Danny', email:'danny@example.net' })
 
     found_tracked_objects = @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_NEW)
     found_tracked_objects.size.should eq(1)
@@ -103,7 +102,7 @@ describe UnitOfWork::Transaction do
     res[0].state.should eq(UnitOfWork::Transaction::STATE_NEW)
 
     @transaction.commit
-    User[name:'Danny'].should_not be_nil
+    User.fetch_by_name('Danny').should_not be_nil
 
     res = @new_user.transactions
     res.size.should eq(1)
@@ -115,7 +114,7 @@ describe UnitOfWork::Transaction do
   it "removes deleted objects from the transaction when calling commit" do
     @transaction.register_deleted(@new_user)
     @transaction.commit
-    User[name:'Danny'].should be_nil
+    User.fetch_by_name('Danny').should be_empty
     found_tracked_object = @transaction.tracked_objects.fetch_object(@new_user)
     found_tracked_object.should be_nil
     @new_user.transactions.should be_empty

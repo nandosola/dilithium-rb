@@ -1,10 +1,13 @@
 require 'pp'
 require 'sequel'
+require 'logger'
+
 # connect to an in-memory database
-DB = Sequel.sqlite
+$database = Sequel.sqlite
+#$database.logger = Logger.new($stdout)
 
 # create an items table
-DB.create_table :users do
+$database.create_table :users do
   primary_key :id
   String :name
   String :email
