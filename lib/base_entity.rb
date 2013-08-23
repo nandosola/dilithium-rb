@@ -53,6 +53,9 @@ class BaseEntity
   # TODO: check_reserved_keys(in_h) => :metadata
 
   def load_attributes(in_h)
+    if defined?(self.class::PARENT) and !self.class::PARENT.nil?
+      initialize_attribute(self.class::PARENT)
+    end
     if defined?(self.class::CHILDREN) and self.class::CHILDREN.is_a?(Array) and !self.class::CHILDREN.empty?
       self.class::CHILDREN.each do |child|
         initialize_attribute(child, [], :aggregate)

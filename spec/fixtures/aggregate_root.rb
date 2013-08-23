@@ -12,11 +12,11 @@ end
 
 class LocalOffice < BaseEntity
   CHILDREN = [:addresses]
-  attr_accessor :company
+  PARENT = :company
 end
 
 class Address < BaseEntity
-  attr_accessor :local_office
+  PARENT = :local_office
 end
 
 $database.create_table(:companies) do
