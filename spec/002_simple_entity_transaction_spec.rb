@@ -8,7 +8,7 @@ describe UnitOfWork::Transaction do
         @object_tracker
       end
     end
-    @transaction = UnitOfWork::Transaction.new
+    @transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
     @a_user = User.fetch_by_id(1)
     @b_user = User.fetch_by_id(2)
     @new_user = User.new

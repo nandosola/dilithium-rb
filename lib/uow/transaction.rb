@@ -3,8 +3,6 @@
 module UnitOfWork
   class Transaction
 
-    DB = $database
-
     STATE_NEW = :new
     STATE_DIRTY = :dirty
     STATE_CLEAN = :clean
@@ -12,11 +10,12 @@ module UnitOfWork
     ALL_STATES = [STATE_NEW, STATE_DIRTY, STATE_CLEAN, STATE_DELETED]
     attr_reader :uuid, :valid, :committed
 
-    def initialize
+    def initialize(mapper_class)
       @uuid = UUIDGenerator.generate
       @valid = true
       @committed = false
       @object_tracker = ObjectTracker.new(ALL_STATES)
+      @mapper = mapper_class
       TransactionRegistry::Registry.instance<< self
     end
 
@@ -68,8 +67,8 @@ module UnitOfWork
 
     def rollback
       check_valid_uow
-      @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| res.object.reload }
-      @object_tracker.fetch_by_state(STATE_DELETED).each { |res| res.object.reload }
+      @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @mapper.reload(res.object) }
+      @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.reload(res.object) }
 
       move_all_objects(STATE_DELETED, STATE_DIRTY)
       @committed = true
@@ -80,10 +79,10 @@ module UnitOfWork
 
       # TODO: Check optimistic concurrency (in a subclass) - it has an additional :stale state
       # TODO handle Repository::DatabaseError
-      DB.transaction do
-        @object_tracker.fetch_by_state(STATE_NEW).each { |res| res.object.create }
-        @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| res.object.update }
-        @object_tracker.fetch_by_state(STATE_DELETED).each { |res| res.object.delete }
+      @mapper.transaction do
+        @object_tracker.fetch_by_state(STATE_NEW).each { |res| @mapper.insert(res.object) }
+        @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @mapper.update(res.object) }
+        @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.delete(res.object) }
 
         clear_all_objects_in_state(STATE_DELETED)
         move_all_objects(STATE_NEW, STATE_DIRTY)

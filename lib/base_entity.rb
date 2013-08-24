@@ -1,11 +1,10 @@
 class BaseEntity
-  include Mapper::Sequel
   extend Repository::Sequel::ClassFinders
   include Repository::Sequel::InstanceFinders
   extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
   include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
 
-  attr_reader :id
+  attr_accessor :id
 
   def initialize(in_h={})
     # TODO check in_h is_a? Hash
@@ -43,11 +42,6 @@ class BaseEntity
   #alias_method :==, :eql?
 
   private
-
-  def id=(id)
-    @id = id
-  end
-
   protected
 
   # TODO: check_reserved_keys(in_h) => :metadata

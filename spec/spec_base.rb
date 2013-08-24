@@ -2,7 +2,6 @@ require 'pp'
 require 'sequel'
 require 'logger'
 
-# connect to an in-memory database
 $database = Sequel.sqlite
 #$database.logger = Logger.new($stdout)
 

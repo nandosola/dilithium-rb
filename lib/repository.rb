@@ -1,6 +1,7 @@
 module Repository
+  DB = $database
+
   module Sequel
-    DB = $database
     module ClassFinders
 
       def self.extended(base)

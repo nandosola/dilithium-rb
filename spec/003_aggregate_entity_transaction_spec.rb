@@ -6,7 +6,7 @@ describe UnitOfWork::Transaction do
         @object_tracker
       end
     end
-    @transaction = UnitOfWork::Transaction.new
+    @transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
   end
 
   it 'creates a new company in the database and retrieves it correctly' do
@@ -41,10 +41,6 @@ describe UnitOfWork::Transaction do
     a_company.local_offices[1].description.should eq('branch2')
     a_company.local_offices[1].addresses[0].class.should eq(Address)
     a_company.local_offices[1].addresses[0].description.should eq('addr2.1')
-
-    expect {a_company.local_offices[1].create}.to raise_error(RuntimeError)
-    expect {a_company.local_offices[1].addresses[0].create}.to raise_error(RuntimeError)
-    #expect {a_company.create}.to raise_error(RuntimeError) ???
 
     @transaction.commit
 

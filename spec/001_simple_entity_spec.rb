@@ -19,8 +19,7 @@ describe User do
   it "does not allow persistence operations without being assigned to a Unit of Work" do
     norbert = {:name => 'Norbert', :email => 'norb@example.net'}
     new_user = User.new(norbert)
-    expect {new_user.create}.to raise_error(RuntimeError)
-    transaction = UnitOfWork::Transaction.new
+    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
     transaction.register_new(new_user)
     transaction.commit
     transaction.complete
