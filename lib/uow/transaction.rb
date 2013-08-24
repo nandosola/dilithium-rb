@@ -18,7 +18,7 @@ module UnitOfWork
     end
 
     def self.mapper= mapper
-      raise RuntimeError, "Mapper can only be defined once" unless @mapper.nil?
+      raise RuntimeError, "Mapper can only be defined once" unless @@mapper.nil?
       @@mapper = mapper
     end
 
