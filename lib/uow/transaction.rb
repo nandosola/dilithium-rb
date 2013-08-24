@@ -18,8 +18,7 @@ module UnitOfWork
     end
 
     def self.mapper= mapper
-      raise RuntimeError, "Mapper can only be defined once" unless @@mapper.nil?
-      @@mapper = mapper
+      @@mapper ||= mapper
     end
 
     def fetch_object_by_id(obj_class, obj_id)
