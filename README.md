@@ -114,7 +114,8 @@ end
 
 ### See also
 
-The [datamappify](https://github.com/fredwu/datamappify) project is very interesting.
+* [datamappify](https://github.com/fredwu/datamappify)
+* [Ruby Object Mapper](https://github.com/rom-rb/rom)
 
 ### License
 Licensed under the [New BSD License](http://opensource.org/licenses/BSD-3-Clause). See LICENSE file for more details.
