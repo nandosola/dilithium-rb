@@ -1,5 +1,3 @@
-require 'lib/sequel-uow'
-
 module Repository
   module Sequel
     module UserCustomFinders
@@ -18,7 +16,6 @@ end
 class User < BaseEntity
   extend Repository::Sequel::UserCustomFinders
 end
-
 
 $database.create_table :users do
   primary_key :id

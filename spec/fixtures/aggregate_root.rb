@@ -1,5 +1,3 @@
-require 'lib/sequel-uow'
-
 String.inflections do |inflect|
   inflect.irregular 'company', 'companies'
   inflect.irregular 'local_office', 'local_offices'

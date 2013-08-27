@@ -8,6 +8,5 @@ require 'sequel'
 # Load plugins/extensions for every model
 Sequel.extension :inflector
 
-require 'mapper'
-require 'repository'
+require 'persistence_service'
 require 'base_entity'

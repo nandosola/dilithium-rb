@@ -1,7 +1,13 @@
 module Repository
-  DB = $database
+
+  # TODO
+  #   Use inside a Repository class. Access it as QueryObject (Repository.query(class, criteria)
+  #   or via SpecificationPattern (http://devlicio.us/blogs/casey/archive/2009/03/02/ddd-the-specification-pattern.aspx)
+  # TODO caching layer
+  # TODO get map inside Repository
 
   module Sequel
+
     module ClassFinders
 
       def self.extended(base)

@@ -1,6 +1,4 @@
 module Mapper
-  DB = $database
-
 
   class Sequel
 
