@@ -4,7 +4,23 @@ class BaseEntity
   extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
   include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
 
+  CHILDREN = []
+  PARENT = nil
+
   attr_accessor :id
+
+  # Returns entity defined parent
+  def self.parent
+    self::PARENT
+  end
+
+  def self.has_children?
+    !children.empty?
+  end
+
+  def self.children
+    self::CHILDREN
+  end
 
   def initialize(in_h={})
     # TODO check in_h is_a? Hash
@@ -14,6 +30,18 @@ class BaseEntity
   def make(in_h)
     #@metadata.mark_for_creation
     load_attributes(in_h)
+  end
+
+  # Executes a proc for each child, passing child as parameter to proc.
+  def each_child
+    if self.class.has_children?
+      self.class.children.each do |children_type|
+        children = Array(self.send(children_type))
+        children.each do |child|
+          yield(child)
+        end
+      end
+    end
   end
 
   def destroy
