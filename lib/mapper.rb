@@ -28,9 +28,7 @@ module Mapper
       Sequel.check_uow_transaction(entity)
 
       transaction do
-        # TODO Implement entity deactivation instead of deletion for more
-        # flexibility.
-        DB[to_table_name(entity)].where(id: entity.id).delete
+        DB[to_table_name(entity)].where(id: entity.id).update(active: false)
 
         entity.each_child do |child|
           Sequel.delete(child)

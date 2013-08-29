@@ -23,12 +23,14 @@ $database.create_table(:companies) do
   String :url
   String :email
   String :vat_number
+  Boolean :active, :default => true
 end
 
 $database.create_table(:local_offices) do
   primary_key :id
   String :description
   foreign_key :company_id, :companies
+  Boolean :active, :default => true
 end
 
 $database.create_table(:addresses) do
@@ -45,4 +47,5 @@ $database.create_table(:addresses) do
   String :email
   TrueClass :office, :default => true
   TrueClass :warehouse, :default => false
+  Boolean :active, :default => true
 end
