@@ -1,7 +1,29 @@
 describe User do
 
   before(:all) do
+    Mapper::Sequel.create_tables(User)
     insert_test_users
+  end
+
+  before_attrs = User.attributes
+
+  it "is not messed with by another entities" do
+    class AnotherThing < BaseEntity
+      attribute :my_thing, String, mandatory:true
+    end
+
+    User.attributes.should eq(before_attrs)
+
+    a_user = User.new()
+    a_user.respond_to?(:id).should be_true
+    a_user.respond_to?(:id=).should be_true
+    a_user.respond_to?(:name).should be_true
+    a_user.respond_to?(:name=).should be_true
+    a_user.respond_to?(:email).should be_true
+    a_user.respond_to?(:email=).should be_true
+    a_user.instance_variables.include?(:'@my_thing').should be_false
+    a_user.respond_to?(:my_thing).should be_false
+    a_user.respond_to?(:my_thing=).should be_false
   end
 
   it "has repository finders" do
@@ -16,14 +38,47 @@ describe User do
     User.fetch_by_name('Charly').first.id.should eq(3)
   end
 
-  it "does not allow persistence operations without being assigned to a Unit of Work" do
+  it "acepts empty or full-hash constructors and validates its attributes" do
+
     norbert = {:name => 'Norbert', :email => 'norb@example.net'}
+    dilbert = {:name => 'Dilbert', :email => 'dilbert@example.net'}
+
     new_user = User.new(norbert)
+    another_user= User.new()
+
+    new_user.respond_to?(:id).should be_true
+    new_user.respond_to?(:id=).should be_true
+    new_user.respond_to?(:name).should be_true
+    new_user.respond_to?(:name=).should be_true
+    new_user.respond_to?(:email).should be_true
+    new_user.respond_to?(:email=).should be_true
+
+    expect {another_user.email = 42}.to raise_error(RuntimeError)
+    expect {another_user.name = 1337}.to raise_error(RuntimeError)
+    expect {User.new({:name => 'Catbert', :email => 1337})}.to raise_error(RuntimeError)
+    expect {User.new({:name => nil, :email => 'catbert@example.net'})}.to raise_error(RuntimeError)
+
+    another_user.make(dilbert)
+
+    another_user.id.should eq(nil)
+    another_user.name.should eq('Dilbert')
+    another_user.email.should eq('dilbert@example.net')
+
+    new_user.id.should eq(nil)
+    new_user.name.should eq('Norbert')
+    new_user.email.should eq('norb@example.net')
+
+    another_user.id.should eq(nil)
+    another_user.name.should eq('Dilbert')
+    another_user.email.should eq('dilbert@example.net')
+
     transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
     transaction.register_new(new_user)
+    transaction.register_new(another_user)
     transaction.commit
     transaction.complete
     User.fetch_by_name('Norbert').first.email.should eq('norb@example.net')
+    User.fetch_by_name('Dilbert').first.email.should eq('dilbert@example.net')
   end
 
   after(:all) do

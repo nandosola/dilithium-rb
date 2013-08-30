@@ -6,6 +6,16 @@ module Mapper
       DB.transaction &block
     end
 
+    def self.create_tables(*entity_classes)
+      entity_classes.each do |entity_class|
+        table_name = entity_class.to_s.split('::').last.underscore.downcase.pluralize
+
+        DB.create_table(table_name) do
+          Mapper::Sequel.schemify(entity_class){ |type,opts| eval("#{type} #{opts}") }
+        end
+      end
+    end
+
     def self.insert(base_entity, parent_identity={})
       Sequel.check_uow_transaction(base_entity) if parent_identity.empty?  # It's the root
       parent_name = base_entity.class.to_s.split('::').last.underscore.downcase
@@ -17,8 +27,8 @@ module Mapper
         row.delete(:id)
         id = DB[parent_table.to_sym].insert(row)
         base_entity.id = id
-        if defined?(base_entity.class::CHILDREN) and base_entity.class::CHILDREN.is_a?(Array) and !base_entity.class::CHILDREN.empty?
-          base_entity.class::CHILDREN.each do |child|
+        unless base_entity.class.child_references.empty?
+          base_entity.class.child_references.each do |child|
             parent_identity = {"#{parent_name}_id".to_sym=> id}
             child_attr = base_entity.send(child)
             if child_attr.is_a?(Array)
@@ -73,5 +83,20 @@ module Mapper
     def self.insert_child(obj, parent_identity)
       Sequel.insert(obj, parent_identity)
     end
+
+    def self.schemify(entity_class)
+      entity_class.attributes.each do |attr|
+        if entity_class.pk == attr.name
+          yield 'primary_key', ":#{attr.name}"
+        else
+          if attr.is_a?(::BaseEntity::ParentReference)
+            yield 'foreign_key', ":#{attr.reference}, :#{attr.name.to_s.pluralize}"
+          elsif attr.is_a?(::BaseEntity::Attribute)
+            yield "#{attr.type}", ":#{attr.name}"
+          end
+        end
+      end
+    end
+
   end
 end

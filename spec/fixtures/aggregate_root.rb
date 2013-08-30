@@ -5,44 +5,33 @@ String.inflections do |inflect|
 end
 
 class Company < BaseEntity
-  CHILDREN = [:local_offices]
+  children :local_offices
+
+  attribute :name, String
+  attribute :url, String
+  attribute :email, String
+  attribute :vat_number, String
 end
 
 class LocalOffice < BaseEntity
-  CHILDREN = [:addresses]
-  PARENT = :company
+  children  :addresses
+  parents :company
+
+  attribute :description, String
 end
 
 class Address < BaseEntity
-  PARENT = :local_office
-end
+  parents :local_office
 
-$database.create_table(:companies) do
-  primary_key :id
-  String :name
-  String :url
-  String :email
-  String :vat_number
-end
-
-$database.create_table(:local_offices) do
-  primary_key :id
-  String :description
-  foreign_key :company_id, :companies
-end
-
-$database.create_table(:addresses) do
-  primary_key :id
-  String :description
-  foreign_key :local_office_id, :local_offices
-  String :address
-  String :city
-  String :state
-  String :country
-  String :zip
-  String :phone
-  String :fax
-  String :email
-  TrueClass :office, :default => true
-  TrueClass :warehouse, :default => false
+  attribute :description, String
+  attribute :address, String
+  attribute :city, String
+  attribute :state, String
+  attribute :country, String
+  attribute :zip, String
+  attribute :phone, String
+  attribute :fax, String
+  attribute :email, String
+  #attribute :office, Boolean, :default => true
+  #attribute :warehouse, TrueClass, :default => false
 end

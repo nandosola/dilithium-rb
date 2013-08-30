@@ -48,19 +48,19 @@ module Repository
         base.class_eval do
 
           def attach_children
-            if defined?(self.class::CHILDREN) and self.class::CHILDREN.is_a?(Array) and !self.class::CHILDREN.empty?
+            unless self.class.child_references.empty?
               parent_name = self.class.to_s.split('::').last.underscore.downcase
-              self.class::CHILDREN.each do |child_name|
-                children_h = DB[child_name].where("#{parent_name}_id".to_sym=> self.id).all
-                unless children_h.nil?
-                  if children_h.is_a?(Array)
-                    unless children_h.empty?
-                      children_h.each do |child_h|
+              self.class.child_references.each do |child_name|
+                children = DB[child_name].where("#{parent_name}_id".to_sym=> self.id).all
+                unless children.nil?
+                  if children.is_a?(Array)
+                    unless children.empty?
+                      children.each do |child_h|
                         attach_child(self, child_name, child_h)
                       end
                     end
                   else
-                    attach_child(self, child_name, children_h)
+                    attach_child(self, child_name, children)
                   end
                 end
               end
@@ -68,7 +68,9 @@ module Repository
           end
 
           def attach_child(parent_obj, child_name, child_h)
-            child_obj = parent_obj.send("make_#{child_name.to_s.singularize}".to_sym, child_h)
+            child_h.delete_if{|k,v| k.to_s.end_with?('_id')}
+            method = "make_#{child_name.to_s.singularize}"
+            child_obj = parent_obj.send(method.to_sym, child_h)
             child_obj.attach_children
           end
 
