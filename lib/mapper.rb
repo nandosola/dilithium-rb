@@ -21,15 +21,17 @@ module Mapper
           Sequel.insert(child, entity.id)
         end
         entity.id
-      end # transaction
+      end
     end
 
     def self.delete(entity)
       Sequel.check_uow_transaction(entity)
 
       transaction do
+        # First deactivate entity
         DB[to_table_name(entity)].where(id: entity.id).update(active: false)
 
+        # Then recurse children for deactivating them
         entity.each_child do |child|
           Sequel.delete(child)
         end
