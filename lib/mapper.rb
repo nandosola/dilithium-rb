@@ -100,8 +100,7 @@ module Mapper
     # Params:
     # - entity: BaseEntity instance
     def self.to_parent_reference(entity)
-      # TODO: Work on parent array when multiple parents can be declared
-      "#{entity.class.parent_references.first}_id".to_sym
+      "#{entity.class.parent_reference}_id".to_sym
     end
   end
 end

@@ -15,13 +15,13 @@ end
 
 class LocalOffice < BaseEntity
   children  :addresses
-  parents :company
+  parent :company
 
   attribute :description, String
 end
 
 class Address < BaseEntity
-  parents :local_office
+  parent :local_office
 
   attribute :description, String
   attribute :address, String

@@ -80,17 +80,15 @@ class BaseEntity < IdPk
 
   def self.children(*names)
     names.each do |child|
-      self.class_variable_get(:'@@attributes')[child] =  ChildReference.new(child)
+      self.class_variable_get(:'@@attributes')[child] = ChildReference.new(child)
       self.attach_attribute_accessors(child, :aggregate)
       self.define_aggregate_method(child)
     end
   end
 
-  def self.parents(*names)
-    names.each do |parent|
-      self.class_variable_get(:'@@attributes')[parent] =  ParentReference.new(parent)
-      self.attach_attribute_accessors(parent, :parent)
-    end
+  def self.parent(parent)
+    self.class_variable_get(:'@@attributes')[parent] = ParentReference.new(parent)
+    self.attach_attribute_accessors(parent, :parent)
   end
 
   def self.attribute(name, type, *opts)
@@ -139,8 +137,10 @@ class BaseEntity < IdPk
   end
 
 
-  def self.parent_references
-    self.get_references(ParentReference)
+  def self.parent_reference
+    parent = self.get_references(ParentReference)
+    raise RuntimeException "found multiple parents" unless 1 == parent.size
+    parent.first
   end
   
   def self.child_references
