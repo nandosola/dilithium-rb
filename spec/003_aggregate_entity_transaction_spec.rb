@@ -1,5 +1,6 @@
 describe UnitOfWork::Transaction do
   before(:all) do
+    Mapper::Sequel.create_tables(Company, LocalOffice, Address)
     class UnitOfWork::Transaction
       # exposed ONLY for testing purposes
       def tracked_objects
@@ -92,7 +93,5 @@ describe UnitOfWork::Transaction do
 
 
     Company.fetch_all.size.should eq(2)
-
   end
-
 end

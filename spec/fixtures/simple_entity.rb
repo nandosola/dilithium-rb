@@ -15,11 +15,12 @@ end
 
 class User < BaseEntity
   extend Repository::Sequel::UserCustomFinders
+
+  #has_many :groups
+  attribute :name, String, mandatory:true
+  attribute :email, String
 end
 
-$database.create_table :users do
-  primary_key :id
-  String :name
-  String :email
-  Boolean :active, :default => true
-end
+#class Group < BaseEntity
+#  attribute :name, String, mandatory:true
+#end
