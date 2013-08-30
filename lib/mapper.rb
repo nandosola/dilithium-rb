@@ -1,8 +1,9 @@
 module Mapper
 
   class Sequel
+    TRANSACTION_DEFAULT_PARAMS = {:rollback => :reraise}
 
-    def self.transaction(&block)
+    def self.transaction(params = TRANSACTION_DEFAULT_PARAMS, &block)
       DB.transaction &block
     end
 
@@ -15,57 +16,41 @@ module Mapper
         end
       end
     end
+    
+    def self.insert(entity, parent_id = nil)
+      Sequel.check_uow_transaction(entity) unless parent_id  # It's the root
+      
+      transaction do
+        # First insert entity
+        entity_data = entity.to_h
+        entity_data[to_parent_reference(entity)] = parent_id if parent_id
+        entity.id = DB[to_table_name(entity)].insert(entity_data)
 
-    def self.insert(base_entity, parent_identity={})
-      Sequel.check_uow_transaction(base_entity) if parent_identity.empty?  # It's the root
-      parent_name = base_entity.class.to_s.split('::').last.underscore.downcase
-      parent_table = parent_name.pluralize
-
-      DB.transaction(:rollback=> :reraise) do
-        # It's gonna be run as a nested transaction inside the containing UoW
-        row = base_entity.to_h.merge(parent_identity)
-        row.delete(:id)
-        id = DB[parent_table.to_sym].insert(row)
-        base_entity.id = id
-        unless base_entity.class.child_references.empty?
-          base_entity.class.child_references.each do |child|
-            parent_identity = {"#{parent_name}_id".to_sym=> id}
-            child_attr = base_entity.send(child)
-            if child_attr.is_a?(Array)
-              unless child_attr.empty?
-                child_attr.each do |obj|
-                  Sequel.insert_child(obj, parent_identity)
-                end
-              end
-            else
-              Sequel.insert_child(child_attr, parent_identity)
-            end
-          end
+        # Then recurse children for inserting them
+        entity.each_child do |child|
+          Sequel.insert(child, entity.id)
         end
-        id
+        entity.id
       end # transaction
     end
 
-    # TODO: make work the methods below with Aggregate Roots
+    def self.delete(entity)
+      Sequel.check_uow_transaction(entity)
 
-    def self.delete(base_entity)
-      Sequel.check_uow_transaction(base_entity)
-      name = base_entity.class.to_s.split('::').last.underscore.downcase
-      table = name.pluralize
+      transaction do
+        DB[to_table_name(entity)].where(id: entity.id).update(active: false)
 
-      DB.transaction(:rollback=> :reraise) do
-        DB[table.to_sym].where(id:base_entity.id).delete
+        entity.each_child do |child|
+          Sequel.delete(child)
+        end
       end
     end
 
-    def self.update(base_entity)
-      Sequel.check_uow_transaction(base_entity)
-      name = base_entity.class.to_s.split('::').last.underscore.downcase
-      table = name.pluralize
+    def self.update(entity)
+      Sequel.check_uow_transaction(entity)
 
-      DB.transaction(:rollback=> :reraise) do
-        row = base_entity.to_h
-        DB[table.to_sym].where(id:base_entity.id).update(row)
+      transaction do
+        DB[to_table_name(entity)].where(id: entity.id).update(entity.to_h)
       end
     end
 
@@ -80,8 +65,17 @@ module Mapper
       raise RuntimeError, "Invalid Transaction" if base_entity.transactions.empty?
     end
 
-    def self.insert_child(obj, parent_identity)
-      Sequel.insert(obj, parent_identity)
+    # Returns an entity associated DB table name
+    #
+    # Example:
+    #   Employee => :employees
+    #
+    # Params:
+    # - entity: entity for converting class to table name
+    # Returns:
+    #   Symbol with table name
+    def self.to_table_name(entity)
+      entity.class.to_s.split('::').last.underscore.downcase.pluralize.to_sym
     end
 
     def self.schemify(entity_class)
@@ -92,11 +86,22 @@ module Mapper
           if attr.is_a?(::BaseEntity::ParentReference)
             yield 'foreign_key', ":#{attr.reference}, :#{attr.name.to_s.pluralize}"
           elsif attr.is_a?(::BaseEntity::Attribute)
-            yield "#{attr.type}", ":#{attr.name}"
+            default = attr.default.nil? ? 'nil' : attr.default
+            yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
           end
         end
       end
     end
 
+    # Returns an entity associated parent reference field name.
+    #
+    # Example:
+    #   :employee => :employee_id
+    # Params:
+    # - entity: BaseEntity instance
+    def self.to_parent_reference(entity)
+      # TODO: Work on parent array when multiple parents can be declared
+      "#{entity.class.parent_references.first}_id".to_sym
+    end
   end
 end

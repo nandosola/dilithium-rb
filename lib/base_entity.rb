@@ -12,7 +12,7 @@ class BaseEntity < IdPk
   extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
   include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
 
-  private
+  attr_accessor :id
 
   class Attribute
     attr_reader :name, :type, :default
@@ -25,7 +25,11 @@ class BaseEntity < IdPk
     end
     def check_constraints(value)  # check invariant constraints, called by setter
       raise RuntimeError, "#{@name} must be defined" if @mandatory && value.nil?
-      raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless value.nil? || value.is_a?(@type)
+      if [TrueClass, FalseClass].include?@type
+        raise RuntimeError, "#{@name} must be a boolean - got: #{value.class}" unless !!value == value
+      else
+        raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless value.nil? || value.is_a?(@type)
+      end
     end
   end
 
@@ -59,13 +63,14 @@ class BaseEntity < IdPk
     end
   end
 
-
-  public
-
   def self.inherited(base)
     base.class_variable_set(:'@@attributes',{PRIMARY_KEY[:identifier]=>Attribute.new(
         PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])})
     base.attach_attribute_accessors(PRIMARY_KEY[:identifier])
+
+    base.class_variable_get(:'@@attributes')[:active] = Attribute.new(:active,TrueClass, false, true)
+    base.attach_attribute_accessors(:active)
+
     base.instance_eval do
       def attributes
         self.class_variable_get(:'@@attributes').values
@@ -111,13 +116,15 @@ class BaseEntity < IdPk
     load_attributes(in_h)
   end
 
-  def destroy
-    if defined?(self.class::CHILDREN) and self.class::CHILDREN.is_a?(Array) and !self.class::CHILDREN.empty?
-      self.class::CHILDREN.each do |child|
-        send("destroy_#{child}".to_sym)
+  # Executes a proc for each child, passing child as parameter to proc
+  def each_child
+    if self.class.has_children?
+      self.class.child_references.each do |children_type|
+        children = Array(self.send(children_type))
+        children.each do |child|
+          yield(child)
+        end
       end
-    else
-      #@metadata.mark_for_deletion unless @id.nil?
     end
   end
 
@@ -132,10 +139,16 @@ class BaseEntity < IdPk
   end
 
 
+  def self.parent_references
+    self.get_references(ParentReference)
+  end
+  
   def self.child_references
-    attrs = self.attributes
-    refs = attrs.reduce([]){|m,attr| attr.is_a?(ChildReference) ? m<<attr.name : m }
-    refs
+    self.get_references(ChildReference)
+  end
+
+  def self.has_children?
+    !self.child_references.empty?
   end
 
   # TODO:
@@ -145,6 +158,13 @@ class BaseEntity < IdPk
 
   private
   protected
+  
+  def self.get_references(type)
+    attrs = self.attributes
+    refs = attrs.reduce([]){|m,attr| attr.is_a?(type) ? m<<attr.name : m }
+    refs
+  end
+    
 
   def self.attach_attribute_accessors(name, type=:plain)
     self.class_eval do
@@ -175,7 +195,7 @@ class BaseEntity < IdPk
         aggregates[k] = v
       end
     end
-
+    
     (aggregates.each do |k,v|
       send("make_#{k}".to_sym, v)
     end) unless aggregates.empty?
@@ -198,12 +218,6 @@ class BaseEntity < IdPk
         children = []
         in_a.each {|in_h| children<< send("make_#{child.to_s.singularize}".to_sym, in_h)}
         children
-      end
-
-      define_method("destroy_#{child}".to_sym) do
-        instance_variable_get("@#{child}".to_sym).each do |obj|
-          obj.destroy
-        end
       end
     end
   end
