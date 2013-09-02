@@ -24,8 +24,7 @@ module Mapper
       
       transaction do
         # First insert entity
-        entity_data = entity.to_h
-        entity_data[to_parent_reference(entity)] = parent_id if parent_id
+        entity_data = Sequel.entity_to_row(entity, parent_id)
         entity.id = DB[to_table_name(entity)].insert(entity_data)
 
         # Then recurse children for inserting them
@@ -50,9 +49,10 @@ module Mapper
 
     def self.update(entity)
       Sequel.check_uow_transaction(entity)
+      entity_data = Sequel.entity_to_row(entity)
 
       transaction do
-        DB[to_table_name(entity)].where(id: entity.id).update(entity.to_h)
+        DB[to_table_name(entity)].where(id: entity.id).update(entity_data)
       end
     end
 
@@ -85,7 +85,7 @@ module Mapper
         if entity_class.pk == attr.name
           yield 'primary_key', ":#{attr.name}"
         else
-          if attr.is_a?(BasicAttributes::ParentReference)
+          if [BasicAttributes::ParentReference, BasicAttributes::ValueReference].include?(attr.class)
             yield 'foreign_key', ":#{attr.reference}, :#{attr.name.to_s.pluralize}"
           elsif attr.is_a?(BasicAttributes::Attribute)
             default = attr.default.nil? ? 'nil' : attr.default
@@ -104,5 +104,23 @@ module Mapper
     def self.to_parent_reference(entity)
       "#{entity.class.parent_reference}_id".to_sym
     end
+
+    def self.entity_to_row(entity, parent_id=nil)
+      row = {}
+      entity_h = entity.to_h
+      entity_h[to_parent_reference(entity)] = parent_id if parent_id
+      entity_h.each do |attr,value|
+        attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
+        unless [BasicAttributes::ChildReference, BasicAttributes::ParentReference].include?(attr_type.class)
+          if attr_type.is_a?(BasicAttributes::ValueReference)
+            row[attr_type.reference] = value.nil? ? attr_type.default : value.id
+          else
+            row[attr] = value
+          end
+        end
+      end
+      row
+    end
+
   end
 end

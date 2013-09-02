@@ -1,4 +1,4 @@
-describe UnitOfWork::Transaction do
+describe 'A transaction handling a Simple Entity' do
   before(:all) do
     insert_test_users
 

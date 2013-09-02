@@ -46,8 +46,8 @@ class BaseEntity < IdPk
 
   def self.attribute(name, type, *opts)
     parsed_opts = opts.reduce({}){|m,opt| m.merge!(opt); m }
-    if type.is_a?(BaseEntity)
-      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::Reference.new(name, type)
+    if BaseEntity == type.superclass
+      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::ValueReference.new(name, type)
     else
       self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::Attribute.new(
           name, type, parsed_opts[:mandatory], parsed_opts[:default])
@@ -88,7 +88,7 @@ class BaseEntity < IdPk
     instance_variables.each do |attr|
       attr_name = attr.to_s[1..-1].to_sym
       attr_value = instance_variable_get(attr)
-      h[attr_name] =  attr_value unless attr_value.is_a?(BaseEntity) || attr_value.is_a?(Array)
+      h[attr_name] =  attr_value
     end
     h
   end
@@ -104,8 +104,16 @@ class BaseEntity < IdPk
     self.get_references(BasicAttributes::ChildReference)
   end
 
+  def self.value_references
+    self.get_references(BasicAttributes::ValueReference)
+  end
+
   def self.has_children?
     !self.child_references.empty?
+  end
+  
+  def self.has_value_references?
+    !self.value_references.empty?
   end
 
   # TODO:
@@ -146,7 +154,7 @@ class BaseEntity < IdPk
 
     in_h.each do |k,v|
       attr_obj = self.class.class_variable_get(:'@@attributes')[k]
-      if attr_obj.is_a?(BasicAttributes::Attribute)
+      if [BasicAttributes::Attribute, BasicAttributes::ValueReference].include?(attr_obj.class)
         send("#{k}=".to_sym, v)
       else
         aggregates[k] = v

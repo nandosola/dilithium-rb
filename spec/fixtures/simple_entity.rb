@@ -3,11 +3,11 @@ module Repository
     module UserCustomFinders
       def fetch_by_email email
         result_list = DB[:users].where(email:email).where(active: true).all
-        result_list.map {|user_h| User.new(user_h) }
+        result_list.map {|user_h| User.resolve_references(user_h); User.new(user_h) }
       end
       def fetch_by_name name
         result_list = DB[:users].where(name:name).where(active: true).all
-        result_list.map {|user_h| User.new(user_h) }
+        result_list.map {|user_h| User.resolve_references(user_h); User.new(user_h) }
       end
     end
   end

@@ -1,4 +1,4 @@
-describe UnitOfWork::Transaction do
+describe 'A Transaction handlling an Aggregate Entity' do
   before(:all) do
     Mapper::Sequel.create_tables(Company, LocalOffice, Address)
     class UnitOfWork::Transaction
@@ -10,7 +10,7 @@ describe UnitOfWork::Transaction do
     @transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
   end
 
-  it 'creates a new company in the database and retrieves it correctly' do
+  it 'creates a new Aggregate in the database and retrieves it correctly' do
     company1_h = {
         name: 'Abstra.cc S.A',
         local_offices: [

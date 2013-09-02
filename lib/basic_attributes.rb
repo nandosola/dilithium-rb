@@ -29,21 +29,18 @@ module BasicAttributes
     def check_constraints(value)  # check invariant constraints, called by setter
       raise RuntimeError, "#{@name} must be a #{@type}" unless value.nil? || value.is_a?(@type)
     end
+    def default
+      nil
+    end
+  end
+
+  class ValueReference < Reference
   end
 
   class ParentReference < Reference
-    def initialize(name)
-      super(name)
-    end
-    def default
-      nil  # pass by value
-    end
   end
 
   class ChildReference < Reference
-    def initialize(name)
-      super(name)
-    end
     def default
       Array.new # pass by value
     end
