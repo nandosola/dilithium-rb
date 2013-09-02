@@ -1,7 +1,7 @@
 describe User do
 
   before(:all) do
-    Mapper::Sequel.create_tables(User)
+    Mapper::Sequel.create_tables(Reference, User)
     insert_test_users
   end
 

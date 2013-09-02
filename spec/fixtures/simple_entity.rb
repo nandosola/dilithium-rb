@@ -13,12 +13,18 @@ module Repository
   end
 end
 
+class Reference < BaseEntity
+  attribute :name, String
+end
+
 class User < BaseEntity
   extend Repository::Sequel::UserCustomFinders
 
   #has_many :groups
   attribute :name, String, mandatory:true
   attribute :email, String
+
+  attribute :reference, Reference
 end
 
 #class Group < BaseEntity

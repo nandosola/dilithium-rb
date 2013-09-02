@@ -1,3 +1,5 @@
+require 'basic_attributes'
+
 module Mapper
 
   class Sequel
@@ -83,9 +85,9 @@ module Mapper
         if entity_class.pk == attr.name
           yield 'primary_key', ":#{attr.name}"
         else
-          if attr.is_a?(::BaseEntity::ParentReference)
+          if attr.is_a?(BasicAttributes::ParentReference)
             yield 'foreign_key', ":#{attr.reference}, :#{attr.name.to_s.pluralize}"
-          elsif attr.is_a?(::BaseEntity::Attribute)
+          elsif attr.is_a?(BasicAttributes::Attribute)
             default = attr.default.nil? ? 'nil' : attr.default
             yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
           end
