@@ -28,7 +28,7 @@ describe 'A Transaction handlling an Aggregate Entity' do
                             description: 'branch2',
                             addresses: [{description: 'addr2.1'}]
                         })
-    
+
     a_company.class.should eq(Company)
     a_company.name.should eq('Abstra.cc S.A')
 

@@ -154,6 +154,9 @@ class BaseEntity < IdPk
 
     in_h.each do |k,v|
       attr_obj = self.class.class_variable_get(:'@@attributes')[k]
+
+      raise ArgumentError, "Attribute #{k} is not allowed in #{self.class}" if attr_obj.nil?
+
       if [BasicAttributes::Attribute, BasicAttributes::ValueReference].include?(attr_obj.class)
         send("#{k}=".to_sym, v)
       else

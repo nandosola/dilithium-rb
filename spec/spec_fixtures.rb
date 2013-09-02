@@ -64,9 +64,11 @@ module SpecFixtures
 
     bar = $database[:bar_refs]
     bar.insert(:description => 'bar ref', :foo_ref_id=>1)
+    bar.insert(:description => 'bar ref 2', :foo_ref_id=>1)
 
     baz = $database[:baz_refs]
     baz.insert(:description => 'baz ref', :bar_ref_id=>1)
+    baz.insert(:description => 'baz ref 2', :bar_ref_id=>2)
   end
 
   def delete_test_refs

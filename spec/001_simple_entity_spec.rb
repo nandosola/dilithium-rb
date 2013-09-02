@@ -26,6 +26,10 @@ describe 'A Simple Entity' do
     a_user.respond_to?(:my_thing=).should be_false
   end
 
+  it "does not allow to be initialized with bogus attributes" do
+    expect {User.new({funny:false})}.to raise_error(ArgumentError)
+  end
+
   it "has repository finders" do
     a_user = User.fetch_by_id(1)
     a_user.class.should eq(User)
