@@ -26,15 +26,9 @@ module Mapper
         references = Hash.new
 
         # First insert entity
-<<<<<<< HEAD
-        entity_data = entity.to_h
-        entity_data[to_parent_reference(entity)] = parent_id if parent_id
+        entity_data = Sequel.entity_to_row(entity, parent_id)
         id = DB[to_table_name(entity)].insert(entity_data)
         references[entity] = {:id => id, :parent_id => parent_id}
-=======
-        entity_data = Sequel.entity_to_row(entity, parent_id)
-        entity.id = DB[to_table_name(entity)].insert(entity_data)
->>>>>>> 2e7e4b22ae9ff761902f1a583c175b081a5d5f55
 
         # Then recurse children for inserting them
         entity.each_child do |child|

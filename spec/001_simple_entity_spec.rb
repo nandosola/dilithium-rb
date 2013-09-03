@@ -44,17 +44,12 @@ describe 'A Simple Entity' do
     User.fetch_by_name('Charly').first.id.should eq(3)
   end
 
-<<<<<<< HEAD
   it "has not parent reference" do
     user = User.fetch_by_id(1)
     user.class.parent_reference.should == nil
   end
 
-  it "acepts empty or full-hash constructors and validates its attributes" do
-=======
   it "accepts empty or full-hash constructors and validates its attributes" do
->>>>>>> 2e7e4b22ae9ff761902f1a583c175b081a5d5f55
-
     norbert = {:name => 'Norbert', :email => 'norb@example.net'}
     dilbert = {:name => 'Dilbert', :email => 'dilbert@example.net'}
 
