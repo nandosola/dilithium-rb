@@ -97,7 +97,7 @@ class BaseEntity < IdPk
 
   def self.parent_reference
     parent = self.get_references(BasicAttributes::ParentReference)
-    raise RuntimeException "found multiple parents" unless 1 == parent.size
+    raise RuntimeError, "found multiple parents" if 1 < parent.size
     parent.first
   end
   

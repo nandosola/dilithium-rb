@@ -43,6 +43,9 @@ describe 'A Transaction handlling an Aggregate Entity' do
     a_company.local_offices[1].addresses[0].class.should eq(Address)
     a_company.local_offices[1].addresses[0].description.should eq('addr2.1')
 
+    a_company.class.parent_reference.should be_nil
+    a_company.local_offices[1].class.parent_reference.should eq(:company)
+
     @transaction.commit
 
     expect {a_company.make_local_office({
