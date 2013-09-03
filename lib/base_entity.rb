@@ -1,3 +1,5 @@
+require 'basic_attributes'
+
 class IdPk
   PRIMARY_KEY = {:identifier=>:id, :type=>Integer}
 
@@ -14,61 +16,12 @@ class BaseEntity < IdPk
 
   attr_accessor :id
 
-  class Attribute
-    attr_reader :name, :type, :default
-    def initialize(name, type, mandatory=false, default=nil)
-      # TODO validate entry
-      @name = name
-      @type = type
-      @mandatory = mandatory
-      @default = default
-    end
-    def check_constraints(value)  # check invariant constraints, called by setter
-      raise RuntimeError, "#{@name} must be defined" if @mandatory && value.nil?
-      if [TrueClass, FalseClass].include?@type
-        raise RuntimeError, "#{@name} must be a boolean - got: #{value.class}" unless !!value == value
-      else
-        raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless value.nil? || value.is_a?(@type)
-      end
-    end
-  end
-
-  class Reference
-    attr_reader :name, :type, :reference
-    def initialize(name)
-      @name = name
-      @type = BaseEntity
-      @reference = "#{name.to_s.singularize}_id".to_sym
-    end
-    def check_constraints(value)  # check invariant constraints, called by setter
-      raise RuntimeError, "#{@name} must be a #{@type}" unless value.nil? || value.is_a?(@type)
-    end
-  end
-
-  class ParentReference < Reference
-    def initialize(name)
-      super(name)
-    end
-    def default
-      nil  # pass by value
-    end
-  end
-
-  class ChildReference < Reference
-    def initialize(name)
-      super(name)
-    end
-    def default
-      Array.new # pass by value
-    end
-  end
-
   def self.inherited(base)
-    base.class_variable_set(:'@@attributes',{PRIMARY_KEY[:identifier]=>Attribute.new(
+    base.class_variable_set(:'@@attributes',{PRIMARY_KEY[:identifier]=>BasicAttributes::Attribute.new(
         PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])})
     base.attach_attribute_accessors(PRIMARY_KEY[:identifier])
 
-    base.class_variable_get(:'@@attributes')[:active] = Attribute.new(:active,TrueClass, false, true)
+    base.class_variable_get(:'@@attributes')[:active] = BasicAttributes::Attribute.new(:active,TrueClass, false, true)
     base.attach_attribute_accessors(:active)
 
     base.instance_eval do
@@ -80,26 +33,31 @@ class BaseEntity < IdPk
 
   def self.children(*names)
     names.each do |child|
-      self.class_variable_get(:'@@attributes')[child] = ChildReference.new(child)
+      self.class_variable_get(:'@@attributes')[child] = BasicAttributes::ChildReference.new(child)
       self.attach_attribute_accessors(child, :aggregate)
       self.define_aggregate_method(child)
     end
   end
 
   def self.parent(parent)
-    self.class_variable_get(:'@@attributes')[parent] = ParentReference.new(parent)
+    self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent)
     self.attach_attribute_accessors(parent, :parent)
   end
 
   def self.attribute(name, type, *opts)
     parsed_opts = opts.reduce({}){|m,opt| m.merge!(opt); m }
-    self.class_variable_get(:'@@attributes')[name] =  Attribute.new(
-        name, type, parsed_opts[:mandatory], parsed_opts[:default])
+    if BaseEntity == type.superclass
+      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::ValueReference.new(name, type)
+    else
+      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::Attribute.new(
+          name, type, parsed_opts[:mandatory], parsed_opts[:default])
+    end
     self.attach_attribute_accessors(name)
   end
 
   def initialize(in_h={}, parent=nil)
-    # TODO check in_h is_a? Hash
+    raise ArgumentError, "BaseEntity must be initialized with a Hash - got: #{in_h.class}" unless in_h.is_a?(Hash)
+
     self.class.class_variable_get(:'@@attributes').each do |k,v|
       instance_variable_set("@#{k}".to_sym, v.default)
     end
@@ -131,14 +89,19 @@ class BaseEntity < IdPk
     instance_variables.each do |attr|
       attr_name = attr.to_s[1..-1].to_sym
       attr_value = instance_variable_get(attr)
-      h[attr_name] =  attr_value unless attr_value.is_a?(BaseEntity) || attr_value.is_a?(Array)
+      h[attr_name] =  attr_value
     end
     h
   end
 
   def self.parent_reference
+<<<<<<< HEAD
     parent = self.get_references(ParentReference)
     raise RuntimeError, "found multiple parents" unless parent.size < 2
+=======
+    parent = self.get_references(BasicAttributes::ParentReference)
+    raise RuntimeException "found multiple parents" unless 1 == parent.size
+>>>>>>> 2e7e4b22ae9ff761902f1a583c175b081a5d5f55
     parent.first
   end
 
@@ -147,11 +110,19 @@ class BaseEntity < IdPk
   end
   
   def self.child_references
-    self.get_references(ChildReference)
+    self.get_references(BasicAttributes::ChildReference)
+  end
+
+  def self.value_references
+    self.get_references(BasicAttributes::ValueReference)
   end
 
   def self.has_children?
     !self.child_references.empty?
+  end
+  
+  def self.has_value_references?
+    !self.value_references.empty?
   end
 
   # TODO:
@@ -192,9 +163,13 @@ class BaseEntity < IdPk
 
     in_h.each do |k,v|
       attr_obj = self.class.class_variable_get(:'@@attributes')[k]
-      if attr_obj.is_a?(Attribute)
+
+      raise ArgumentError, "Attribute #{k} is not allowed in #{self.class}" if attr_obj.nil?
+
+      if [BasicAttributes::Attribute, BasicAttributes::ValueReference].include?(attr_obj.class)
         send("#{k}=".to_sym, v)
       else
+        attr_obj.check_constraints(v)
         aggregates[k] = v
       end
     end

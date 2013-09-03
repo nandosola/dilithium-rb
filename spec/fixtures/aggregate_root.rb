@@ -32,6 +32,6 @@ class Address < BaseEntity
   attribute :phone, String
   attribute :fax, String
   attribute :email, String
-  #attribute :office, Boolean, :default => true
-  #attribute :warehouse, TrueClass, :default => false
+  attribute :office, TrueClass, :default => true
+  attribute :warehouse, TrueClass, :default => false
 end

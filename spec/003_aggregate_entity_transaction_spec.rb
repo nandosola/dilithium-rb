@@ -1,4 +1,4 @@
-describe UnitOfWork::Transaction do
+describe 'A Transaction handlling an Aggregate Entity' do
   before(:all) do
     Mapper::Sequel.create_tables(Company, LocalOffice, Address)
     class UnitOfWork::Transaction
@@ -10,7 +10,7 @@ describe UnitOfWork::Transaction do
     @transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
   end
 
-  it 'creates a new company in the database and retrieves it correctly' do
+  it 'creates a new Aggregate in the database and retrieves it correctly' do
     company1_h = {
         name: 'Abstra.cc S.A',
         local_offices: [
@@ -28,7 +28,7 @@ describe UnitOfWork::Transaction do
                             description: 'branch2',
                             addresses: [{description: 'addr2.1'}]
                         })
-    
+
     a_company.class.should eq(Company)
     a_company.name.should eq('Abstra.cc S.A')
 
@@ -44,6 +44,16 @@ describe UnitOfWork::Transaction do
     a_company.local_offices[1].addresses[0].description.should eq('addr2.1')
 
     @transaction.commit
+
+    expect {a_company.make_local_office({
+                                    description: 'branch3',
+                                    company: 1
+                                })}.to raise_error(RuntimeError)
+
+    expect {a_company.make_local_office({
+                                    description: 'branch4',
+                                    addresses: [1,2,3]
+                                })}.to raise_error(ArgumentError)
 
     abstra =  Company.fetch_by_id(1)
 

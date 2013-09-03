@@ -1,5 +1,6 @@
 require_relative 'fixtures/simple_entity'
 require_relative 'fixtures/aggregate_root'
+require_relative 'fixtures/chained_refs'
 
 module SpecFixtures
   def insert_test_users
@@ -56,4 +57,24 @@ module SpecFixtures
                         {:description => 'Address D21'},
                         {:description => 'Address D22'}]}]})
   end
+
+  def insert_test_refs
+    foo = $database[:foo_refs]
+    foo.insert(:description => 'foo ref')
+
+    bar = $database[:bar_refs]
+    bar.insert(:description => 'bar ref', :foo_ref_id=>1)
+    bar.insert(:description => 'bar ref 2', :foo_ref_id=>1)
+
+    baz = $database[:baz_refs]
+    baz.insert(:description => 'baz ref', :bar_ref_id=>1)
+    baz.insert(:description => 'baz ref 2', :bar_ref_id=>2)
+  end
+
+  def delete_test_refs
+    %w(baz_refs bar_refs foo_refs).each do |table|
+      $database << "DELETE FROM #{table}" << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{table}'"
+    end
+  end
+
 end

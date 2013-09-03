@@ -13,28 +13,41 @@ module Repository
       def self.extended(base)
         base.instance_eval do
 
-          def fetch_by_id(id, eager=true)
+          def fetch_by_id(id)
             root_name = self.to_s.split('::').last.underscore.downcase
             root_table = root_name.pluralize
             found_h = DB[root_table.to_sym].where(id:id).where(active: true).all.first
             unless found_h.nil?
+              self.resolve_references(found_h)
               root_obj = self.new(found_h)
-              root_obj.attach_children if eager
+              root_obj.attach_children
               root_obj
             else
               nil
             end
           end
 
-          def fetch_all(eager=true)
+          def fetch_all
             table = self.to_s.split('::').last.downcase.pluralize
             found_h = DB[table.to_sym]
             unless found_h.empty?
               found_h.map do |reg|
-                self.fetch_by_id(reg[:id], eager)
+                self.fetch_by_id(reg[:id])
               end
             else
               []
+            end
+          end
+
+          def resolve_references(in_h)
+            if self.has_value_references?
+              self.value_references.each do |ref|
+                attr = self.class_variable_get(:'@@attributes')[ref]
+                ref_id = in_h[attr.reference]
+                ref_value = ref_id.nil? ? nil : in_h[attr.name] = attr.type.fetch_by_id(ref_id)
+                in_h.delete(attr.reference)
+                in_h[ref] = ref_value
+              end
             end
           end
 

@@ -1,7 +1,7 @@
-describe User do
+describe 'A Simple Entity' do
 
   before(:all) do
-    Mapper::Sequel.create_tables(User)
+    Mapper::Sequel.create_tables(Reference, User)
     insert_test_users
   end
 
@@ -26,6 +26,12 @@ describe User do
     a_user.respond_to?(:my_thing=).should be_false
   end
 
+  it "does not allow to be initialized with bogus attributes or values" do
+    expect {User.new({funny:false})}.to raise_error(ArgumentError)
+    expect {User.new({name:1337})}.to raise_error(RuntimeError)
+    expect {User.new({reference:'not a reference'})}.to raise_error(RuntimeError)
+  end
+
   it "has repository finders" do
     a_user = User.fetch_by_id(1)
     a_user.class.should eq(User)
@@ -38,12 +44,16 @@ describe User do
     User.fetch_by_name('Charly').first.id.should eq(3)
   end
 
+<<<<<<< HEAD
   it "has not parent reference" do
     user = User.fetch_by_id(1)
     user.class.parent_reference.should == nil
   end
 
   it "acepts empty or full-hash constructors and validates its attributes" do
+=======
+  it "accepts empty or full-hash constructors and validates its attributes" do
+>>>>>>> 2e7e4b22ae9ff761902f1a583c175b081a5d5f55
 
     norbert = {:name => 'Norbert', :email => 'norb@example.net'}
     dilbert = {:name => 'Dilbert', :email => 'dilbert@example.net'}
@@ -57,6 +67,14 @@ describe User do
     new_user.respond_to?(:name=).should be_true
     new_user.respond_to?(:email).should be_true
     new_user.respond_to?(:email=).should be_true
+
+    my_reference = Reference.new({name:'test'})
+    new_user.respond_to?(:reference).should be_true
+    new_user.respond_to?(:reference=).should be_true
+    my_reference.name.should eq('test')
+    new_user.reference.should be_nil
+    expect {new_user.reference = 'foo'}.to raise_error(RuntimeError)
+    new_user.reference = my_reference
 
     expect {another_user.email = 42}.to raise_error(RuntimeError)
     expect {another_user.name = 1337}.to raise_error(RuntimeError)
