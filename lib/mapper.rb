@@ -21,16 +21,21 @@ module Mapper
       Sequel.check_uow_transaction(entity) unless parent_id  # It's the root
       
       transaction do
+        references = Hash.new
+
         # First insert entity
         entity_data = entity.to_h
         entity_data[to_parent_reference(entity)] = parent_id if parent_id
-        entity.id = DB[to_table_name(entity)].insert(entity_data)
+        id = DB[to_table_name(entity)].insert(entity_data)
+        references[entity] = {:id => id, :parent_id => parent_id}
 
         # Then recurse children for inserting them
         entity.each_child do |child|
-          Sequel.insert(child, entity.id)
+          child_references = Sequel.insert(child, id)
+          references.merge!(child_references)
         end
-        entity.id
+
+        references
       end
     end
 
@@ -45,6 +50,8 @@ module Mapper
         entity.each_child do |child|
           Sequel.delete(child)
         end
+
+        entity
       end
     end
 

@@ -136,32 +136,14 @@ class BaseEntity < IdPk
     h
   end
 
-  # Sets a potential id. Used when creating DB data inside a transaction.
-  # Returned id can't be updated on entity until transaction is ompletely
-  # commited. So we create potential id and confirms it when transaction is
-  # finalized or revoke it when transaction is rollbacked.
-  #
-  # Params:
-  # - id: Integer with id
-  def set_potential_id(id)
-    @potential_id = id
-  end
-
-  # See set_potential_id() for documentation
-  def confirm_potential_id
-    @id = @potential_id
-    @potential_id = nil
-  end
-
-  # See set_potential_id() for documentation
-  def revoke_potential_id
-    @potential_id = nil
-  end
-
   def self.parent_reference
     parent = self.get_references(ParentReference)
-    raise RuntimeException "found multiple parents" unless 1 == parent.size
+    raise RuntimeError, "found multiple parents" unless parent.size < 2
     parent.first
+  end
+
+  def self.has_parent?
+    !self.parent_reference.nil?
   end
   
   def self.child_references

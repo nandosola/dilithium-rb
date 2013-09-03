@@ -148,4 +148,5 @@ describe UnitOfWork::Transaction do
   after(:all) do
     delete_test_users
   end
+
 end

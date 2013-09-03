@@ -80,15 +80,53 @@ module UnitOfWork
       # TODO: Check optimistic concurrency (in a subclass) - it has an additional :stale state
       # TODO handle Repository::DatabaseError
       @mapper.transaction do
-        @object_tracker.fetch_by_state(STATE_NEW).each { |res| @mapper.insert(res.object) }
-        @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @mapper.update(res.object) }
-        @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.delete(res.object) }
+        inserted_entities = Hash.new
+        deleted_entities = Array.new
+        modified_entities = {:deleted => deleted_entities, :inserted => inserted_entities}
 
+        @object_tracker.fetch_by_state(STATE_NEW).each do |resource|
+          inserted_entities.merge!(@mapper.insert(resource.object))
+        end
+
+        # TODO
+        @object_tracker.fetch_by_state(STATE_DIRTY).each do |resource|
+          #modified_entities[:inserted].merge!(@mapper.update(resource.object))
+          @mapper.update(resource.object)
+        end
+
+        @object_tracker.fetch_by_state(STATE_DELETED).each do |resource|
+          deleted_entities << @mapper.delete(resource.object)
+        end
+
+        update_inserted_entities(inserted_entities)
+        remove_deleted_entities(deleted_entities)
         clear_all_objects_in_state(STATE_DELETED)
-        move_all_objects(STATE_NEW, STATE_DIRTY)
+        #move_all_objects(STATE_NEW, STATE_DIRTY)
         @committed = true
       end
     end
+
+    private
+
+    def update_inserted_entities(entities)
+      entities.each do |entity, ids|
+        entity.id = ids[:id]
+        if entity.class.has_parent?
+          #entity.send("#{@mapper.to_parent_reference(entity)}=", ids[:parent_id])
+        else
+          @object_tracker.change_object_state(entity, STATE_DIRTY)
+        end
+      end
+    end
+
+    # TODO
+    def remove_deleted_entities(entities)
+      entities.each do |entity, id|
+        #pp "+++++++++++++++++++++", entity.send(entity.class.parent_reference)
+      end
+    end
+
+    public
 
     def complete
       check_valid_uow

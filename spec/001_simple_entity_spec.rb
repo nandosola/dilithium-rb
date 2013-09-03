@@ -38,6 +38,11 @@ describe User do
     User.fetch_by_name('Charly').first.id.should eq(3)
   end
 
+  it "has not parent reference" do
+    user = User.fetch_by_id(1)
+    user.class.parent_reference.should == nil
+  end
+
   it "acepts empty or full-hash constructors and validates its attributes" do
 
     norbert = {:name => 'Norbert', :email => 'norb@example.net'}
