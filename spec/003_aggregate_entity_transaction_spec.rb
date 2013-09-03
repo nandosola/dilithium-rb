@@ -45,6 +45,11 @@ describe 'A Transaction handlling an Aggregate Entity' do
 
     @transaction.commit
 
+    expect {a_company.make_local_office({
+                                    description: 'branch3',
+                                    company: 1
+                                })}.to raise_error(RuntimeError)
+
     abstra =  Company.fetch_by_id(1)
 
     abstra.class.should eq(Company)

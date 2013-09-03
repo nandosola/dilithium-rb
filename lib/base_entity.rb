@@ -160,6 +160,7 @@ class BaseEntity < IdPk
       if [BasicAttributes::Attribute, BasicAttributes::ValueReference].include?(attr_obj.class)
         send("#{k}=".to_sym, v)
       else
+        attr_obj.check_constraints(v)
         aggregates[k] = v
       end
     end

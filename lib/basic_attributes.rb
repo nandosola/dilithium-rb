@@ -27,7 +27,7 @@ module BasicAttributes
       @reference = "#{name.to_s.singularize}_id".to_sym
     end
     def check_constraints(value)  # check invariant constraints, called by setter
-      raise RuntimeError, "#{@name} must be a #{@type}" unless value.nil? || value.is_a?(@type)
+      raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless value.nil? || value.is_a?(@type)
     end
     def default
       nil
@@ -41,6 +41,9 @@ module BasicAttributes
   end
 
   class ChildReference < Reference
+    def initialize(name)
+      super(name, Array)
+    end
     def default
       Array.new # pass by value
     end

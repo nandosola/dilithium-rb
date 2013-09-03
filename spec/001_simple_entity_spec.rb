@@ -26,8 +26,10 @@ describe 'A Simple Entity' do
     a_user.respond_to?(:my_thing=).should be_false
   end
 
-  it "does not allow to be initialized with bogus attributes" do
+  it "does not allow to be initialized with bogus attributes or values" do
     expect {User.new({funny:false})}.to raise_error(ArgumentError)
+    expect {User.new({name:1337})}.to raise_error(RuntimeError)
+    expect {User.new({reference:'not a reference'})}.to raise_error(RuntimeError)
   end
 
   it "has repository finders" do

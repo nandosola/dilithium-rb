@@ -30,6 +30,10 @@ describe 'A Chained Reference' do
     MyEntity.fetch_by_id(1).baz_ref.bar_ref.description.should eq('bar ref 2')
   end
 
+  it 'should handle circular relations correctly' do
+    pending
+  end
+
   after(:all) do
     delete_test_refs
   end
