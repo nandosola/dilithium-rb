@@ -56,13 +56,12 @@ module Mapper
       end
     end
 
-    def self.update(entity)
-      Sequel.check_uow_transaction(entity) unless entity.class.has_parent?  # It's the root
-
-      entity_data = Sequel.entity_to_row(entity)
+    def self.update(modified_entity, original_entity=nil)
+      Sequel.check_uow_transaction(modified_entity) unless modified_entity.class.has_parent?  # It's the root
+      entity_data = Sequel.entity_to_row(modified_entity)
 
       transaction do
-        DB[to_table_name(entity)].where(id: entity.id).update(entity_data)
+        DB[to_table_name(modified_entity)].where(id: modified_entity.id).update(entity_data)
       end
     end
 
@@ -115,9 +114,20 @@ module Mapper
       "#{entity.class.parent_reference}_id".to_sym
     end
 
+    # TODO: extract this to a Serializer class?
+    def self.to_hash(entity)
+      h = {}
+      entity.instance_variables.each do |attr|
+        attr_name = attr.to_s[1..-1].to_sym
+        attr_value = entity.instance_variable_get(attr)
+        h[attr_name] =  attr_value
+      end
+      h
+    end
+
     def self.entity_to_row(entity, parent_id=nil)
       row = {}
-      entity_h = entity.to_h
+      entity_h = Sequel.to_hash(entity)
       entity_h[to_parent_reference(entity)] = parent_id if parent_id
       entity_h.each do |attr,value|
         attr_type = entity.class.class_variable_get(:'@@attributes')[attr]

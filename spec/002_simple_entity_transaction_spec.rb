@@ -102,13 +102,27 @@ describe 'A transaction handling a Simple Entity' do
     res[0].state.should eq(UnitOfWork::Transaction::STATE_NEW)
 
     @transaction.commit
-    User.fetch_by_name('Danny').should_not be_nil
+    User.fetch_by_name('Danny').should_not be_empty
 
     res = @new_user.transactions
     res.size.should eq(1)
     res[0].object.should eq(@new_user)
     res[0].transaction.should eq(@transaction)
     res[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
+
+    user = res[0].object
+    user.name = 'Franny'
+    @transaction.commit
+
+    User.fetch_by_name('Franny').should_not be_empty
+    User.fetch_by_name('Danny').should be_empty
+
+    objs = []
+    User.fetch_from_transaction(@transaction.uuid) do |sr|
+      objs << sr.object
+    end
+    objs.first.should eq(user)
+
   end
 
   it "removes deleted objects from the transaction when calling commit" do

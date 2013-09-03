@@ -14,9 +14,8 @@ class BaseEntity < IdPk
   extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
   include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
 
-  attr_accessor :id
-
   def self.inherited(base)
+    # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Supertype Layer)
     base.class_variable_set(:'@@attributes',{PRIMARY_KEY[:identifier]=>BasicAttributes::Attribute.new(
         PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])})
     base.attach_attribute_accessors(PRIMARY_KEY[:identifier])
@@ -84,19 +83,9 @@ class BaseEntity < IdPk
     end
   end
 
-  def to_h
-    h = {}
-    instance_variables.each do |attr|
-      attr_name = attr.to_s[1..-1].to_sym
-      attr_value = instance_variable_get(attr)
-      h[attr_name] =  attr_value
-    end
-    h
-  end
-
   def self.parent_reference
     parent = self.get_references(BasicAttributes::ParentReference)
-    raise RuntimeError, "found multiple parents" unless parent.size < 2
+    raise RuntimeError, "found multiple parents" if 1 < parent.size
     parent.first
   end
 

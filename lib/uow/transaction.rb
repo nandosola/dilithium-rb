@@ -1,6 +1,8 @@
-# CAVEAT: this is not threadsafe nor distribution-friendly
+require_relative 'object_history'
 
 module UnitOfWork
+
+  # CAVEAT: this is not threadsafe nor distribution-friendly
   class Transaction
 
     STATE_NEW = :new
@@ -15,6 +17,7 @@ module UnitOfWork
       @valid = true
       @committed = false
       @object_tracker = ObjectTracker.new(ALL_STATES)
+      @history = ObjectHistory.new
       @mapper = mapper_class
       TransactionRegistry::Registry.instance<< self
     end
@@ -25,6 +28,10 @@ module UnitOfWork
 
     def fetch_object(obj)
       @object_tracker.fetch_object(obj)
+    end
+
+    def fetch_object_by_class(obj_class)
+      @object_tracker.fetch_by_class(obj_class)
     end
 
     # TODO only is_a?BasicEntity can be registered in a transaction
@@ -67,6 +74,7 @@ module UnitOfWork
 
     def rollback
       check_valid_uow
+      #TODO handle nested transactions (@history)
       @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @mapper.reload(res.object) }
       @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.reload(res.object) }
 
@@ -84,16 +92,20 @@ module UnitOfWork
         deleted_entities = Array.new
         modified_entities = {:deleted => deleted_entities, :inserted => inserted_entities}
 
-        @object_tracker.fetch_by_state(STATE_NEW).each do |resource|
-          inserted_entities.merge!(@mapper.insert(resource.object))
+        @object_tracker.fetch_by_state(STATE_NEW).each do |res|
+          working_obj = res.object
+          inserted_entities.merge!(@mapper.insert(working_obj))
+          @history << working_obj
         end
 
-        # TODO
-        @object_tracker.fetch_by_state(STATE_DIRTY).each do |resource|
-          #modified_entities[:inserted].merge!(@mapper.update(resource.object))
-          @mapper.update(resource.object)
+        @object_tracker.fetch_by_state(STATE_DIRTY).each do |res|
+          working_obj = res.object
+          orig_obj = @history[working_obj.object_id].last
+          @mapper.update(working_obj, orig_obj)
+          @history << working_obj
         end
 
+        #TODO handle nested transactions (@history)
         @object_tracker.fetch_by_state(STATE_DELETED).each do |resource|
           deleted_entities << @mapper.delete(resource.object)
         end
@@ -155,6 +167,7 @@ module UnitOfWork
         @object_tracker.change_object_state(res.object, state)
       end
       @committed = false
+      @history << obj
     end
 
     def move_all_objects(from_state, to_state)
