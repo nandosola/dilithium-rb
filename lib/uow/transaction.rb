@@ -100,7 +100,7 @@ module UnitOfWork
 
         update_inserted_entities(inserted_entities)
         remove_deleted_entities(deleted_entities)
-        clear_all_objects_in_state(STATE_DELETED)
+        #clear_all_objects_in_state(STATE_DELETED)
         #move_all_objects(STATE_NEW, STATE_DIRTY)
         @committed = true
       end
@@ -122,7 +122,12 @@ module UnitOfWork
     # TODO
     def remove_deleted_entities(entities)
       entities.each do |entity, id|
-        #pp "+++++++++++++++++++++", entity.send(entity.class.parent_reference)
+        parent_type = entity.class.parent_reference
+        if parent_type
+          pp "---------------------------------", entity.send(entity.class.parent_reference)
+        else
+          @object_tracker.untrack(entity)
+        end
       end
     end
 

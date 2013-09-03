@@ -104,4 +104,15 @@ describe 'A Transaction handlling an Aggregate Entity' do
 
     Company.fetch_all.size.should eq(2)
   end
+
+  it "deletes aggregate" do
+    pending "We need better tests"
+    company = Company.fetch_by_id(1)
+    @transaction.register_clean(company)
+    @transaction.register_deleted(company)
+    @transaction.commit
+    company = Company.fetch_by_id(1)
+    company.should be_nil
+    pp $database[:local_offices].where(id: 1).all
+  end
 end

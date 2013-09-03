@@ -20,7 +20,7 @@ module Mapper
     end
     
     def self.insert(entity, parent_id = nil)
-      Sequel.check_uow_transaction(entity) unless parent_id  # It's the root
+      Sequel.check_uow_transaction(entity) unless entity.class.has_parent?  # It's the root
       
       transaction do
         references = Hash.new
@@ -41,7 +41,7 @@ module Mapper
     end
 
     def self.delete(entity)
-      Sequel.check_uow_transaction(entity)
+      Sequel.check_uow_transaction(entity) unless entity.class.has_parent?  # It's the root
 
       transaction do
         # First deactivate entity
@@ -57,7 +57,8 @@ module Mapper
     end
 
     def self.update(entity)
-      Sequel.check_uow_transaction(entity)
+      Sequel.check_uow_transaction(entity) unless entity.class.has_parent?  # It's the root
+
       entity_data = Sequel.entity_to_row(entity)
 
       transaction do
