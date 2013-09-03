@@ -1,6 +1,8 @@
-# CAVEAT: this is not threadsafe nor distribution-friendly
+require_relative 'object_history'
 
 module UnitOfWork
+
+  # CAVEAT: this is not threadsafe nor distribution-friendly
   class Transaction
 
     STATE_NEW = :new
@@ -15,6 +17,7 @@ module UnitOfWork
       @valid = true
       @committed = false
       @object_tracker = ObjectTracker.new(ALL_STATES)
+      @history = ObjectHistory.new
       @mapper = mapper_class
       TransactionRegistry::Registry.instance<< self
     end
@@ -67,6 +70,7 @@ module UnitOfWork
 
     def rollback
       check_valid_uow
+      #TODO handle nested transactions (@history)
       @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @mapper.reload(res.object) }
       @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.reload(res.object) }
 
@@ -80,8 +84,19 @@ module UnitOfWork
       # TODO: Check optimistic concurrency (in a subclass) - it has an additional :stale state
       # TODO handle Repository::DatabaseError
       @mapper.transaction do
-        @object_tracker.fetch_by_state(STATE_NEW).each { |res| @mapper.insert(res.object) }
-        @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @mapper.update(res.object) }
+        @object_tracker.fetch_by_state(STATE_NEW).each do |res|
+          working_obj = res.object
+          @mapper.insert(working_obj)
+          @history << working_obj
+        end
+        @object_tracker.fetch_by_state(STATE_DIRTY).each do |res|
+          working_obj = res.object
+          orig_obj = @history[working_obj.object_id].last
+          @mapper.update(working_obj, orig_obj)
+          @history << working_obj
+        end
+
+        #TODO handle nested transactions (@history)
         @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.delete(res.object) }
 
         clear_all_objects_in_state(STATE_DELETED)
@@ -112,6 +127,7 @@ module UnitOfWork
         @object_tracker.change_object_state(res.object, state)
       end
       @committed = false
+      @history << obj
     end
 
     def move_all_objects(from_state, to_state)

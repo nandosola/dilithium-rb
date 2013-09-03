@@ -47,12 +47,12 @@ module Mapper
       end
     end
 
-    def self.update(entity)
-      Sequel.check_uow_transaction(entity)
-      entity_data = Sequel.entity_to_row(entity)
+    def self.update(modified_entity, original_entity=nil)
+      Sequel.check_uow_transaction(modified_entity)
+      entity_data = Sequel.entity_to_row(modified_entity)
 
       transaction do
-        DB[to_table_name(entity)].where(id: entity.id).update(entity_data)
+        DB[to_table_name(modified_entity)].where(id: modified_entity.id).update(entity_data)
       end
     end
 
