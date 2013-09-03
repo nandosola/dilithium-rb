@@ -50,6 +50,11 @@ describe 'A Transaction handlling an Aggregate Entity' do
                                     company: 1
                                 })}.to raise_error(RuntimeError)
 
+    expect {a_company.make_local_office({
+                                    description: 'branch4',
+                                    addresses: [1,2,3]
+                                })}.to raise_error(ArgumentError)
+
     abstra =  Company.fetch_by_id(1)
 
     abstra.class.should eq(Company)

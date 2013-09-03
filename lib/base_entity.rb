@@ -56,7 +56,8 @@ class BaseEntity < IdPk
   end
 
   def initialize(in_h={}, parent=nil)
-    # TODO check in_h is_a? Hash
+    raise ArgumentError, "BaseEntity must be initialized with a Hash - got: #{in_h.class}" unless in_h.is_a?(Hash)
+
     self.class.class_variable_get(:'@@attributes').each do |k,v|
       instance_variable_set("@#{k}".to_sym, v.default)
     end
