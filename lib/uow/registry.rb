@@ -48,10 +48,18 @@ module UnitOfWork
       module ClassMethods
         def self.extended(base_class)
           base_class.instance_eval {
-            def fetch_from_transaction(uuid, obj_id)
+            def fetch_from_transaction(uuid, obj_id=nil)
               tr = Registry.instance[uuid.to_sym]
-              (tr.nil?) ? nil : TransactionRegistry::Registry::SearchResult.new(tr,
-                                                         tr.fetch_object_by_id(self, obj_id))
+              unless tr.nil?
+                if obj_id.nil?
+                  entities = tr.fetch_object_by_class(self)
+                  entities.each { |entity| yield(TransactionRegistry::Registry::SearchResult.new(tr,entity)) }
+                else
+                  TransactionRegistry::Registry::SearchResult.new(tr,tr.fetch_object_by_id(self, obj_id))
+                end
+              else
+                nil
+              end
             end
           }
         end

@@ -30,6 +30,10 @@ module UnitOfWork
       @object_tracker.fetch_object(obj)
     end
 
+    def fetch_object_by_class(obj_class)
+      @object_tracker.fetch_by_class(obj_class)
+    end
+
     # TODO only is_a?BasicEntity can be registered in a transaction
 
     def register_clean(obj)

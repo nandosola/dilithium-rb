@@ -117,6 +117,12 @@ describe 'A transaction handling a Simple Entity' do
     User.fetch_by_name('Franny').should_not be_empty
     User.fetch_by_name('Danny').should be_empty
 
+    objs = []
+    User.fetch_from_transaction(@transaction.uuid) do |sr|
+      objs << sr.object
+    end
+    objs.first.should eq(user)
+
   end
 
   it "removes deleted objects from the transaction when calling commit" do
