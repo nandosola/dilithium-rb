@@ -84,8 +84,6 @@ class BaseEntity < IdPk
       self.class.child_references.each do |children_type|
         children = Array(self.send(children_type))
         children.each do |child|
-          a = children
-          b = child
           yield(child)
         end
       end

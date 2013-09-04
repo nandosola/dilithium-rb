@@ -78,6 +78,7 @@ module Mapper
 
     end
 
+    # TODO
     def self.reload(base_entity)
       Sequel.check_uow_transaction(base_entity)
       name = base_entity.class.to_s.split('::').last.underscore.downcase
