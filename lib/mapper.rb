@@ -1,4 +1,5 @@
-require 'basic_attributes'
+require_relative 'basic_attributes'
+require 'hashdiff'
 
 module Mapper
 
@@ -49,6 +50,9 @@ module Mapper
 
     def self.update(modified_entity, original_entity=nil)
       Sequel.check_uow_transaction(modified_entity)
+
+
+
       entity_data = Sequel.entity_to_row(modified_entity)
 
       transaction do

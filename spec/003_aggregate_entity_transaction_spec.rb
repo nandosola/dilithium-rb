@@ -1,4 +1,4 @@
-describe 'A Transaction handlling an Aggregate Entity' do
+describe 'A Transaction handling an Aggregate Entity' do
   before(:all) do
     Mapper::Sequel.create_tables(Company, LocalOffice, Address)
     class UnitOfWork::Transaction
@@ -103,8 +103,11 @@ describe 'A Transaction handlling an Aggregate Entity' do
     smarty_pants.local_offices[0].addresses.size.should eq(2)
     smarty_pants.local_offices[0].addresses[0].description.should eq('foo dir 1')
     smarty_pants.local_offices[0].addresses[1].description.should eq('foo dir 2')
-
-
     Company.fetch_all.size.should eq(2)
+
+    b_company.full_update({url:'http://example.net'})
+    b_company
+
+
   end
 end
