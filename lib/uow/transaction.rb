@@ -94,7 +94,7 @@ module UnitOfWork
 
         @object_tracker.fetch_by_state(STATE_NEW).each do |res|
           working_obj = res.object
-          inserted_entities.merge!(@mapper.insert(working_obj))
+          @mapper.insert(working_obj)
           @history << working_obj
         end
 
@@ -107,13 +107,13 @@ module UnitOfWork
 
         #TODO handle nested transactions (@history)
         @object_tracker.fetch_by_state(STATE_DELETED).each do |resource|
-          deleted_entities << @mapper.delete(resource.object)
+          @mapper.delete(resource.object)
         end
 
-        update_inserted_entities(inserted_entities)
-        remove_deleted_entities(deleted_entities)
-        #clear_all_objects_in_state(STATE_DELETED)
-        #move_all_objects(STATE_NEW, STATE_DIRTY)
+        #update_inserted_entities(inserted_entities)
+        #remove_deleted_entities(deleted_entities)
+        clear_all_objects_in_state(STATE_DELETED)
+        move_all_objects(STATE_NEW, STATE_DIRTY)
         @committed = true
       end
     end

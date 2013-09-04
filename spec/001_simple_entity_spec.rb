@@ -99,6 +99,24 @@ describe 'A Simple Entity' do
     User.fetch_by_name('Dilbert').first.email.should eq('dilbert@example.net')
   end
 
+  it 'can be fully updated' do
+    user = User.fetch_by_name('Dilbert').first
+    user.full_update({:name => 'Dogbert', :email => 'dogbert@example.net'})
+    user.name.should eq('Dogbert')
+    user.email.should eq('dogbert@example.net')
+
+    user.full_update({:name => 'Catbert'})
+    user.name.should eq('Catbert')
+    user.email.should be_nil
+
+    user.full_update({:name => 'Ratbert', :email => nil})
+    user.name.should eq('Ratbert')
+    user.email.should be_nil
+
+    expect {user.full_update({:email => 'ratbert@example.net'}) }.to raise_error(RuntimeError)
+
+  end
+
   after(:all) do
     delete_test_users
   end

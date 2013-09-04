@@ -1,4 +1,5 @@
-require 'basic_attributes'
+require_relative 'basic_attributes'
+require 'hashdiff'
 
 module Mapper
 
@@ -23,20 +24,15 @@ module Mapper
       Sequel.check_uow_transaction(entity) unless entity.class.has_parent?  # It's the root
       
       transaction do
-        references = Hash.new
-
         # First insert entity
         entity_data = Sequel.entity_to_row(entity, parent_id)
-        id = DB[to_table_name(entity)].insert(entity_data)
-        references[entity] = {:id => id, :parent_id => parent_id}
+        entity_data.delete(:id)
+        entity.id = DB[to_table_name(entity)].insert(entity_data)
 
         # Then recurse children for inserting them
         entity.each_child do |child|
-          child_references = Sequel.insert(child, id)
-          references.merge!(child_references)
+          Sequel.insert(child, entity.id)
         end
-
-        references
       end
     end
 

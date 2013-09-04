@@ -7,7 +7,7 @@ module UnitOfWork
     def <<(obj)
       # TODO the 'deep clone' part should be moved to a Serialization Mixin
       oid = obj.object_id.to_s.to_sym
-      @object_ids[oid] = Array(@object_ids[oid]) << Marshal.load(Marshal.dump(obj))
+      @object_ids[oid] = Array(@object_ids[oid]) << Marshal.load(Marshal.dump(obj))  # clones references too
     end
     def [](oid)
       @object_ids[oid.to_s.to_sym]

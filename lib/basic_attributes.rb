@@ -1,7 +1,7 @@
 module BasicAttributes
 
   class Attribute
-    attr_reader :name, :type, :default
+    attr_reader :name, :type, :default, :mandatory
     def initialize(name, type, mandatory=false, default=nil)
       # TODO validate entry
       @name = name
