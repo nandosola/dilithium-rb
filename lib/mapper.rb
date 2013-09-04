@@ -45,7 +45,7 @@ module Mapper
 
       transaction do
         # First deactivate entity
-        DB[to_table_name(entity)].where(id: entity.id).update(_active: false)
+        DB[to_table_name(entity)].where(id: entity.id).update(active: false)
 
         # Then recurse children for deactivating them
         entity.each_child do |child|

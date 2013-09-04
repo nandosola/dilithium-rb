@@ -16,7 +16,7 @@ module Repository
           def fetch_by_id(id)
             root_name = self.to_s.split('::').last.underscore.downcase
             root_table = root_name.pluralize
-            found_h = DB[root_table.to_sym].where(id:id).where(_active: true).all.first
+            found_h = DB[root_table.to_sym].where(id:id).where(active: true).all.first
             unless found_h.nil?
               self.resolve_references(found_h)
               root_obj = self.new(found_h)
