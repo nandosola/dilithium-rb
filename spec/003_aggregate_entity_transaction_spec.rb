@@ -105,7 +105,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     smarty_pants.local_offices[0].addresses[1].description.should eq('foo dir 2')
     Company.fetch_all.size.should eq(2)
 
-    b_company.full_update({
+    b_company.full_update({id: 2,
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: [

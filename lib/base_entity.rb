@@ -67,6 +67,7 @@ class BaseEntity < IdPk
   end
 
   def full_update(in_h)
+    raise ArgumentError, "Entity id must be defined and not changed" if id != in_h[PRIMARY_KEY[:identifier]]
     check_input_h(in_h)
     detach_children
     load_attributes(in_h)
@@ -94,7 +95,7 @@ class BaseEntity < IdPk
     raise RuntimeError, "found multiple parents" if 1 < parent.size
     parent.first
   end
-  
+
   def self.child_references
     self.get_references(BasicAttributes::ChildReference)
   end
@@ -106,7 +107,7 @@ class BaseEntity < IdPk
   def self.has_children?
     !self.child_references.empty?
   end
-  
+
   def self.has_value_references?
     !self.value_references.empty?
   end
@@ -129,7 +130,7 @@ class BaseEntity < IdPk
 
   def load_attributes(in_h)
     unless in_h.empty?
-      load_root_attributes(in_h)
+      load_self_attributes(in_h)
       load_child_attributes(in_h)
     end
   end
@@ -151,7 +152,7 @@ class BaseEntity < IdPk
     end) unless aggregates.empty?
   end
 
-  def load_root_attributes(in_h)
+  def load_self_attributes(in_h)
     self.class.attributes.each do |attr|
       if [BasicAttributes::Attribute, BasicAttributes::ValueReference].include?(attr.class)
         value = if in_h.include?(attr.name)
