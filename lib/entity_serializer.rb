@@ -1,5 +1,3 @@
-require 'hashdiff'
-
 class EntitySerializer
 
   def self.to_hash(entity)
@@ -30,12 +28,6 @@ class EntitySerializer
       end
     end
     row
-  end
-
-  def self.to_diff(a_entity, b_entity)
-    a_h = EntitySerializer.to_hash(a_entity)
-    b_h = EntitySerializer.to_hash(b_entity)
-    HashDiff.diff(a_h, b_h)
   end
 
 end

@@ -88,11 +88,13 @@ module UnitOfWork
       # TODO: Check optimistic concurrency (in a subclass) - it has an additional :stale state
       # TODO handle Repository::DatabaseError
       @mapper.transaction do
+
         @object_tracker.fetch_by_state(STATE_NEW).each do |res|
           working_obj = res.object
           @mapper.insert(working_obj)
           @history << working_obj
         end
+
         @object_tracker.fetch_by_state(STATE_DIRTY).each do |res|
           working_obj = res.object
           orig_obj = @history[working_obj.object_id].last
@@ -104,7 +106,9 @@ module UnitOfWork
         @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.delete(res.object) }
 
         clear_all_objects_in_state(STATE_DELETED)
+
         move_all_objects(STATE_NEW, STATE_DIRTY)
+
         @committed = true
       end
     end

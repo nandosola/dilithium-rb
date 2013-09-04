@@ -84,10 +84,19 @@ class BaseEntity < IdPk
       self.class.child_references.each do |children_type|
         children = Array(self.send(children_type))
         children.each do |child|
+          a = children
+          b = child
           yield(child)
         end
       end
     end
+  end
+
+  def find_child
+    each_child do |child|
+      return child if yield(child)
+    end
+    nil
   end
 
   def self.parent_reference
@@ -106,6 +115,10 @@ class BaseEntity < IdPk
 
   def self.has_children?
     !self.child_references.empty?
+  end
+
+  def self.has_parent?
+    !self.parent_reference.nil?
   end
 
   def self.has_value_references?
