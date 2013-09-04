@@ -26,6 +26,7 @@ module Mapper
       transaction do
         # First insert entity
         entity_data = Sequel.entity_to_row(entity, parent_id)
+        entity_data.delete(:id)
         entity.id = DB[to_table_name(entity)].insert(entity_data)
 
         # Then recurse children for inserting them
