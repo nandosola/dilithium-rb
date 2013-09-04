@@ -1,4 +1,5 @@
 require_relative 'basic_attributes'
+require_relative 'entity_serializer'
 require 'hashdiff'
 
 module Mapper
@@ -110,20 +111,9 @@ module Mapper
       "#{entity.class.parent_reference}_id".to_sym
     end
 
-    # TODO: extract this to a Serializer class?
-    def self.to_hash(entity)
-      h = {}
-      entity.instance_variables.each do |attr|
-        attr_name = attr.to_s[1..-1].to_sym
-        attr_value = entity.instance_variable_get(attr)
-        h[attr_name] =  attr_value
-      end
-      h
-    end
-
     def self.entity_to_row(entity, parent_id=nil)
       row = {}
-      entity_h = Sequel.to_hash(entity)
+      entity_h = EntitySerializer.to_hash(entity)
       entity_h[to_parent_reference(entity)] = parent_id if parent_id
       entity_h.each do |attr,value|
         attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
