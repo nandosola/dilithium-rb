@@ -5,9 +5,9 @@ require_relative 'fixtures/chained_refs'
 module SpecFixtures
   def insert_test_users
     items = $database[:users]
-    items.insert(:name => 'Alice', :email => 'alice@example.net', :active=>true)
-    items.insert(:name => 'Bob', :email => 'bob@example.net', :active=>true)
-    items.insert(:name => 'Charly', :email => 'charly@example.net', :active=>true)
+    items.insert(:name => 'Alice', :email => 'alice@example.net', :_active => true)
+    items.insert(:name => 'Bob', :email => 'bob@example.net', :_active => true)
+    items.insert(:name => 'Charly', :email => 'charly@example.net', :_active => true)
   end
 
   def delete_test_users

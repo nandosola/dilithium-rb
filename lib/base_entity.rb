@@ -20,8 +20,8 @@ class BaseEntity < IdPk
         PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])})
     base.attach_attribute_accessors(PRIMARY_KEY[:identifier])
 
-    base.class_variable_get(:'@@attributes')[:active] = BasicAttributes::Attribute.new(:active,TrueClass, false, true)
-    base.attach_attribute_accessors(:active)
+    base.class_variable_get(:'@@attributes')[:_active] = BasicAttributes::Attribute.new(:_active, TrueClass, false, true)
+    base.attach_attribute_accessors(:_active)
 
     base.instance_eval do
       def attributes
