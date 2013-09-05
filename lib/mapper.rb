@@ -23,29 +23,24 @@ module Mapper
     def self.insert(entity, parent_id = nil)
       Sequel.check_uow_transaction(entity) unless parent_id  # It's the root
       
-      transaction do
-        # First insert entity
-        entity_data = EntitySerializer.to_row(entity, parent_id)
-        entity_data.delete(:id)
-        entity.id = DB[to_table_name(entity)].insert(entity_data)
+      # First insert entity
+      entity_data = EntitySerializer.to_row(entity, parent_id)
+      entity_data.delete(:id)
+      entity.id = DB[to_table_name(entity)].insert(entity_data)
 
-        # Then recurse children for inserting them
-        entity.each_child do |child|
-          Sequel.insert(child, entity.id)
-        end
-        entity.id
-      end # transaction
+      # Then recurse children for inserting them
+      entity.each_child do |child|
+        Sequel.insert(child, entity.id)
+      end
     end
 
     def self.delete(entity)
       Sequel.check_uow_transaction(entity)
 
-      transaction do
-        DB[to_table_name(entity)].where(id: entity.id).update(active: false)
+      DB[to_table_name(entity)].where(id: entity.id).update(active: false)
 
-        entity.each_child do |child|
-          Sequel.delete(child)
-        end
+      entity.each_child do |child|
+        Sequel.delete(child)
       end
     end
 
@@ -55,26 +50,23 @@ module Mapper
       modified_data = EntitySerializer.to_row(modified_entity)
       original_data = EntitySerializer.to_row(original_entity)
 
-      # TODO minimize transactions
-      transaction do
-        unless modified_data.eql?(original_data)
-          DB[to_table_name(modified_entity)].where(id: modified_entity.id).update(modified_data)
-        end
+      unless modified_data.eql?(original_data)
+        DB[to_table_name(modified_entity)].where(id: modified_entity.id).update(modified_data)
+      end
 
-        modified_entity.each_child do |child|
-          if child.id.nil?
-            Sequel.insert(child, modified_entity.id)
-          else
-            Sequel.update(child, original_entity.find_child do |c|
-              child.id == c.id
-            end)
-          end
+      modified_entity.each_child do |child|
+        if child.id.nil?
+          Sequel.insert(child, modified_entity.id)
+        else
+          Sequel.update(child, original_entity.find_child do |c|
+            child.id == c.id
+          end)
         end
+      end
 
-        original_entity.each_child do |child|
-          Sequel.delete(child) if modified_entity.find_child{|c| child.id == c.id}.nil?
-        end
-      end # transaction
+      original_entity.each_child do |child|
+        Sequel.delete(child) if modified_entity.find_child{|c| child.id == c.id}.nil?
+      end
 
     end
 

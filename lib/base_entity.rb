@@ -32,6 +32,7 @@ class BaseEntity < IdPk
 
   def self.children(*names)
     names.each do |child|
+      # TODO pass type
       self.class_variable_get(:'@@attributes')[child] = BasicAttributes::ChildReference.new(child)
       self.attach_attribute_accessors(child, :aggregate)
       self.define_aggregate_method(child)
@@ -39,7 +40,8 @@ class BaseEntity < IdPk
   end
 
   def self.parent(parent)
-    self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent)
+  # TODO pass type
+  self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent)
     self.attach_attribute_accessors(parent, :parent)
   end
 
