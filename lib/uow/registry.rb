@@ -19,7 +19,7 @@ module UnitOfWork
         @@registry = {}
       end
       def [](tr_uuid)
-        @@registry[tr_uuid]
+        @@registry[tr_uuid.to_sym]
       end
       def <<(tr)
         @@registry[tr.uuid.to_sym] = tr
@@ -35,6 +35,12 @@ module UnitOfWork
           else
             m
           end
+        end
+      end
+      def each_entity(tr_uuid)
+        tr = @@registry[tr_uuid.to_sym]
+        tr.fetch_all_objects.each do |entity|
+          yield(SearchResult.new(tr,entity))
         end
       end
       # TODO create/read file for each Transaction
@@ -53,7 +59,7 @@ module UnitOfWork
               unless tr.nil?
                 if obj_id.nil?
                   entities = tr.fetch_object_by_class(self)
-                  entities.each { |entity| yield(TransactionRegistry::Registry::SearchResult.new(tr,entity)) }
+                  entities.each { |entity| yield(TransactionRegistry::Registry::SearchResult.new(tr, entity)) }
                 else
                   TransactionRegistry::Registry::SearchResult.new(tr,tr.fetch_object_by_id(self, obj_id))
                 end

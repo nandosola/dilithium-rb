@@ -34,6 +34,10 @@ module UnitOfWork
       @object_tracker.fetch_by_class(obj_class)
     end
 
+    def fetch_all_objects
+      @object_tracker.fetch_all
+    end
+
     def register_clean(obj)
       check_register_clean(obj)
       register_entity(obj, STATE_CLEAN)

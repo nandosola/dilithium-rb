@@ -101,8 +101,11 @@ module UnitOfWork
       TrackedObjectSearchResult.factory(found_array)
     end
 
-    def fetch_object(obj)
+    def fetch_all
+      TrackedObjectSearchResult.factory(@tracker)
+    end
 
+    def fetch_object(obj)
       found_array = @tracker.select {|to| obj == to.object}
       TrackedObjectSearchResult.factory(found_array, TrackedObjectSearchResult::SINGLE_T)
     end

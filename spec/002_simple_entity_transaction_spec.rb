@@ -151,6 +151,20 @@ describe 'A transaction handling a Simple Entity' do
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DIRTY)[0].object.should eq(@a_user)
     @transaction.valid.should eq(true)
     @a_user.transactions[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
+
+  end
+
+  it "registers objects in the glabal Registry and allows them to be found" do
+    a=[]
+    reg = UnitOfWork::TransactionRegistry::Registry.instance
+    reg.each_entity(@transaction.uuid) do |e|
+      a<<e
+    end
+    b = @transaction.tracked_objects.fetch_all
+
+    a.size.should eq(1)
+    b.size.should eq(1)
+    b[0].object.should eq(a[0].object)
   end
 
   it "cannot register an entity that already exists in the transaction" do
