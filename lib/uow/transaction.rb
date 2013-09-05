@@ -34,8 +34,6 @@ module UnitOfWork
       @object_tracker.fetch_by_class(obj_class)
     end
 
-    # TODO only is_a?BasicEntity can be registered in a transaction
-
     def register_clean(obj)
       check_register_clean(obj)
       register_entity(obj, STATE_CLEAN)
@@ -57,18 +55,22 @@ module UnitOfWork
     end
 
     def check_register_clean(obj)
+      check_entity(obj)
       true
     end
 
     def check_register_dirty(obj)
+      check_entity(obj)
       true
     end
 
     def check_register_deleted(obj)
+      check_entity(obj)
       true
     end
 
     def check_register_new(obj)
+      check_entity(obj)
       true
     end
 
@@ -124,6 +126,12 @@ module UnitOfWork
     end
 
     private
+
+    def check_entity(obj)
+      raise ArgumentError, "Only BasicEntities can be registered in the Transaction. Got: #{obj.class}" \
+        unless obj.class < BaseEntity
+    end
+
     def register_entity(obj, state)
       check_valid_uow
 

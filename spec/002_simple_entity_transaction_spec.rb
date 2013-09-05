@@ -22,6 +22,12 @@ describe 'A transaction handling a Simple Entity' do
     UnitOfWork::TransactionRegistry::Registry.instance[@transaction.uuid.to_sym].should eq(@transaction)
   end
 
+  it "won't get registered if the entity is not a BasicEntity" do
+    class NotABasicEntity
+    end
+    expect {@transaction.register_new(NotABasicEntity.new)}.to raise_error(ArgumentError)
+  end
+
   it "correctly registers an object with a Transaction" do
     @transaction.register_clean(@a_user)
 
@@ -145,6 +151,15 @@ describe 'A transaction handling a Simple Entity' do
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DIRTY)[0].object.should eq(@a_user)
     @transaction.valid.should eq(true)
     @a_user.transactions[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
+  end
+
+  it "deletes an entity after registering it as dirty" do
+    user = User.fetch_by_id(2)
+    @transaction.register_dirty(user)
+    @transaction.register_deleted(user)
+    @transaction.commit
+    user = User.fetch_by_id(2)
+    user.should be_nil
   end
 
   it "sets deleted objects to dirty and reloads dirty and deleted objects when calling rollback" do
