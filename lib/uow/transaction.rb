@@ -103,8 +103,12 @@ module UnitOfWork
         end
 
         #TODO handle nested transactions (@history)
-        @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.delete(res.object) }
+        @object_tracker.fetch_by_state(STATE_DELETED).each do |resource|
+          @mapper.delete(resource.object)
+        end
 
+        #update_inserted_entities(inserted_entities)
+        #remove_deleted_entities(deleted_entities)
         clear_all_objects_in_state(STATE_DELETED)
 
         move_all_objects(STATE_NEW, STATE_DIRTY)
@@ -112,6 +116,33 @@ module UnitOfWork
         @committed = true
       end
     end
+
+    private
+
+    def update_inserted_entities(entities)
+      entities.each do |entity, ids|
+        entity.id = ids[:id]
+        if entity.class.has_parent?
+          #entity.send("#{@mapper.to_parent_reference(entity)}=", ids[:parent_id])
+        else
+          @object_tracker.change_object_state(entity, STATE_DIRTY)
+        end
+      end
+    end
+
+    # TODO
+    def remove_deleted_entities(entities)
+      entities.each do |entity, id|
+        parent_type = entity.class.parent_reference
+        if parent_type
+          pp "---------------------------------", entity.send(entity.class.parent_reference)
+        else
+          @object_tracker.untrack(entity)
+        end
+      end
+    end
+
+    public
 
     def complete
       check_valid_uow

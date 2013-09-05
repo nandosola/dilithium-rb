@@ -105,6 +105,10 @@ class BaseEntity < IdPk
     parent.first
   end
 
+  def self.has_parent?
+    !self.parent_reference.nil?
+  end
+  
   def self.child_references
     self.get_references(BasicAttributes::ChildReference)
   end
@@ -223,22 +227,29 @@ class BaseEntity < IdPk
     end
   end
 
-  def self.define_aggregate_method(child)
+  def self.define_aggregate_method(plural_child_name)
     self.class_eval do
+      singular_name = plural_child_name.to_s.singularize
+      klass_name = singular_name.camelize
+      singular_make_method_name = "make_#{singular_name}"
+      plural_make_method_name = "make_#{plural_child_name}"
+      plural_add_method_name = "#{plural_child_name}<<"
 
       # Single-entity methods:
 
-      define_method("make_#{child.to_s.singularize}".to_sym) do |in_h|
-        a_child = Object.const_get(child.to_s.singularize.camelize).new(in_h, self)
-        send("#{child}<<".to_sym, a_child)
+      define_method(singular_make_method_name) do |in_h|
+        a_child = Object.const_get(klass_name).new(in_h, self)
+        send(plural_add_method_name, a_child)
         a_child
       end
 
       # Collection methods:
 
-      define_method("make_#{child}".to_sym) do |in_a|
+      define_method(plural_make_method_name) do |in_a|
         children = []
-        in_a.each {|in_h| children<< send("make_#{child.to_s.singularize}".to_sym, in_h)}
+        in_a.each do |in_h|
+          children << send(singular_make_method_name, in_h)
+        end
         children
       end
     end

@@ -21,7 +21,7 @@ module Mapper
     end
     
     def self.insert(entity, parent_id = nil)
-      Sequel.check_uow_transaction(entity) unless parent_id  # It's the root
+      Sequel.check_uow_transaction(entity) unless entity.class.has_parent?  # It's the root
       
       # First insert entity
       entity_data = EntitySerializer.to_row(entity, parent_id)
@@ -35,7 +35,7 @@ module Mapper
     end
 
     def self.delete(entity)
-      Sequel.check_uow_transaction(entity)
+      Sequel.check_uow_transaction(entity) unless entity.class.has_parent?  # It's the root
 
       DB[to_table_name(entity)].where(id: entity.id).update(active: false)
 

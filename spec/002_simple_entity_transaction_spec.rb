@@ -162,4 +162,5 @@ describe 'A transaction handling a Simple Entity' do
   after(:all) do
     delete_test_users
   end
+
 end
