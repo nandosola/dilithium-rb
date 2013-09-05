@@ -64,7 +64,7 @@ module Repository
             unless self.class.child_references.empty?
               parent_name = self.class.to_s.split('::').last.underscore.downcase
               self.class.child_references.each do |child_name|
-                children = DB[child_name].where("#{parent_name}_id".to_sym=> self.id).all
+                children = DB[child_name].where("#{parent_name}_id".to_sym=> self.id).where(active: true).all
                 unless children.nil?
                   if children.is_a?(Array)
                     unless children.empty?

@@ -1,6 +1,5 @@
 require_relative 'basic_attributes'
 require_relative 'entity_serializer'
-require 'hashdiff'
 
 module Mapper
 
@@ -24,44 +23,54 @@ module Mapper
     def self.insert(entity, parent_id = nil)
       Sequel.check_uow_transaction(entity) unless entity.class.has_parent?  # It's the root
       
-      transaction do
-        # First insert entity
-        entity_data = Sequel.entity_to_row(entity, parent_id)
-        entity_data.delete(:id)
-        entity.id = DB[to_table_name(entity)].insert(entity_data)
+      # First insert entity
+      entity_data = EntitySerializer.to_row(entity, parent_id)
+      entity_data.delete(:id)
+      entity.id = DB[to_table_name(entity)].insert(entity_data)
 
-        # Then recurse children for inserting them
-        entity.each_child do |child|
-          Sequel.insert(child, entity.id)
-        end
+      # Then recurse children for inserting them
+      entity.each_child do |child|
+        Sequel.insert(child, entity.id)
       end
     end
 
     def self.delete(entity)
       Sequel.check_uow_transaction(entity) unless entity.class.has_parent?  # It's the root
 
-      transaction do
-        # First deactivate entity
-        DB[to_table_name(entity)].where(id: entity.id).update(active: false)
+      DB[to_table_name(entity)].where(id: entity.id).update(active: false)
 
-        # Then recurse children for deactivating them
-        entity.each_child do |child|
-          Sequel.delete(child)
+      entity.each_child do |child|
+        Sequel.delete(child)
+      end
+    end
+
+    def self.update(modified_entity, original_entity)
+      Sequel.check_uow_transaction(modified_entity)
+
+      modified_data = EntitySerializer.to_row(modified_entity)
+      original_data = EntitySerializer.to_row(original_entity)
+
+      unless modified_data.eql?(original_data)
+        DB[to_table_name(modified_entity)].where(id: modified_entity.id).update(modified_data)
+      end
+
+      modified_entity.each_child do |child|
+        if child.id.nil?
+          Sequel.insert(child, modified_entity.id)
+        else
+          Sequel.update(child, original_entity.find_child do |c|
+            child.id == c.id
+          end)
         end
-
-        entity
       end
+
+      original_entity.each_child do |child|
+        Sequel.delete(child) if modified_entity.find_child{|c| child.id == c.id}.nil?
+      end
+
     end
 
-    def self.update(modified_entity, original_entity=nil)
-      Sequel.check_uow_transaction(modified_entity) unless modified_entity.class.has_parent?  # It's the root
-      entity_data = Sequel.entity_to_row(modified_entity)
-
-      transaction do
-        DB[to_table_name(modified_entity)].where(id: modified_entity.id).update(entity_data)
-      end
-    end
-
+    # TODO
     def self.reload(base_entity)
       Sequel.check_uow_transaction(base_entity)
       name = base_entity.class.to_s.split('::').last.underscore.downcase
@@ -70,7 +79,7 @@ module Mapper
 
     private
     def self.check_uow_transaction(base_entity)
-      raise RuntimeError, "Invalid Transaction" if base_entity.transactions.empty?
+      raise RuntimeError, "Invalid Transaction" if !base_entity.class.has_parent? && base_entity.transactions.empty?
     end
 
     # Returns an entity associated DB table name
@@ -99,33 +108,6 @@ module Mapper
           end
         end
       end
-    end
-
-    # Returns an entity associated parent reference field name.
-    #
-    # Example:
-    #   :employee => :employee_id
-    # Params:
-    # - entity: BaseEntity instance
-    def self.to_parent_reference(entity)
-      "#{entity.class.parent_reference}_id".to_sym
-    end
-
-    def self.entity_to_row(entity, parent_id=nil)
-      row = {}
-      entity_h = EntitySerializer.to_hash(entity)
-      entity_h[to_parent_reference(entity)] = parent_id if parent_id
-      entity_h.each do |attr,value|
-        attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
-        unless [BasicAttributes::ChildReference, BasicAttributes::ParentReference].include?(attr_type.class)
-          if attr_type.is_a?(BasicAttributes::ValueReference)
-            row[attr_type.reference] = value.nil? ? attr_type.default : value.id
-          else
-            row[attr] = value
-          end
-        end
-      end
-      row
     end
 
   end
