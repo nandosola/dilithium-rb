@@ -75,6 +75,9 @@ describe 'A Transaction handling an Aggregate Entity' do
     abstra.local_offices[1].addresses[0].class.should eq(Address)
     abstra.local_offices[1].addresses[0].description.should eq('addr2.1')
 
+  end
+
+  it "creates a new aggregate, retrieves it and performs updates" do
     company2_h = {
         name: 'Smarty Pants, Inc.',
         local_offices: [
@@ -127,6 +130,30 @@ describe 'A Transaction handling an Aggregate Entity' do
     new_horizon.local_offices[0].addresses.size.should eq(1)
     new_horizon.local_offices[0].addresses[0].description.should eq('nhp dir 1')
 
-
   end
+
+  it "From an existing transaction: retrieves an aggregate, registers it as dirty and deletes it" do
+    pending "we already have the same entity in this transaction!! What should we do?"
+    company = Company.fetch_by_id(2)
+    @transaction.register_dirty(company)
+    @transaction.register_deleted(company)
+    @transaction.commit
+    company = Company.fetch_by_id(2)
+    company.should be_nil
+    @transaction.finalize
+  end
+
+  it "From a new transaction: retrieves an aggregate, registers it as dirty and deletes it" do
+    tr = UnitOfWork::Transaction.new(Mapper::Sequel)
+
+    company = Company.fetch_by_id(2)
+    tr.register_dirty(company)
+    tr.register_deleted(company)
+    tr.commit
+    company = Company.fetch_by_id(2)
+    company.should be_nil
+  end
+
+
+
 end

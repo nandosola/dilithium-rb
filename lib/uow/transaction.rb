@@ -124,6 +124,7 @@ module UnitOfWork
       TransactionRegistry::Registry.instance.delete(self)
       @valid = false
     end
+    alias_method :finalize, :complete
 
     private
 
