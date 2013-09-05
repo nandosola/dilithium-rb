@@ -132,17 +132,6 @@ describe 'A Transaction handling an Aggregate Entity' do
 
   end
 
-  it "From an existing transaction: retrieves an aggregate, registers it as dirty and deletes it" do
-    pending "we already have the same entity in this transaction!! What should we do?"
-    company = Company.fetch_by_id(2)
-    @transaction.register_dirty(company)
-    @transaction.register_deleted(company)
-    @transaction.commit
-    company = Company.fetch_by_id(2)
-    company.should be_nil
-    @transaction.finalize
-  end
-
   it "From a new transaction: retrieves an aggregate, registers it as dirty and deletes it" do
     tr = UnitOfWork::Transaction.new(Mapper::Sequel)
 

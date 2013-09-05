@@ -34,6 +34,9 @@ module BasicAttributes
     end
   end
 
+  class ValueAttribute < Attribute
+  end
+
   class ValueReference < Reference
   end
 

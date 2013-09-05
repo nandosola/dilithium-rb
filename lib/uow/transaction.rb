@@ -55,22 +55,22 @@ module UnitOfWork
     end
 
     def check_register_clean(obj)
-      check_entity(obj)
+      check_valid_entity(obj)
       true
     end
 
     def check_register_dirty(obj)
-      check_entity(obj)
+      check_valid_entity(obj)
       true
     end
 
     def check_register_deleted(obj)
-      check_entity(obj)
+      check_valid_entity(obj)
       true
     end
 
     def check_register_new(obj)
-      check_entity(obj)
+      check_valid_entity(obj, false)
       true
     end
 
@@ -89,6 +89,7 @@ module UnitOfWork
 
       # TODO: Check optimistic concurrency (in a subclass) - it has an additional :stale state
       # TODO handle Repository::DatabaseError
+      # TODO: store entity's latest payload before commit() and restore it
       @mapper.transaction do  #TODO make sure this is a deferred transaction
 
         @object_tracker.fetch_by_state(STATE_NEW).each do |res|
@@ -128,11 +129,6 @@ module UnitOfWork
 
     private
 
-    def check_entity(obj)
-      raise ArgumentError, "Only BasicEntities can be registered in the Transaction. Got: #{obj.class}" \
-        unless obj.class < BaseEntity
-    end
-
     def register_entity(obj, state)
       check_valid_uow
 
@@ -156,6 +152,25 @@ module UnitOfWork
     def clear_all_objects_in_state(state)
       @object_tracker.fetch_by_state(state).each do |res|
         @object_tracker.untrack(res.object)
+      end
+    end
+
+    def check_valid_entity(obj, must_have_id=true)
+      unless obj.class < BaseEntity
+        raise ArgumentError, "Only BasicEntities can be registered in the Transaction. Got: #{obj.class}"
+      end
+
+      id = BaseEntity::PRIMARY_KEY[:identifier]
+      if must_have_id
+        raise ArgumentError, "Cannot register #{obj.class} without an identity (#{id})" if obj.id.nil?
+        found_res = fetch_object_by_id(obj.class, obj.id)
+        unless  found_res.nil? || found_res.object.id.nil?
+          if found_res.object.id == obj.id && found_res.object.object_id != obj.object_id
+            raise ArgumentError, "Cannot register #{obj.class} with identity (#{id}=#{obj.id}): already exists in the transaction"
+          end
+        end
+      else
+        raise ArgumentError, "Cannot register #{obj.class} with an existing identity (#{id}=#{obj.id})" unless obj.id.nil?
       end
     end
 

@@ -153,13 +153,9 @@ describe 'A transaction handling a Simple Entity' do
     @a_user.transactions[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
   end
 
-  it "deletes an entity after registering it as dirty" do
+  it "cannot register an entity that already exists in the transaction" do
     user = User.fetch_by_id(2)
-    @transaction.register_dirty(user)
-    @transaction.register_deleted(user)
-    @transaction.commit
-    user = User.fetch_by_id(2)
-    user.should be_nil
+    expect {@transaction.register_dirty(user)}.to raise_error(ArgumentError)
   end
 
   it "sets deleted objects to dirty and reloads dirty and deleted objects when calling rollback" do

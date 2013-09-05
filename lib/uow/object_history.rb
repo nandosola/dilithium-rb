@@ -2,6 +2,7 @@ module UnitOfWork
   # CAVEAT: this is not distribution-friendly. object_id should use 'nodename' as well
   class ObjectHistory
     def initialize
+      # TODO save object state as well
       @object_ids = {}
     end
     def <<(obj)
