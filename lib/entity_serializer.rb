@@ -10,9 +10,30 @@ class EntitySerializer
     h
   end
 
+  def self.to_nested_hash(entity)
+    entity_h = to_hash(entity)
+
+    entity_h.each do |attr, value|
+      attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
+
+      case attr_type
+        when BasicAttributes::ChildReference
+          entity_h[attr] = Array.new
+          value.each do |child|
+            entity_h[attr] << to_nested_hash(child)
+          end
+        when BasicAttributes::ValueReference
+          entity_h[attr] = to_nested_hash(value) unless value.nil?
+      end
+
+    end
+
+    entity_h
+  end
+
   def self.to_row(entity, parent_id=nil)
     row = {}
-    entity_h = EntitySerializer.to_hash(entity)
+    entity_h = to_hash(entity)
     if parent_id
       parent_ref = "#{entity.class.parent_reference}_id".to_sym
       entity_h[parent_ref] = parent_id if parent_id

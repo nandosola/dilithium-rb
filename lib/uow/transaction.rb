@@ -39,51 +39,61 @@ module UnitOfWork
     end
 
     def register_clean(obj)
-      check_register_clean(obj)
+      check_valid_entity(obj, STATE_CLEAN)
       register_entity(obj, STATE_CLEAN)
     end
 
     def register_dirty(obj)
-      check_register_dirty(obj)
+      check_valid_entity(obj, STATE_DIRTY)
       register_entity(obj, STATE_DIRTY)
     end
 
     def register_deleted(obj)
-      check_register_deleted(obj)
+      check_valid_entity(obj, STATE_DELETED)
       register_entity(obj, STATE_DELETED)
     end
 
     def register_new(obj)
-      check_register_new(obj)
+      check_valid_entity(obj, STATE_NEW, false)
       register_entity(obj, STATE_NEW)
     end
 
+    # Methods to be overriden by subclasses (ie. concurrency control)
     def check_register_clean(obj)
-      check_valid_entity(obj)
       true
     end
 
     def check_register_dirty(obj)
-      check_valid_entity(obj)
       true
     end
 
     def check_register_deleted(obj)
-      check_valid_entity(obj)
       true
     end
 
     def check_register_new(obj)
-      check_valid_entity(obj, false)
       true
     end
+    # /end overridable methods
 
     def rollback
       check_valid_uow
       #TODO handle nested transactions (@history)
-      @object_tracker.fetch_by_state(STATE_DIRTY).each { |res| @mapper.reload(res.object) }
-      @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.reload(res.object) }
-
+      @object_tracker.fetch_all.each do |res|
+        unless [STATE_CLEAN, STATE_NEW].include?(res.state)
+          working_obj = res.object
+          restored_obj = @history[working_obj.object_id].last
+          unless restored_obj.nil?
+            restored_payload = EntitySerializer.to_nested_hash(restored_obj)
+            working_obj.full_update(restored_payload)
+          else
+            id = res.object.id
+            RuntimeError "Cannot rollback #{res.object.class} with identity (id=#{id.nil? ? 'nil' : id })\n"+
+                "-- it couldn't be found in history[object_id=#{working_obj.object_id}]"
+          end
+        end
+      end
+      move_all_objects(STATE_DELETED, STATE_DIRTY)
       move_all_objects(STATE_DELETED, STATE_DIRTY)
       @committed = true
     end
@@ -159,22 +169,29 @@ module UnitOfWork
       end
     end
 
-    def check_valid_entity(obj, must_have_id=true)
+    def check_valid_entity(obj, state, must_have_id=true)
       unless obj.class < BaseEntity
         raise ArgumentError, "Only BasicEntities can be registered in the Transaction. Got: #{obj.class}"
       end
 
       id = BaseEntity::PRIMARY_KEY[:identifier]
+
       if must_have_id
         raise ArgumentError, "Cannot register #{obj.class} without an identity (#{id})" if obj.id.nil?
         found_res = fetch_object_by_id(obj.class, obj.id)
-        unless  found_res.nil? || found_res.object.id.nil?
-          if found_res.object.id == obj.id && found_res.object.object_id != obj.object_id
+        unless found_res.nil? || found_res.object.id.nil?
+          if found_res.state == state
             raise ArgumentError, "Cannot register #{obj.class} with identity (#{id}=#{obj.id}): already exists in the transaction"
           end
         end
       else
         raise ArgumentError, "Cannot register #{obj.class} with an existing identity (#{id}=#{obj.id})" unless obj.id.nil?
+        found_res = fetch_object(obj)
+        unless found_res.nil?
+          if found_res.state == state
+            raise ArgumentError, "Cannot register the same object twice: already exists in the transaction"
+          end
+        end
       end
     end
 

@@ -142,8 +142,9 @@ describe 'A transaction handling a Simple Entity' do
 
   it "does not affect objects when calling rollback" do
     @a_user = User.fetch_by_id(2)
-    @a_user.name = 'Bartley'
     @transaction.register_dirty(@a_user)
+    @a_user.name = 'Bartley'
+    expect {@transaction.register_dirty(@a_user)}.to raise_error(ArgumentError)
     @transaction.rollback
 
     @transaction.valid.should eq(true)
@@ -151,6 +152,8 @@ describe 'A transaction handling a Simple Entity' do
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DIRTY)[0].object.should eq(@a_user)
     @transaction.valid.should eq(true)
     @a_user.transactions[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
+
+    @a_user.name.should eq('Bob')
 
   end
 
@@ -170,6 +173,17 @@ describe 'A transaction handling a Simple Entity' do
   it "cannot register an entity that already exists in the transaction" do
     user = User.fetch_by_id(2)
     expect {@transaction.register_dirty(user)}.to raise_error(ArgumentError)
+
+    new_tr = UnitOfWork::Transaction.new(Mapper::Sequel)
+    expect {new_tr.register_new(user)}.to raise_error(ArgumentError)
+
+    new_user = User.new
+    new_tr.register_new(new_user)
+    expect {new_tr.register_new(new_user)}.to raise_error(ArgumentError)
+
+    another_user = User.new
+    new_tr.register_new(another_user)
+
   end
 
   it "sets deleted objects to dirty and reloads dirty and deleted objects when calling rollback" do

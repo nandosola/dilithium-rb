@@ -132,6 +132,19 @@ describe 'A Transaction handling an Aggregate Entity' do
 
   end
 
+  it "From a new transaction: retrieves an aggregate, registers it as dirty, and rollbacks it " do
+    tr = UnitOfWork::Transaction.new(Mapper::Sequel)
+
+    company = Company.fetch_by_id(2)
+    tr.register_dirty(company)
+    company.local_offices[0].description = 'Kilroy 2.0 is everywhere'
+    company.local_offices[0].addresses[0].description = 'good evening'
+    tr.rollback
+    company.local_offices[0].description = 'nhp del 1'
+    company.local_offices[0].addresses[0].description = 'nhp dir 1'
+
+  end
+
   it "From a new transaction: retrieves an aggregate, registers it as dirty and deletes it" do
     tr = UnitOfWork::Transaction.new(Mapper::Sequel)
 
@@ -142,7 +155,5 @@ describe 'A Transaction handling an Aggregate Entity' do
     company = Company.fetch_by_id(2)
     company.should be_nil
   end
-
-
 
 end

@@ -27,11 +27,33 @@ describe 'A Chained Reference' do
     transaction.commit
     transaction.complete
 
-    MyEntity.fetch_by_id(1).baz_ref.bar_ref.description.should eq('bar ref 2')
+    my_entity = MyEntity.fetch_by_id(1)
+    my_entity.baz_ref.bar_ref.description.should eq('bar ref 2')
   end
 
   it 'should handle circular relations correctly' do
     pending
+  end
+
+  it 'should be deeply serialized' do
+    my_entity = MyEntity.fetch_by_id(1)
+
+    h = EntitySerializer.to_nested_hash(my_entity)
+    h.should eq(
+                 {:id=>1,
+                  :active=>true,
+                  :description=>"dependent side",
+                  :baz_ref=>
+                      {:id=>2,
+                       :active=>true,
+                       :description=>"baz ref 2",
+                       :bar_ref=>
+                           {:id=>2,
+                            :active=>true,
+                            :description=>"bar ref 2",
+                            :foo_ref=>{:id=>1, :active=>true, :description=>"foo ref"}}}}
+             )
+
   end
 
   after(:all) do

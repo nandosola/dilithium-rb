@@ -70,13 +70,6 @@ module Mapper
 
     end
 
-    # TODO
-    def self.reload(base_entity)
-      Sequel.check_uow_transaction(base_entity)
-      name = base_entity.class.to_s.split('::').last.underscore.downcase
-      table = name.pluralize
-    end
-
     private
     def self.check_uow_transaction(base_entity)
       raise RuntimeError, "Invalid Transaction" if !base_entity.class.has_parent? && base_entity.transactions.empty?
