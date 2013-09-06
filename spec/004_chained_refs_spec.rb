@@ -1,7 +1,7 @@
 describe 'A Chained Reference' do
 
   before(:all) do
-    Mapper::Sequel.create_tables(FooRef, BarRef, BazRef)
+    Mapper::Sequel.create_tables(FooRef, BarRef, BazRef, BatRef, Qux)
     insert_test_refs
   end
 
@@ -18,7 +18,10 @@ describe 'A Chained Reference' do
     expect {MyEntity.new({description:'dependent side', baz_ref_id:1})}.to raise_error(ArgumentError)
 
     baz_1 = BazRef.fetch_by_id(1)
-    a_entity = MyEntity.new({description:'dependent side', baz_ref:baz_1})
+    qux_1 = Qux.fetch_by_id(1)
+    bat_1 = BatRef.fetch_by_id(1)
+
+    a_entity = MyEntity.new({description:'dependent side', baz_ref:baz_1, qux:qux_1, bat_ref:bat_1})
 
     transaction.register_new(a_entity)
     transaction.commit
@@ -43,6 +46,8 @@ describe 'A Chained Reference' do
                  {:id=>1,
                   :active=>true,
                   :description=>"dependent side",
+                  :bat_ref=>{:id=>1, :active=>true, :name=>"bat ref", :qux=>{:id=>1, :active=>true, :name=>"qux 1"}},
+                  :qux=>{:id=>1, :active=>true, :name=>"qux 1"},
                   :baz_ref=>
                       {:id=>2,
                        :active=>true,

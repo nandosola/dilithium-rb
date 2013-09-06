@@ -69,6 +69,13 @@ module SpecFixtures
     baz = $database[:baz_refs]
     baz.insert(:description => 'baz ref', :bar_ref_id=>1)
     baz.insert(:description => 'baz ref 2', :bar_ref_id=>2)
+
+    qux = $database[:quxes]
+    qux.insert(:name => 'qux 1')
+
+    bat = $database[:bat_refs]
+    bat.insert(:name => 'bat ref', :qux_id=>1)
+
   end
 
   def delete_test_refs

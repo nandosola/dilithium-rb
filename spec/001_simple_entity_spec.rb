@@ -44,6 +44,17 @@ describe 'A Simple Entity' do
     User.fetch_by_name('Charly').first.id.should eq(3)
   end
 
+  it 'fetches references' do
+    references = $database[:references]
+    users = $database[:users]
+
+    references.insert(:name => 'Duke ref', :active=>true)
+    users.insert(:name => 'Duke', :email => 'duke@example.net', :reference_id=> 1, :active=>true)
+
+    duke = User.fetch_by_id(4)
+    duke
+  end
+
   it "accepts empty or full-hash constructors and validates its attributes" do
 
     norbert = {:name => 'Norbert', :email => 'norb@example.net'}
