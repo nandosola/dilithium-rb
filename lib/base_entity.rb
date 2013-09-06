@@ -234,11 +234,11 @@ class BaseEntity < IdPk
 
         child_class = if 1 == module_path.size
                         Object.const_get(child_literal)
-                      elsif 1 > module_path.size
+                      elsif 1 < module_path.size
                         child_path = module_path[0..-2] << child_literal
                         child_path.reduce(Object){ |m,c| m.const_get(c) }
                       else
-                        raise RuntimeError, "Cannot determine #{child_literal} namespace for path #{module_path.join('::')}"
+                        raise RuntimeError, "Cannot determine #{child_literal} namespace for parent path #{module_path.join('::')}"
                       end
 
         a_child = child_class.new(in_h, self)
