@@ -81,6 +81,8 @@ module Repository
           end
 
           def attach_child(parent_obj, child_name, child_h)
+            child_class =  parent_obj.class.children_type(child_name)
+            child_class.resolve_references(child_h)
             child_h.delete_if{|k,v| k.to_s.end_with?('_id')}
             method = "make_#{child_name.to_s.singularize}"
             child_obj = parent_obj.send(method.to_sym, child_h)

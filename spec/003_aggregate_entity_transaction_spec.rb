@@ -161,25 +161,61 @@ describe 'A Transaction handling an Aggregate Entity' do
 
   end
 
-  it 'allows entity namespacing' do
+  it 'allows transactions with namespaced entities' do
 
     module FooModule
       module Models
+        class Baz < BaseEntity
+          attribute :baz, String
+        end
         class Foo < BaseEntity
           children :bars
           attribute :foo, String
+          attribute :baz, Baz
         end
         class Bar < BaseEntity
+          parent :foo
           attribute :bar, String
+          attribute :baz, Baz
         end
       end
     end
     module BarModule
       include FooModule::Models
-      Mapper::Sequel.create_tables(Foo, Bar)
+      Mapper::Sequel.create_tables(Foo, Bar, Baz)
 
-      a_foo = Foo.new({foo:'foo', bars:[{bar:'bar'}]})
-      foo_h = EntitySerializer.to_nested_hash(a_foo)
+      bazs = $database[:bazs]
+      bazs.insert(:baz => 'baz ref 1')
+
+      tr = UnitOfWork::Transaction.new(Mapper::Sequel)
+
+      a_baz = Baz.fetch_by_id(1)
+      a_foo = Foo.new({foo:'foo', bars:[{bar:'bar', baz:a_baz}], baz:a_baz})
+      EntitySerializer.to_nested_hash(a_foo).should ==({:id=>nil,
+                                                       :active=>true,
+                                                       :bars=>
+                                                           [{:id=>nil,
+                                                             :active=>true,
+                                                             :bar=>"bar",
+                                                             :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}}],
+                                                       :foo=>"foo",
+                                                       :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}})
+      tr.register_new(a_foo)
+      tr.commit
+      tr.finalize
+
+      EntitySerializer.to_nested_hash(Foo.fetch_by_id(1)).should ==({:id=>1,
+                                                                     :active=>true,
+                                                                     :bars=>
+                                                                         [{:id=>1,
+                                                                           :active=>true,
+                                                                           :bar=>"bar",
+                                                                           :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}}],
+                                                                     :foo=>"foo",
+                                                                     :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}})
+
+      # TODO  what should we do when valueReferences are created together with the containing Aggregate?
+      #a_baz = Baz.new({baz:'baz'})
     end
   end
 

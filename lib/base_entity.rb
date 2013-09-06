@@ -127,6 +127,7 @@ class BaseEntity < IdPk
 
   def self.children_type(child_attr)
     # TODO change ChildReference.type for the real thing
+    # TODO maybe refactor this method to BasicAttribute::ChildReference
     if self.child_references.include?(child_attr)
       module_path = self.to_s.split('::')
       child_literal = child_attr.to_s.singularize.camelize
