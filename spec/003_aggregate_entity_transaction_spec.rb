@@ -154,6 +154,33 @@ describe 'A Transaction handling an Aggregate Entity' do
     tr.commit
     company = Company.fetch_by_id(2)
     company.should be_nil
+
+    ct = Company.children_type(:local_offices)
+    (ct < BaseEntity).should be_true
+    ct.should eq(LocalOffice)
+
+  end
+
+  it 'allows entity namespacing' do
+
+    module FooModule
+      module Models
+        class Foo < BaseEntity
+          children :bars
+          attribute :foo, String
+        end
+        class Bar < BaseEntity
+          attribute :bar, String
+        end
+      end
+    end
+    module BarModule
+      include FooModule::Models
+      Mapper::Sequel.create_tables(Foo, Bar)
+
+      a_foo = Foo.new({foo:'foo', bars:[{bar:'bar'}]})
+      foo_h = EntitySerializer.to_nested_hash(a_foo)
+    end
   end
 
 end

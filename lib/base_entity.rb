@@ -125,6 +125,28 @@ class BaseEntity < IdPk
     !self.value_references.empty?
   end
 
+  def self.children_type(child_attr)
+    # TODO change ChildReference.type for the real thing
+    # TODO refactor (same method @253)
+    if self.child_references.include?(child_attr)
+      module_path = self.class.to_s.split('::')
+      child_literal = child_attr.to_s.singularize.camelize
+
+      child_class = if 1 == module_path.size
+                      Object.const_get(child_literal)
+                    elsif 1 < module_path.size
+                      child_path = module_path[0..-2] << child_literal
+                      child_path.reduce(Object){ |m,c| m.const_get(c) }
+                    else
+                      raise RuntimeError, "Cannot determine #{child_literal} namespace for parent path #{module_path.join('::')}"
+                    end
+
+      child_class
+    else
+      nil
+    end
+  end
+
   private
   protected
 

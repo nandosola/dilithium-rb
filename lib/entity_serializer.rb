@@ -24,6 +24,8 @@ class EntitySerializer
           end
         when BasicAttributes::ValueReference
           entity_h[attr] = to_nested_hash(value) unless value.nil?
+        when BasicAttributes::ParentReference
+          entity_h.delete(attr)
       end
 
     end
