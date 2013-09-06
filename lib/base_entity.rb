@@ -238,7 +238,7 @@ class BaseEntity < IdPk
                         child_path = module_path[0..-2] << child_literal
                         child_path.reduce(Object){ |m,c| m.const_get(c) }
                       else
-                        raise RuntimeException, "Cannot determine child namespace"
+                        raise RuntimeError, "Cannot determine #{child_literal} namespace for path #{module_path.join('::')}"
                       end
 
         a_child = child_class.new(in_h, self)

@@ -134,12 +134,14 @@ module UnitOfWork
       check_valid_uow
       #TODO Perhaps check the actual saved status of objects in memory?
       raise RuntimeError, "Cannot complete without commit/rollback" unless @committed
-
-      ALL_STATES.each { |st| clear_all_objects_in_state(st) }
-      TransactionRegistry::Registry.instance.delete(self)
-      @valid = false
+      end_transaction
     end
     alias_method :finalize, :complete
+
+    def abort
+      check_valid_uow
+      end_transaction
+    end
 
     private
 
@@ -198,6 +200,13 @@ module UnitOfWork
     def check_valid_uow
       raise RuntimeError, "Invalid Transaction" unless @valid
     end
+
+    def end_transaction
+      ALL_STATES.each { |st| clear_all_objects_in_state(st) }
+      TransactionRegistry::Registry.instance.delete(self)
+      @valid = false
+    end
+
   end
 
 =begin TODO
