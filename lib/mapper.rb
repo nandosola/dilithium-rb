@@ -85,7 +85,13 @@ module Mapper
     # Returns:
     #   Symbol with table name
     def self.to_table_name(entity)
-      entity.class.to_s.split('::').last.underscore.downcase.pluralize.to_sym
+      klazz = case entity
+            when BaseEntity
+              entity.class
+            when Class
+              entity
+          end
+      klazz.to_s.split('::').last.underscore.downcase.pluralize.to_sym
     end
 
     def self.schemify(entity_class)
@@ -93,13 +99,27 @@ module Mapper
         if entity_class.pk == attr.name
           yield 'primary_key', ":#{attr.name}"
         else
-          if [BasicAttributes::ParentReference, BasicAttributes::ValueReference].include?(attr.class)
-            yield 'foreign_key', ":#{attr.reference}, :#{attr.name.to_s.pluralize}"
-          elsif attr.is_a?(BasicAttributes::Attribute)
-            default = attr.default.nil? ? 'nil' : attr.default
-            yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
+          case attr
+            when BasicAttributes::ParentReference, BasicAttributes::ValueReference
+              yield 'foreign_key', ":#{attr.reference}, :#{attr.name.to_s.pluralize}"
+            when BasicAttributes::Attribute
+              default = attr.default.nil? ? 'nil' : attr.default
+              yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
+            when BasicAttributes::ManyReference
+              dependent = to_table_name(entity_class)
+              create_intermediate_table(dependent, attr.name)
           end
         end
+      end
+    end
+
+    def self.create_intermediate_table(dependent, dependee)
+      dependent_fk = "#{dependent.to_s.singularize}_id".to_sym
+      dependee_fk = "#{dependee.to_s.singularize}_id".to_sym
+      DB.create_table("#{dependent}_#{dependee}".to_sym) do
+        primary_key :id
+        foreign_key dependent_fk, dependent
+        foreign_key dependee_fk, dependee
       end
     end
 

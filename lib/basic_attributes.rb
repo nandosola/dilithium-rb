@@ -34,6 +34,18 @@ module BasicAttributes
     end
   end
 
+  class ListReference < Reference
+    def initialize(name)
+      # TODO refactor to this:
+      #type = name.to_s.singularize.to_sym
+      #super(name, type)
+      super(name, Array)
+    end
+    def default
+      Array.new # pass by value
+    end
+  end
+
   class ValueAttribute < Attribute
   end
 
@@ -43,13 +55,11 @@ module BasicAttributes
   class ParentReference < Reference
   end
 
-  class ChildReference < Reference
-    def initialize(name)
-      super(name, Array)
-    end
-    def default
-      Array.new # pass by value
-    end
+  class ChildReference < ListReference
   end
+
+  class ManyReference < ListReference
+  end
+
 
 end

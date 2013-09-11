@@ -34,7 +34,7 @@ class BaseEntity < IdPk
     names.each do |child|
       # TODO pass type
       self.class_variable_get(:'@@attributes')[child] = BasicAttributes::ChildReference.new(child)
-      self.attach_attribute_accessors(child, :aggregate)
+      self.attach_attribute_accessors(child, :list)
       self.define_aggregate_method(child)
     end
   end
@@ -42,7 +42,23 @@ class BaseEntity < IdPk
   def self.parent(parent)
   # TODO pass type
   self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent)
-    self.attach_attribute_accessors(parent, :parent)
+    self.attach_attribute_accessors(parent, :none)
+  end
+
+  # Creates a many-to-many relationship
+  #
+  # Example:
+  #   class Department < BaseEntity
+  #     many :employees, :buildings
+  #
+  # Params:
+  # - *names: pluralized list of BasicEntities
+  def self.many(*names)
+    names.each do |reference|
+      # TODO pass type
+      self.class_variable_get(:'@@attributes')[reference] = BasicAttributes::ManyReference.new(reference)
+      self.attach_attribute_accessors(reference, :list)
+    end
   end
 
   def self.attribute(name, type, *opts)
@@ -126,8 +142,8 @@ class BaseEntity < IdPk
   end
 
   def self.children_type(child_attr)
-    # TODO change ChildReference.type for the real thing
-    # TODO maybe refactor this method to BasicAttribute::ChildReference
+    # TODO change ChildRefence.type for the real thing
+    # TODO maybe refactor this method to BasicAttribute::ListReference
     if self.child_references.include?(child_attr)
       module_path = self.to_s.split('::')
       child_literal = child_attr.to_s.singularize.camelize
@@ -237,7 +253,7 @@ class BaseEntity < IdPk
           self.class.class_variable_get(:'@@attributes')[name].check_constraints(new_value)
           instance_variable_set("@#{name}".to_sym, new_value)
         }
-      elsif :aggregate == type
+      elsif :list == type
         define_method("#{name}<<"){ |new_value|
           instance_variable_get("@#{name}".to_sym)<< new_value
         }

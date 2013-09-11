@@ -84,4 +84,22 @@ module SpecFixtures
     end
   end
 
+  def insert_test_employees_and_depts
+    items = $database[:employees]
+    items.insert(:name => 'Alice', :active=>true)
+    items.insert(:name => 'Bob', :active=>true)
+    items.insert(:name => 'Charly', :active=>true)
+
+    items = $database[:departments]
+    items.insert(:name => 'Accounting', :active=>true)
+    items.insert(:name => 'IT Ops', :active=>true)
+    items.insert(:name => 'Sales', :active=>true)
+  end
+
+  def delete_test_employees_and_depts
+    %w(employees departments).each do |table|
+      $database << "DELETE FROM #{table}" << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{table}'"
+    end
+  end
+
 end
