@@ -3,16 +3,16 @@
 
 
 class Building < BaseEntity
-  #many :departments
+  #many :employees
   attribute :name, String, mandatory:true
 end
 class Employee < BaseEntity
-  #many :departments
+  # TODO evaluate: "many :users, dependent:true" - 'dependent' means that Employees can't exist without Department
+  many :departments, :buildings
   attribute :name, String, mandatory:true
 end
 
 class Department < BaseEntity
-  # TODO evaluate: "many :users, dependent:true" - 'dependent' means that Department can't exist without Employee
-  many :employees, :buildings
+  #many :employees
   attribute :name, String, mandatory:true
 end
