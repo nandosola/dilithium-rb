@@ -4,6 +4,7 @@ require_relative 'entity_serializer'
 module Mapper
 
   class Sequel
+    # TODO - evaluate deferrable transactions
     TRANSACTION_DEFAULT_PARAMS = {:rollback => :reraise}
 
     def self.transaction(params = TRANSACTION_DEFAULT_PARAMS, &block)
@@ -19,10 +20,10 @@ module Mapper
         end
       end
     end
-    
+
     def self.insert(entity, parent_id = nil)
-      Sequel.check_uow_transaction(entity) unless parent_id  # It's the root
-      
+     check_uow_transaction(entity) unless parent_id  # It's the root
+
       # First insert entity
       entity_data = EntitySerializer.to_row(entity, parent_id)
       entity_data.delete(:id)
@@ -30,22 +31,22 @@ module Mapper
 
       # Then recurse children for inserting them
       entity.each_child do |child|
-        Sequel.insert(child, entity.id)
+        insert(child, entity.id)
       end
     end
 
     def self.delete(entity)
-      Sequel.check_uow_transaction(entity)
+     check_uow_transaction(entity)
 
       DB[to_table_name(entity)].where(id: entity.id).update(active: false)
 
       entity.each_child do |child|
-        Sequel.delete(child)
+        delete(child)
       end
     end
 
     def self.update(modified_entity, original_entity)
-      Sequel.check_uow_transaction(modified_entity)
+     check_uow_transaction(modified_entity)
 
       modified_data = EntitySerializer.to_row(modified_entity)
       original_data = EntitySerializer.to_row(original_entity)
@@ -56,16 +57,16 @@ module Mapper
 
       modified_entity.each_child do |child|
         if child.id.nil?
-          Sequel.insert(child, modified_entity.id)
+          insert(child, modified_entity.id)
         else
-          Sequel.update(child, original_entity.find_child do |c|
+          update(child, original_entity.find_child do |c|
             child.id == c.id
           end)
         end
       end
 
       original_entity.each_child do |child|
-        Sequel.delete(child) if modified_entity.find_child{|c| child.id == c.id}.nil?
+        delete(child) if modified_entity.find_child{|c| child.id == c.id}.nil?
       end
 
     end

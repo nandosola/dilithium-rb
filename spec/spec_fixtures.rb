@@ -84,7 +84,7 @@ module SpecFixtures
     end
   end
 
-  def insert_test_employees_and_depts
+  def insert_test_employees_depts_and_buildings
     items = $database[:employees]
     items.insert(:name => 'Alice', :active=>true)
     items.insert(:name => 'Bob', :active=>true)
@@ -94,10 +94,14 @@ module SpecFixtures
     items.insert(:name => 'Accounting', :active=>true)
     items.insert(:name => 'IT Ops', :active=>true)
     items.insert(:name => 'Sales', :active=>true)
+
+    items = $database[:buildings]
+    items.insert(:name => 'Main', :active=>true)
+    items.insert(:name => 'Conference Center', :active=>true)
   end
 
-  def delete_test_employees_and_depts
-    %w(employees departments).each do |table|
+  def delete_test_employees_depts_and_buildings
+    %w(employees departments buildings).each do |table|
       $database << "DELETE FROM #{table}" << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{table}'"
     end
   end

@@ -53,6 +53,7 @@ class BaseEntity < IdPk
   #
   # Params:
   # - *names: pluralized list of BasicEntities
+  #
   def self.many(*names)
     names.each do |reference|
       # TODO pass type
@@ -99,10 +100,21 @@ class BaseEntity < IdPk
   # Executes a proc for each child, passing child as parameter to proc
   def each_child
     if self.class.has_children?
-      self.class.child_references.each do |children_type|
-        children = Array(self.send(children_type))
+      self.class.child_references.each do |child_attr|
+        children = Array(self.send(child_attr))
         children.each do |child|
           yield(child)
+        end
+      end
+    end
+  end
+
+  def each_many
+    if self.class.has_many?
+      self.class.many_references.each do |many_attr|
+        many = Array(self.send(many_attr))
+        many.each do |ref|
+          yield(ref)
         end
       end
     end
@@ -125,12 +137,20 @@ class BaseEntity < IdPk
     self.get_references(BasicAttributes::ChildReference)
   end
 
+  def self.many_references
+    self.get_references(BasicAttributes::ManyReference)
+  end
+
   def self.value_references
     self.get_references(BasicAttributes::ValueReference)
   end
 
   def self.has_children?
     !self.child_references.empty?
+  end
+
+  def self.has_many?
+    !self.many_references.empty?
   end
 
   def self.has_parent?

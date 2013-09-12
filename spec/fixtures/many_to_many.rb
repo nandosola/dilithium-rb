@@ -1,13 +1,18 @@
 # Create ad-hoc finder for fetching users by group
 # See: http://www.udidahan.com/2009/01/24/ddd-many-to-many-object-relational-mapping/
 
+
+class Building < BaseEntity
+  #many :departments
+  attribute :name, String, mandatory:true
+end
 class Employee < BaseEntity
-  #many :groups
+  #many :departments
   attribute :name, String, mandatory:true
 end
 
 class Department < BaseEntity
-  #many :users, dependent:true - 'dependent' means that Groups can't exist without Users
-  many :employees
+  # TODO evaluate: "many :users, dependent:true" - 'dependent' means that Department can't exist without Employee
+  many :employees, :buildings
   attribute :name, String, mandatory:true
 end
