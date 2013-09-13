@@ -101,7 +101,7 @@ module SpecFixtures
   end
 
   def delete_test_employees_depts_and_buildings
-    %w(employees departments buildings).each do |table|
+    %w(employees_departments departments buildings employees ).each do |table|
       $database << "DELETE FROM #{table}" << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{table}'"
     end
   end
