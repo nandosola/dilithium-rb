@@ -33,6 +33,11 @@ module Mapper
       entity.each_child do |child|
         insert(child, entity.id)
       end
+
+      # Then recurse many for inserting the intermediate table
+      entity.each_many do |many|
+        insert_intermediate_table(entity, many)
+      end
     end
 
     def self.delete(entity)
@@ -72,6 +77,15 @@ module Mapper
     end
 
     private
+    def self.insert_intermediate_table(depend, dependent)
+      table_depend = to_table_name(depend)
+      table_dependent = to_table_name(dependent)
+      intermediate_table_name = :"#{table_depend}_#{table_dependent}"
+      data = {"#{table_depend.to_s.singularize}_id" => depend.id,
+              "#{table_dependent.to_s.singularize}_id" => dependent.id }
+      DB[intermediate_table_name].insert(data)
+    end
+
     def self.check_uow_transaction(base_entity)
       raise RuntimeError, "Invalid Transaction" if !base_entity.class.has_parent? && base_entity.transactions.empty?
     end
