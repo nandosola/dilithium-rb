@@ -109,9 +109,9 @@ class BaseEntity < IdPk
     end
   end
 
-  def each_many
-    if self.class.has_many?
-      self.class.many_references.each do |many_attr|
+  def each_multi_reference
+    if self.class.has_multi_references?
+      self.class.multi_references.each do |many_attr|
         many = Array(self.send(many_attr)).clone
         many.each do |ref|
           yield(ref)
@@ -137,8 +137,8 @@ class BaseEntity < IdPk
     self.get_references(BasicAttributes::ChildReference)
   end
 
-  def self.many_references
-    self.get_references(BasicAttributes::ManyReference)
+  def self.multi_references
+    self.get_references(BasicAttributes::ManyReference)  # TODO: Rename to MultiReference
   end
 
   def self.value_references
@@ -149,8 +149,8 @@ class BaseEntity < IdPk
     !self.child_references.empty?
   end
 
-  def self.has_many?
-    !self.many_references.empty?
+  def self.has_multi_references?
+    !self.multi_references.empty?
   end
 
   def self.has_parent?
@@ -161,23 +161,23 @@ class BaseEntity < IdPk
     !self.value_references.empty?
   end
 
-  def self.children_type(child_attr)
+  def self.reference_type(reference_attr)
     # TODO change ChildRefence.type for the real thing
     # TODO maybe refactor this method to BasicAttribute::ListReference
-    if self.child_references.include?(child_attr)
+    if self.child_references.include?(reference_attr) || self.multi_references.include?(reference_attr)
       module_path = self.to_s.split('::')
-      child_literal = child_attr.to_s.singularize.camelize
+      reference_literal = reference_attr.to_s.singularize.camelize
 
-      child_class = if 1 == module_path.size
-                      Object.const_get(child_literal)
+      reference_class = if 1 == module_path.size
+                      Object.const_get(reference_literal)
                     elsif 1 < module_path.size
-                      child_path = module_path[0..-2] << child_literal
-                      child_path.reduce(Object){ |m,c| m.const_get(c) }
+                      reference_path = module_path[0..-2] << reference_literal
+                      reference_path.reduce(Object){ |m,c| m.const_get(c) }
                     else
-                      raise RuntimeError, "Cannot determine #{child_literal} namespace for parent path #{module_path.join('::')}"
+                      raise RuntimeError, "Cannot determine #{reference_literal} namespace for parent path #{module_path.join('::')}"
                     end
 
-      child_class
+      reference_class
     else
       nil
     end
@@ -287,7 +287,7 @@ class BaseEntity < IdPk
       # Single-entity methods:
 
       define_method("make_#{child.to_s.singularize}".to_sym) do |in_h|
-        child_class = self.class.children_type(child)
+        child_class = self.class.reference_type(child)
         a_child = child_class.new(in_h, self)
         send("#{child}<<".to_sym, a_child)
 

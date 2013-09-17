@@ -5,6 +5,15 @@ describe 'A BasicEntity with a many to many relationship' do
   before(:all) do
     Mapper::Sequel.create_tables(Employee, Department, Building)
     insert_test_employees_depts_and_buildings
+
+    module Mapper
+      class Sequel
+        # TESTING PURPOSES ONLY: eliminates dependencies with Transaction
+        def self.check_uow_transaction(base_entity)
+        end
+      end
+    end
+
   end
 
   it 'must have an intermediate table in the database' do
@@ -58,7 +67,7 @@ describe 'A BasicEntity with a many to many relationship' do
     employee.buildings<<(bld2)
 
     many_a = []
-    employee.each_many do |many|
+    employee.each_multi_reference do |many|
       many_a << many
     end
     many_a.should eq([dept1, dept2, bld1, bld2])
@@ -73,23 +82,51 @@ describe 'A BasicEntity with a many to many relationship' do
     EntitySerializer.to_row(emp)[:departments].should be_nil
   end
 
-  it 'insert intermediate table correctly' do
+  it 'is persisted in two tables' do
     emp = Employee.new({name:'Beppe'})
     dept = Department.fetch_by_id(1)
     emp.departments<<dept
 
-    # Mapper::insert(emp) TODO: check_uow_transaction in insert?? Upload it to another layer?
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
-    transaction.register_new(emp)
-    transaction.commit
-    transaction.complete
-
+    Mapper::Sequel.insert(emp)
     $database[:employees_departments].first.should include(:employee_id => emp.id)
     $database[:employees_departments].first.should include(:department_id => dept.id)
+  end
+
+  it 'is persisted even when the dependent side doesn\'t exist anymore' do
+    pending 'Corner case: soft deletes should be handled by the application'
+    emp = Employee.new({name:'Avi'})
+    dept = Department.fetch_by_id(1)
+    emp.departments<<dept
+
+    Mapper::Sequel.delete(dept)
+
+    Mapper::Sequel.insert(emp)
+    #foo = $database[:employees_departments].all
+  end
+
+  it 'is correctly recovered from the database' do
+    emp = Employee.new({name:'Katrina'})
+    dept = Department.fetch_by_id(1)
+    dept2 = Department.fetch_by_id(2)
+    bld = Building.fetch_by_id(1)
+    emp.departments<<dept
+    emp.departments<<dept2
+    emp.buildings<<bld
+
+    Mapper::Sequel.insert(emp)
+
+    katrina = Employee.fetch_by_id(emp.id)
+    katrina.name.should eq(emp.name)
+    katrina.departments.size.should eq(2)
+    katrina.departments[0].id.should eq(1)
+    katrina.departments[1].id.should eq(2)
+    katrina.buildings.size.should eq(1)
+    katrina.buildings[0].id.should eq(1)
+
+
   end
 
   after(:all) do
     delete_test_employees_depts_and_buildings
   end
 end
-

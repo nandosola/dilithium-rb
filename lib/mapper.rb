@@ -35,7 +35,7 @@ module Mapper
       end
 
       # Then recurse many for inserting the intermediate table
-      entity.each_many do |many|
+      entity.each_multi_reference do |many|
         insert_intermediate_table(entity, many)
       end
     end
@@ -76,20 +76,6 @@ module Mapper
 
     end
 
-    private
-    def self.insert_intermediate_table(dependee, dependent)
-      table_dependee = to_table_name(dependee)
-      table_dependent = to_table_name(dependent)
-      intermediate_table_name = :"#{table_dependee}_#{table_dependent}"
-      data = {"#{table_dependee.to_s.singularize}_id" => dependee.id,
-              "#{table_dependent.to_s.singularize}_id" => dependent.id }
-      DB[intermediate_table_name].insert(data)
-    end
-
-    def self.check_uow_transaction(base_entity)
-      raise RuntimeError, "Invalid Transaction" if !base_entity.class.has_parent? && base_entity.transactions.empty?
-    end
-
     # Returns an entity associated DB table name
     #
     # Example:
@@ -100,13 +86,31 @@ module Mapper
     # Returns:
     #   Symbol with table name
     def self.to_table_name(entity)
+      #TODO : extract this to an utilities class/module
       klazz = case entity
-            when BaseEntity
-              entity.class
-            when Class
-              entity
-          end
+                when BaseEntity
+                  entity.class
+                when Class
+                  entity
+              end
       klazz.to_s.split('::').last.underscore.downcase.pluralize.to_sym
+    end
+
+
+    private
+    def self.insert_intermediate_table(dependee, dependent)
+      table_dependee = to_table_name(dependee)
+      table_dependent = to_table_name(dependent)
+      intermediate_table_name = :"#{table_dependee}_#{table_dependent}"
+      data = {"#{table_dependee.to_s.singularize}_id" => dependee.id,
+              "#{table_dependent.to_s.singularize}_id" => dependent.id }
+      transaction(:rollback=>:nop) do
+        DB[intermediate_table_name].insert(data)
+      end
+    end
+
+    def self.check_uow_transaction(base_entity)
+      raise RuntimeError, "Invalid Transaction" if !base_entity.class.has_parent? && base_entity.transactions.empty?
     end
 
     def self.schemify(entity_class)

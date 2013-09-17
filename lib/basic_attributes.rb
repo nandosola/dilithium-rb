@@ -28,6 +28,7 @@ module BasicAttributes
     end
     def check_constraints(value)  # check invariant constraints, called by setter
       raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless value.nil? || value.is_a?(@type)
+      # check_reference_active
     end
     def default
       nil
