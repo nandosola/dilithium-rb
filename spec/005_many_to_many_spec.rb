@@ -73,6 +73,21 @@ describe 'A BasicEntity with a many to many relationship' do
     EntitySerializer.to_row(emp)[:departments].should be_nil
   end
 
+  it 'insert intermediate table correctly' do
+    emp = Employee.new({name:'Beppe'})
+    dept = Department.fetch_by_id(1)
+    emp.departments<<dept
+
+    # Mapper::insert(emp) TODO: check_uow_transaction in insert?? Upload it to another layer?
+    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction.register_new(emp)
+    transaction.commit
+    transaction.complete
+
+    $database[:employees_departments].first.should include(:employee_id => emp.id)
+    $database[:employees_departments].first.should include(:department_id => dept.id)
+  end
+
   after(:all) do
     delete_test_employees_depts_and_buildings
   end
