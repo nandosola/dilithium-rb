@@ -101,7 +101,7 @@ class BaseEntity < IdPk
   def each_child
     if self.class.has_children?
       self.class.child_references.each do |child_attr|
-        children = Array(self.send(child_attr))
+        children = Array(self.send(child_attr)).clone
         children.each do |child|
           yield(child)
         end
@@ -112,7 +112,7 @@ class BaseEntity < IdPk
   def each_many
     if self.class.has_many?
       self.class.many_references.each do |many_attr|
-        many = Array(self.send(many_attr))
+        many = Array(self.send(many_attr)).clone
         many.each do |ref|
           yield(ref)
         end
@@ -241,9 +241,9 @@ class BaseEntity < IdPk
     if self.class.has_children?
       each_child do |child|
         child_attr = child.class.to_s.split('::').last.underscore.downcase.pluralize
-        instance_variable_get("@#{child_attr}".to_sym).delete_if{|x| child == x}
         child.detach_parent(self)
         child.detach_children
+        instance_variable_get("@#{child_attr}".to_sym).clear
       end
     end
   end

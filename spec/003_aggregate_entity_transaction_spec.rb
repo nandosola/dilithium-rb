@@ -252,13 +252,18 @@ describe 'A Transaction handling an Aggregate Entity' do
       tr = UnitOfWork::Transaction.new(Mapper::Sequel)
 
       a_baz = Baz.fetch_by_id(1)
-      a_foo = Foo.new({foo:'foo', bars:[{bar:'bar', baz:a_baz}], baz:a_baz})
+      a_foo = Foo.new({foo:'foo', bars:[{bar:'bar', baz:a_baz}, {bar:'bar2', baz:a_baz}], baz:a_baz})
+
       EntitySerializer.to_nested_hash(a_foo).should ==({:id=>nil,
                                                        :active=>true,
                                                        :bars=>
                                                            [{:id=>nil,
                                                              :active=>true,
                                                              :bar=>"bar",
+                                                             :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}},
+                                                            {:id=>nil,
+                                                             :active=>true,
+                                                             :bar=>"bar2",
                                                              :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}}],
                                                        :foo=>"foo",
                                                        :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}})
@@ -271,6 +276,10 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                          [{:id=>1,
                                                                            :active=>true,
                                                                            :bar=>"bar",
+                                                                           :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}},
+                                                                          {:id=>2,
+                                                                           :active=>true,
+                                                                           :bar=>"bar2",
                                                                            :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}}],
                                                                      :foo=>"foo",
                                                                      :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}})
@@ -314,7 +323,6 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                      :baz=>nil})
 
       tr.finalize
-
     end
   end
 
