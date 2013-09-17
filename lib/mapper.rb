@@ -77,11 +77,11 @@ module Mapper
     end
 
     private
-    def self.insert_intermediate_table(depend, dependent)
-      table_depend = to_table_name(depend)
+    def self.insert_intermediate_table(dependee, dependent)
+      table_dependee = to_table_name(dependee)
       table_dependent = to_table_name(dependent)
-      intermediate_table_name = :"#{table_depend}_#{table_dependent}"
-      data = {"#{table_depend.to_s.singularize}_id" => depend.id,
+      intermediate_table_name = :"#{table_dependee}_#{table_dependent}"
+      data = {"#{table_dependee.to_s.singularize}_id" => dependee.id,
               "#{table_dependent.to_s.singularize}_id" => dependent.id }
       DB[intermediate_table_name].insert(data)
     end

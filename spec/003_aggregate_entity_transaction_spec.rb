@@ -130,6 +130,68 @@ describe 'A Transaction handling an Aggregate Entity' do
     new_horizon.local_offices[0].addresses.size.should eq(1)
     new_horizon.local_offices[0].addresses[0].description.should eq('nhp dir 1')
 
+    b_company.full_update({id: 2,
+                           url: 'http://example.net',
+                           name: 'New Horizon Partners, Inc.',
+                           local_offices: [
+                               {
+                                   description: 'nhp del 1',
+                                   addresses: []
+                               }
+                           ]})
+
+    @transaction.commit
+
+    new_horizon = Company.fetch_by_id(2)
+    new_horizon.local_offices.size.should eq(1)
+    new_horizon.local_offices[0].addresses.size.should eq(0)
+
+    b_company.full_update({id: 2,
+                           url: 'http://example.net',
+                           name: 'New Horizon Partners, Inc.',
+                           local_offices: []})
+
+    @transaction.commit
+
+    new_horizon = Company.fetch_by_id(2)
+    new_horizon.local_offices.size.should eq(0)
+
+    b_company.full_update({id: 2,
+                           url: 'http://example.net',
+                           name: 'New Horizon Partners, Inc.',
+                           local_offices: [
+                               {
+                                   description: 'nhp del 1',
+                                   addresses: [{description: 'nhp dir 1'}]
+                               }
+                           ]})
+    @transaction.commit
+
+    new_horizon = Company.fetch_by_id(2)
+    new_horizon.local_offices.size.should eq(1)
+
+    b_company.full_update({id: 2,
+                           url: 'http://example.net',
+                           name: 'New Horizon Partners, Inc.',
+                           local_offices: nil})
+
+    @transaction.commit
+
+    new_horizon = Company.fetch_by_id(2)
+    new_horizon.local_offices.size.should eq(0)
+
+    b_company.full_update({id: 2,
+                           url: 'http://example.net',
+                           name: 'New Horizon Partners, Inc.',
+                           local_offices: [
+                               {
+                                   description: 'nhp del 1',
+                                   addresses: [{description: 'nhp dir 1'}]
+                               }
+                           ]})
+    @transaction.commit
+    @transaction.finalize
+
   end
 
   it "From a new transaction: retrieves an aggregate, registers it as dirty, and rollbacks it " do
@@ -202,7 +264,6 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                        :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}})
       tr.register_new(a_foo)
       tr.commit
-      tr.finalize
 
       EntitySerializer.to_nested_hash(Foo.fetch_by_id(1)).should ==({:id=>1,
                                                                      :active=>true,
@@ -214,8 +275,46 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                      :foo=>"foo",
                                                                      :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}})
 
-      # TODO  what should we do when valueReferences are created together with the containing Aggregate?
-      #a_baz = Baz.new({baz:'baz'})
+  # children: delete with [] or nil
+  # references: delete with nil
+  # always create value references
+
+      a_foo.full_update({:id=>1,
+                         :active=>true,
+                         :bars=>
+                             [{:id=>1,
+                               :active=>true,
+                               :bar=>"bar",
+                               :baz=>a_baz}],
+                         :foo=>"foo",
+                         :baz=>nil})
+      tr.commit
+
+      EntitySerializer.to_nested_hash(Foo.fetch_by_id(1)).should ==({:id=>1,
+                                                                     :active=>true,
+                                                                     :bars=>
+                                                                         [{:id=>1,
+                                                                           :active=>true,
+                                                                           :bar=>"bar",
+                                                                           :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}}],
+                                                                     :foo=>"foo",
+                                                                     :baz=>nil})
+
+      a_foo.full_update({:id=>1,
+                         :active=>true,
+                         :bars=>[],
+                         :foo=>"foo",
+                         :baz=>nil})
+      tr.commit
+
+      EntitySerializer.to_nested_hash(Foo.fetch_by_id(1)).should ==({:id=>1,
+                                                                     :active=>true,
+                                                                     :bars=>[],
+                                                                     :foo=>"foo",
+                                                                     :baz=>nil})
+
+      tr.finalize
+
     end
   end
 
