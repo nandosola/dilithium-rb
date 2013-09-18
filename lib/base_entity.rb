@@ -89,6 +89,7 @@ class BaseEntity < IdPk
     raise ArgumentError, "Entity id must be defined and not changed" if id != in_h[PRIMARY_KEY[:identifier]]
     check_input_h(in_h)
     detach_children
+    detach_multi_references
     load_attributes(in_h)
   end
 
@@ -123,6 +124,13 @@ class BaseEntity < IdPk
   def find_child
     each_child do |child|
       return child if yield(child)
+    end
+    nil
+  end
+
+  def find_multi_reference
+    each_multi_reference do |ref|
+      return ref if yield(ref)
     end
     nil
   end
@@ -203,6 +211,7 @@ class BaseEntity < IdPk
     unless in_h.empty?
       load_self_attributes(in_h)
       load_child_attributes(in_h)
+      load_multi_reference_attributes(in_h)
     end
   end
 
@@ -219,8 +228,31 @@ class BaseEntity < IdPk
     end
 
     (aggregates.each do |k,v|
-      send("make_#{k}".to_sym, v)
+      send("make_#{k}".to_sym, v) unless v.empty?
     end) unless aggregates.empty?
+  end
+
+  # TODO refactor the frak out of here: make generic for any ListReference
+  def load_multi_reference_attributes(in_h)
+    references = {}
+    self.class.attributes.each do |attr|
+      if [BasicAttributes::ManyReference].include?(attr.class)
+        references[attr.name] = unless in_h[attr.name].nil?
+                                  in_h[attr.name]
+                                else
+                                  attr.default
+                                end
+      end
+    end
+
+    # TODO refactor to collection_accessor (add_{plural} -> add_{singular} -> <<)
+    (references.each do |k,v|
+      unless v.empty?
+        v.each do |ref|
+          send("#{k}<<".to_sym, ref)
+        end
+      end
+    end) unless references.empty?
   end
 
   def load_self_attributes(in_h)
@@ -244,6 +276,15 @@ class BaseEntity < IdPk
         child.detach_parent(self)
         child.detach_children
         instance_variable_get("@#{child_attr}".to_sym).clear
+      end
+    end
+  end
+
+  def detach_multi_references
+    if self.class.has_multi_references?
+      each_multi_reference do |ref|
+        reference_attr = ref.class.to_s.split('::').last.underscore.downcase.pluralize
+        instance_variable_get("@#{reference_attr}".to_sym).clear
       end
     end
   end

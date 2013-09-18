@@ -36,7 +36,7 @@ module Mapper
 
       # Then recurse many for inserting the intermediate table
       entity.each_multi_reference do |many|
-        insert_intermediate_table(entity, many)
+        insert_in_intermediate_table(entity, many)
       end
     end
 
@@ -74,6 +74,14 @@ module Mapper
         delete(child) if modified_entity.find_child{|c| child.id == c.id}.nil?
       end
 
+      modified_entity.each_multi_reference do |ref|
+        insert_in_intermediate_table(modified_entity, ref, :update)
+      end
+
+     original_entity.each_multi_reference do |ref|
+       delete_in_intermediate_table(original_entity, ref) if modified_entity.find_multi_reference{|r| ref.id == r.id}.nil?
+     end
+
     end
 
     # Returns an entity associated DB table name
@@ -98,14 +106,37 @@ module Mapper
 
 
     private
-    def self.insert_intermediate_table(dependee, dependent)
+    def self.insert_in_intermediate_table(dependee, dependent, from=:insert)
       table_dependee = to_table_name(dependee)
       table_dependent = to_table_name(dependent)
       intermediate_table_name = :"#{table_dependee}_#{table_dependent}"
-      data = {"#{table_dependee.to_s.singularize}_id" => dependee.id,
-              "#{table_dependent.to_s.singularize}_id" => dependent.id }
+      column_dependee = :"#{table_dependee.to_s.singularize}_id"
+      column_dependent = :"#{table_dependent.to_s.singularize}_id"
+
+      data = { column_dependee => dependee.id,
+              column_dependent => dependent.id }
+
+      # TODO refactor so that this op below is not always performed (only in :update)
+      if DB[intermediate_table_name].where(column_dependent => dependent.id).
+          where(column_dependee => dependee.id).all.empty?
+
+        transaction(:rollback=>:nop) do
+          DB[intermediate_table_name].insert(data)
+        end
+      end
+    end
+
+    # TODO refactor this
+    def self.delete_in_intermediate_table(dependee, dependent)
+      table_dependee = to_table_name(dependee)
+      table_dependent = to_table_name(dependent)
+      intermediate_table_name = :"#{table_dependee}_#{table_dependent}"
+      column_dependee = :"#{table_dependee.to_s.singularize}_id"
+      column_dependent = :"#{table_dependent.to_s.singularize}_id"
+
       transaction(:rollback=>:nop) do
-        DB[intermediate_table_name].insert(data)
+        DB[intermediate_table_name].where(column_dependent => dependent.id).
+            where(column_dependee => dependee.id).delete
       end
     end
 

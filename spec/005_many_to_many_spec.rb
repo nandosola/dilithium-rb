@@ -82,14 +82,32 @@ describe 'A BasicEntity with a many to many relationship' do
     EntitySerializer.to_row(emp)[:departments].should be_nil
   end
 
-  it 'is persisted in two tables' do
+  it 'is persisted in two tables (accessor initialization)' do
     emp = Employee.new({name:'Beppe'})
     dept = Department.fetch_by_id(1)
+    dept2 = Department.fetch_by_id(2)
     emp.departments<<dept
+    emp.departments<<dept2
 
     Mapper::Sequel.insert(emp)
-    $database[:employees_departments].first.should include(:employee_id => emp.id)
-    $database[:employees_departments].first.should include(:department_id => dept.id)
+    found_depts = $database[:employees_departments].all
+    found_depts[0].should include(:employee_id => emp.id)
+    found_depts[0].should include(:department_id => dept.id)
+    found_depts[1].should include(:employee_id => emp.id)
+    found_depts[1].should include(:department_id => dept2.id)
+  end
+
+  it 'is persisted in two tables (full initialization)' do
+    dept = Department.fetch_by_id(1)
+    dept2 = Department.fetch_by_id(2)
+    emp = Employee.new({name:'Grillo', departments:[dept, dept2]})
+
+    Mapper::Sequel.insert(emp)
+    found_depts = $database[:employees_departments].where(employee_id:emp.id).all
+    found_depts[0].should include(:employee_id => emp.id)
+    found_depts[0].should include(:department_id => dept.id)
+    found_depts[1].should include(:employee_id => emp.id)
+    found_depts[1].should include(:department_id => dept2.id)
   end
 
   it 'is persisted even when the dependent side doesn\'t exist anymore' do
@@ -122,8 +140,25 @@ describe 'A BasicEntity with a many to many relationship' do
     katrina.departments[1].id.should eq(2)
     katrina.buildings.size.should eq(1)
     katrina.buildings[0].id.should eq(1)
+    @@kati_id = katrina.id
+  end
 
+  it 'correctly updates its intermediate table when deleting a reference' do
+    katrina = Employee.fetch_by_id(@@kati_id)
+    orig_katrina = Marshal.load(Marshal.dump(katrina))
 
+    dept_id = katrina.departments[1].id
+
+    katrina.full_update({id:katrina.id, name:katrina.name, departments:[katrina.departments[1]], buildings:[]})
+    katrina.departments.size.should eq(1)
+    katrina.buildings.size.should eq(0)
+
+    Mapper::Sequel.update(katrina, orig_katrina)
+
+    found_depts = $database[:employees_departments].where(employee_id:@@kati_id).all
+    found_depts.size.should eq(1)
+    found_depts[0].should include({:employee_id=>@@kati_id, :department_id=>dept_id})
+    $database[:employees_buildings].where(employee_id:@@kati_id).all.should eq([])
   end
 
   after(:all) do
