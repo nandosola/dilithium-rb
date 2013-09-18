@@ -8,7 +8,7 @@ class Building < BaseEntity
 end
 class Employee < BaseEntity
   # TODO evaluate: "many :employee, dependent:true" - 'dependent' means that Employees can't exist without Department
-  many :departments, :buildings
+  multi_reference :departments, :buildings
   attribute :name, String, mandatory:true
 end
 

@@ -17,7 +17,7 @@ class EntitySerializer
       attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
 
       case attr_type
-        when BasicAttributes::ChildReference, BasicAttributes::ManyReference
+        when BasicAttributes::ChildReference, BasicAttributes::MultiReference
           entity_h[attr] = Array.new
           value.each do |child|
             entity_h[attr] << to_nested_hash(child)
@@ -43,7 +43,7 @@ class EntitySerializer
     entity_h.each do |attr,value|
       attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
       unless [BasicAttributes::ChildReference, BasicAttributes::ParentReference,
-              BasicAttributes::ManyReference].include?(attr_type.class)
+              BasicAttributes::MultiReference].include?(attr_type.class)
         if attr_type.is_a?(BasicAttributes::ValueReference)
           row[attr_type.reference] = value.nil? ? attr_type.default : value.id
         else

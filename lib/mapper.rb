@@ -34,9 +34,9 @@ module Mapper
         insert(child, entity.id)
       end
 
-      # Then recurse many for inserting the intermediate table
-      entity.each_multi_reference do |many|
-        insert_in_intermediate_table(entity, many)
+      # Then recurse multi_ref for inserting the intermediate table
+      entity.each_multi_reference do |ref|
+        insert_in_intermediate_table(entity, ref)
       end
     end
 
@@ -155,7 +155,7 @@ module Mapper
             when BasicAttributes::Attribute
               default = attr.default.nil? ? 'nil' : attr.default
               yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
-            when BasicAttributes::ManyReference
+            when BasicAttributes::MultiReference
               dependent = to_table_name(entity_class)
               create_intermediate_table(dependent, attr.name)
           end

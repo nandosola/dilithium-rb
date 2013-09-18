@@ -33,11 +33,11 @@ describe 'A BasicEntity with a many to many relationship' do
 
   it 'must have the correct class attributes' do
     attr = Employee.attributes[2]
-    attr.is_a?(BasicAttributes::ManyReference).should be_true
+    attr.is_a?(BasicAttributes::MultiReference).should be_true
     attr.name.should eq(:departments)
 
     attr = Employee.attributes[3]
-    attr.is_a?(BasicAttributes::ManyReference).should be_true
+    attr.is_a?(BasicAttributes::MultiReference).should be_true
     attr.name.should eq(:buildings)
   end
 

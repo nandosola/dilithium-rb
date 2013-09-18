@@ -49,15 +49,15 @@ class BaseEntity < IdPk
   #
   # Example:
   #   class Department < BaseEntity
-  #     many :employees, :buildings
+  #     multi_reference :employees, :buildings
   #
   # Params:
   # - *names: pluralized list of BasicEntities
   #
-  def self.many(*names)
+  def self.multi_reference(*names)
     names.each do |reference|
       # TODO pass type
-      self.class_variable_get(:'@@attributes')[reference] = BasicAttributes::ManyReference.new(reference)
+      self.class_variable_get(:'@@attributes')[reference] = BasicAttributes::MultiReference.new(reference)
       self.attach_attribute_accessors(reference, :list)
     end
   end
@@ -112,9 +112,9 @@ class BaseEntity < IdPk
 
   def each_multi_reference
     if self.class.has_multi_references?
-      self.class.multi_references.each do |many_attr|
-        many = Array(self.send(many_attr)).clone
-        many.each do |ref|
+      self.class.multi_references.each do |ref_attr|
+        references = Array(self.send(ref_attr)).clone
+        references.each do |ref|
           yield(ref)
         end
       end
@@ -146,7 +146,7 @@ class BaseEntity < IdPk
   end
 
   def self.multi_references
-    self.get_references(BasicAttributes::ManyReference)  # TODO: Rename to MultiReference
+    self.get_references(BasicAttributes::MultiReference)  # TODO: Rename to MultiReference
   end
 
   def self.value_references
@@ -236,7 +236,7 @@ class BaseEntity < IdPk
   def load_multi_reference_attributes(in_h)
     references = {}
     self.class.attributes.each do |attr|
-      if [BasicAttributes::ManyReference].include?(attr.class)
+      if [BasicAttributes::MultiReference].include?(attr.class)
         references[attr.name] = unless in_h[attr.name].nil?
                                   in_h[attr.name]
                                 else

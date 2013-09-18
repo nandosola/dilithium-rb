@@ -59,7 +59,7 @@ module BasicAttributes
   class ChildReference < ListReference
   end
 
-  class ManyReference < ListReference
+  class MultiReference < ListReference
   end
 
 
