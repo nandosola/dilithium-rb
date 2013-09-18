@@ -35,6 +35,7 @@ describe 'A BasicEntity with a many to many relationship' do
     attr = Employee.attributes[2]
     attr.is_a?(BasicAttributes::MultiReference).should be_true
     attr.name.should eq(:departments)
+    attr.inner_type.should eq(Department)
 
     attr = Employee.attributes[3]
     attr.is_a?(BasicAttributes::MultiReference).should be_true

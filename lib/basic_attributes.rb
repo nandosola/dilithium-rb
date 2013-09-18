@@ -36,14 +36,23 @@ module BasicAttributes
   end
 
   class ListReference < Reference
-    def initialize(name)
-      # TODO refactor to this:
-      #type = name.to_s.singularize.to_sym
-      #super(name, type)
+    def initialize(name, containing_class)
       super(name, Array)
+      module_path = containing_class.to_s.split('::')
+      reference_literal = name.to_s.singularize.camelize
+      @reference_path = if 1 == module_path.size
+                          [reference_literal]
+                        elsif 1 < module_path.size
+                          module_path[0..-2] << reference_literal
+                        else
+                          raise RuntimeError, "Cannot determine #{reference_literal} namespace for parent path #{module_path.join('::')}"
+                        end
     end
     def default
       Array.new # pass by value
+    end
+    def inner_type
+      @reference_path.reduce(Object){ |m,c| m.const_get(c) }
     end
   end
 

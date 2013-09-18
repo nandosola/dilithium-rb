@@ -33,7 +33,7 @@ class BaseEntity < IdPk
   def self.children(*names)
     names.each do |child|
       # TODO pass type
-      self.class_variable_get(:'@@attributes')[child] = BasicAttributes::ChildReference.new(child)
+      self.class_variable_get(:'@@attributes')[child] = BasicAttributes::ChildReference.new(child, self)
       self.attach_attribute_accessors(child, :list)
       self.define_aggregate_method(child)
     end
@@ -57,7 +57,7 @@ class BaseEntity < IdPk
   def self.multi_reference(*names)
     names.each do |reference|
       # TODO pass type
-      self.class_variable_get(:'@@attributes')[reference] = BasicAttributes::MultiReference.new(reference)
+      self.class_variable_get(:'@@attributes')[reference] = BasicAttributes::MultiReference.new(reference, self)
       self.attach_attribute_accessors(reference, :list)
     end
   end
