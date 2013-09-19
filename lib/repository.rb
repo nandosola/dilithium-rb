@@ -1,3 +1,5 @@
+require 'reference_entity'
+
 module Repository
 
   # TODO
@@ -38,6 +40,11 @@ module Repository
             else
               []
             end
+          end
+
+          #TODO Refactor in reference repository
+          def fetch_reference_by_id(id)
+            ReferenceEntity.new(id, self)
           end
 
           def resolve_value_references(in_h)

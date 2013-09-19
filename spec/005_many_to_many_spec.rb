@@ -111,6 +111,27 @@ describe 'A BasicEntity with a many to many relationship' do
     found_depts[1].should include(:department_id => dept2.id)
   end
 
+  it 'can be persisted through ReferenceEntities' do
+    dept = Department.fetch_reference_by_id(1)
+    dept2 = Department.fetch_reference_by_id(2)
+
+
+    # TODO: this sould be ReferenceRepository.fetch_by_id(Department, 1)
+    # #=> <ReferenceEntity 0xf00b45: @id=1 @type=Department>
+    #
+    # Likewise: AggregateRepository.fetch_by_id(Department, 1)
+    # #=> <Department 0xf00b45: @id=1 ... BaseEntity attrs...>
+
+    emp = Employee.new({name:'Kenneth', departments:[dept, dept2]})
+
+    Mapper::Sequel.insert(emp)
+    found_depts = $database[:employees_departments].where(employee_id:emp.id).all
+    found_depts[0].should include(:employee_id => emp.id)
+    found_depts[0].should include(:department_id => dept.id)
+    found_depts[1].should include(:employee_id => emp.id)
+    found_depts[1].should include(:department_id => dept2.id)
+  end
+
   it 'is persisted even when the dependent side doesn\'t exist anymore' do
     pending 'Corner case: soft deletes should be handled by the application'
     emp = Employee.new({name:'Avi'})
