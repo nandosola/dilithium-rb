@@ -123,7 +123,8 @@ module Repository
           def attach_reference(dependent_obj, ref_name, ref_h)
             ref_class = dependent_obj.class.reference_type(ref_name)
             ref_attr = "#{ref_name.to_s.singularize}_id".to_sym
-            found_ref = ref_class.fetch_by_id(ref_h[ref_attr])
+            # TODO should all references inbetween aggregates be lazy??
+            found_ref = ref_class.fetch_reference_by_id(ref_h[ref_attr])
 
             method = "#{ref_name}<<"
             dependent_obj.send(method.to_sym, found_ref)

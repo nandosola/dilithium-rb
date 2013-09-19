@@ -276,7 +276,8 @@ class BaseEntity < IdPk
   def detach_multi_references
     if self.class.has_multi_references?
       each_multi_reference do |ref|
-        reference_attr = ref.class.to_s.split('::').last.underscore.downcase.pluralize
+        # TODO: ref.type!! See Mapper::Sequel.to_table_name
+        reference_attr = ref.type.to_s.split('::').last.underscore.downcase.pluralize
         instance_variable_get("@#{reference_attr}".to_sym).clear
       end
     end

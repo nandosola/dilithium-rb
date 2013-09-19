@@ -2,10 +2,15 @@ class EntitySerializer
 
   def self.to_hash(entity)
     h = {}
-    entity.instance_variables.each do |attr|
-      attr_name = attr.to_s[1..-1].to_sym
-      attr_value = entity.instance_variable_get(attr)
-      h[attr_name] =  attr_value
+
+    if entity.is_a?(ReferenceEntity)
+      h[:"#{entity.type.to_s.split('::').last.downcase.singularize}_id"] = entity.id
+    else
+      entity.instance_variables.each do |attr|
+        attr_name = attr.to_s[1..-1].to_sym
+        attr_value = entity.instance_variable_get(attr)
+        h[attr_name] =  attr_value
+      end
     end
     h
   end
@@ -14,18 +19,21 @@ class EntitySerializer
     entity_h = to_hash(entity)
 
     entity_h.each do |attr, value|
-      attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
 
-      case attr_type
-        when BasicAttributes::ChildReference, BasicAttributes::MultiReference
-          entity_h[attr] = Array.new
-          value.each do |child|
-            entity_h[attr] << to_nested_hash(child)
-          end
-        when BasicAttributes::ValueReference
-          entity_h[attr] = to_nested_hash(value) unless value.nil?
-        when BasicAttributes::ParentReference
-          entity_h.delete(attr)
+      unless entity.is_a?(ReferenceEntity)
+        attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
+
+        case attr_type
+          when BasicAttributes::ChildReference, BasicAttributes::MultiReference
+            entity_h[attr] = Array.new
+            value.each do |ref|
+              entity_h[attr] << to_nested_hash(ref)
+            end
+          when BasicAttributes::ValueReference
+            entity_h[attr] = to_nested_hash(value) unless value.nil?
+          when BasicAttributes::ParentReference
+            entity_h.delete(attr)
+        end
       end
 
     end

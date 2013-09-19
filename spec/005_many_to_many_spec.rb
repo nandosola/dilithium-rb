@@ -77,10 +77,19 @@ describe 'A BasicEntity with a many to many relationship' do
   it 'is correctly serialized' do
     emp = Employee.new({name:'Oscar'})
     dept = Department.new({name:'Evil'})
+
+    emp2 = Employee.new({name:'Mayer'})
+    ref_dept = ReferenceEntity.new(42, Department)
+
     emp.departments<<dept
     EntitySerializer.to_hash(emp)[:departments].should eq([dept])
     EntitySerializer.to_nested_hash(emp)[:departments].should eq([EntitySerializer.to_hash(dept)])
     EntitySerializer.to_row(emp)[:departments].should be_nil
+
+    emp2.departments<<ref_dept
+    EntitySerializer.to_hash(emp2)[:departments].should eq([ref_dept])
+    EntitySerializer.to_nested_hash(emp2)[:departments].should eq([EntitySerializer.to_hash(ref_dept)])
+    EntitySerializer.to_row(emp2)[:departments].should be_nil
   end
 
   it 'is persisted in two tables (accessor initialization)' do
