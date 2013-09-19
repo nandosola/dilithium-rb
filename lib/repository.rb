@@ -118,18 +118,16 @@ module Repository
                 end
               end
             end
-
-            def attach_reference(dependent_obj, ref_name, ref_h)
-              ref_class = dependent_obj.class.reference_type(ref_name)
-              ref_attr = "#{ref_name.to_s.singularize}_id".to_sym
-              found_ref = ref_class.fetch_by_id(ref_h[ref_attr])
-
-              method = "#{ref_name}<<"
-              dependent_obj.send(method.to_sym, found_ref)
-            end
-
           end
 
+          def attach_reference(dependent_obj, ref_name, ref_h)
+            ref_class = dependent_obj.class.reference_type(ref_name)
+            ref_attr = "#{ref_name.to_s.singularize}_id".to_sym
+            found_ref = ref_class.fetch_by_id(ref_h[ref_attr])
+
+            method = "#{ref_name}<<"
+            dependent_obj.send(method.to_sym, found_ref)
+          end
 
         end
       end
