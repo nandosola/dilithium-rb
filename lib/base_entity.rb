@@ -66,9 +66,11 @@ class BaseEntity < IdPk
   # - opts: hash with options(only for attribute)
   #     * mandatory: true or false,
   #     * default: default value
+  #
   def self.attribute(name, type, opts = {})
     if BaseEntity == type.superclass
       self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::ValueReference.new(name, type)
+      # TODO: default values for ValueReference. ie. Location.new('Toronto', 'Canada')
     else
       self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::Attribute.new(
           name, type, opts[:mandatory], opts[:default])
