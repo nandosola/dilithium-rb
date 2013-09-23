@@ -19,15 +19,7 @@ module Repository
             root_name = self.to_s.split('::').last.underscore.downcase
             root_table = root_name.pluralize
             found_h = DB[root_table.to_sym].where(id:id).where(active: true).all.first
-            unless found_h.nil?
-              self.resolve_value_references(found_h)
-              root_obj = self.new(found_h)
-              root_obj.attach_children
-              root_obj.attach_multi_references
-              root_obj
-            else
-              nil
-            end
+            create_object(found_h)
           end
 
           def fetch_all
@@ -56,6 +48,19 @@ module Repository
                 in_h.delete(attr.reference)
                 in_h[ref] = ref_value
               end
+            end
+          end
+
+          private
+          def create_object(in_h)
+            unless in_h.nil?
+              self.resolve_value_references(in_h)
+              root_obj = self.new(in_h)
+              root_obj.attach_children
+              root_obj.attach_multi_references
+              root_obj
+            else
+              nil
             end
           end
 
