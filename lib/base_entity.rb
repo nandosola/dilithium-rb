@@ -55,13 +55,23 @@ class BaseEntity < IdPk
     end
   end
 
-  def self.attribute(name, type, *opts)
-    parsed_opts = opts.reduce({}){|m,opt| m.merge!(opt); m }
+  # Creates an attribute or ValueReference
+  # Example:
+  #   attribute :desc, String, mandatory:true, default:'foo'
+  #   attribute :country, Country
+  #
+  # Params:
+  # - name: attribute name
+  # - type: atrribute class
+  # - opts: hash with options(only for attribute)
+  #     * mandatory: true or false,
+  #     * default: default value
+  def self.attribute(name, type, opts = {})
     if BaseEntity == type.superclass
       self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::ValueReference.new(name, type)
     else
       self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::Attribute.new(
-          name, type, parsed_opts[:mandatory], parsed_opts[:default])
+          name, type, opts[:mandatory], opts[:default])
     end
     self.attach_attribute_accessors(name)
   end
