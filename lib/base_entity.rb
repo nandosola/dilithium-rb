@@ -23,6 +23,15 @@ class BaseEntity < IdPk
     end
   end
 
+  # Adds children to the current entity acting as aggregate root.
+  #
+  # Example:
+  #   class Company < BaseEntity
+  #     children :local_offices
+  #
+  # Params:
+  # - (Symbol) *names: list of children
+  #
   def self.children(*names)
     names.each do |child|
       # TODO pass type
@@ -32,20 +41,36 @@ class BaseEntity < IdPk
     end
   end
 
+  # Explicitly creates a parent reference to the aggregate root.
+  # It must be used together with #children on the other side of the relationship
+  #
+  # Example:
+  #
+  #   class LocalOffice < BaseEntity
+  #     children  :addresses
+  #     parent :company
+  #   ...
+  #
+  #   class Address < BaseEntity
+  #     parent :local_office
+  #
+  # Params:
+  # - (Symbol) parent
+  #
   def self.parent(parent)
   # TODO pass type
   self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent)
     self.attach_attribute_accessors(parent, :none)
   end
 
-  # Creates a many-to-many relationship
+  # Creates a reference to a list of BaseEntities (many-to-many)
   #
   # Example:
   #   class Department < BaseEntity
   #     multi_reference :employees, :buildings
   #
   # Params:
-  # - *names: pluralized list of BasicEntities
+  # - (Symbol) *names: pluralized list of BasicEntities
   #
   def self.multi_reference(*names)
     names.each do |reference|
@@ -55,7 +80,8 @@ class BaseEntity < IdPk
     end
   end
 
-  # Creates an attribute or ValueReference
+  # Creates an attribute or a reference to a single BasicEntity (many-to-one)
+  #
   # Example:
   #   attribute :desc, String, mandatory:true, default:'foo'
   #   attribute :country, Country
