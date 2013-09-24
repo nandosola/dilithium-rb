@@ -9,6 +9,9 @@ class EntitySerializer
       entity.instance_variables.each do |attr|
         attr_name = attr.to_s[1..-1].to_sym
         attr_value = entity.instance_variable_get(attr)
+        # TODO: uncomment when BasicEntityBuilder is ready
+        # attr_type = entity.class.class_variable_get(:'@@attributes')[attr_name]
+        # attr_value = attr_type.to_generic_type(attr_value) if attr_type.instance_of?(BasicAttributes::ExtendedGenericAttribute)
         h[attr_name] =  attr_value
       end
     end

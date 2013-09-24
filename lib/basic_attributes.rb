@@ -1,6 +1,6 @@
 module BasicAttributes
 
-  GENERIC_TYPES = [String, Integer, DateTime, TrueClass, FalseClass]
+  GENERIC_TYPES = [String, Integer, Float, DateTime, TrueClass, FalseClass]
 
   class GenericAttribute
     attr_reader :name, :type, :default, :mandatory
@@ -74,6 +74,8 @@ module BasicAttributes
           attr.to_s
         when Integer
           attr.to_i
+        when Float
+          attr.to_f
       end
     end
   end

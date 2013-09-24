@@ -125,6 +125,18 @@ describe 'A Simple Entity' do
 
   end
 
+  it 'can be fully serialized' do
+    pending 'Implement BasicEntityBuilder'
+    a_user = User.fetch_by_id(1)
+    EntitySerializer.to_nested_hash(a_user).should eq({
+                                                       :name => 'Alice',
+                                                       :email => 'alice@example.net',
+                                                       :tstamp=> '2013-09-23T18:42:14+02:00',
+                                                       :password=>'$2a$10$hqlENYeHZYy9eYHnZ2ONH.5N9qnXV9uzXA/h27XCMq5HBytCLo6bm',
+                                                       :active=>true
+                                                    })
+  end
+
   after(:all) do
     delete_test_users
   end
