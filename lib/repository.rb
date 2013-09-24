@@ -103,7 +103,7 @@ module Repository
           end
 
           def attach_child(parent_obj, child_name, child_h)
-            child_class =  parent_obj.class.reference_type(child_name)
+            child_class = parent_obj.class.class_variable_get(:'@@attributes')[child_name].inner_type
             child_class.resolve_entity_references(child_h)
             child_h.delete_if{|k,v| k.to_s.end_with?('_id')}
             method = "make_#{child_name.to_s.singularize}"
@@ -135,7 +135,7 @@ module Repository
           end
 
           def attach_reference(dependent_obj, ref_name, ref_h)
-            ref_class = dependent_obj.class.reference_type(ref_name)
+            ref_class = dependent_obj.class.class_variable_get(:'@@attributes')[ref_name].inner_type
             ref_attr = "#{ref_name.to_s.singularize}_id".to_sym
             # TODO should all references inbetween aggregates be lazy??
             found_ref = ref_class.fetch_reference_by_id(ref_h[ref_attr])
