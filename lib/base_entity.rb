@@ -9,11 +9,11 @@ class BaseEntity < IdPk
 
   def self.inherited(base)
     # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Super layer type)
-    base.class_variable_set(:'@@attributes',{PRIMARY_KEY[:identifier]=>BasicAttributes::Attribute.new(
+    base.class_variable_set(:'@@attributes',{PRIMARY_KEY[:identifier]=>BasicAttributes::GenericAttribute.new(
         PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])})
     base.attach_attribute_accessors(PRIMARY_KEY[:identifier])
 
-    base.class_variable_get(:'@@attributes')[:active] = BasicAttributes::Attribute.new(:active,TrueClass, false, true)
+    base.class_variable_get(:'@@attributes')[:active] = BasicAttributes::GenericAttribute.new(:active,TrueClass, false, true)
     base.attach_attribute_accessors(:active)
 
     base.instance_eval do
@@ -80,11 +80,13 @@ class BaseEntity < IdPk
     end
   end
 
-  # Creates an attribute or a reference to a single BasicEntity (many-to-one)
+  # Creates an attribute or a reference to a single BasicEntity (many-to-one). The attribute must extend BaseEntity,
+  # any Ruby Generic type (except for Enumerable) or be a generic type itself.
   #
   # Example:
   #   attribute :desc, String, mandatory:true, default:'foo'
-  #   attribute :country, Country
+  #   attribute :country, CountryEntity
+  #   attribute :password, BCrypt::Password
   #
   # Params:
   # - name: attribute name
@@ -95,11 +97,15 @@ class BaseEntity < IdPk
   #
   def self.attribute(name, type, opts = {})
     if BaseEntity == type.superclass
-      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::ValueReference.new(name, type)
-      # TODO: default values for ValueReference. ie. Location.new('Toronto', 'Canada')
-    else
-      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::Attribute.new(
+      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::EntityReference.new(name, type)
+    elsif BasicAttributes::GENERIC_TYPES.include?(type.superclass)
+      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::ExtendedGenericAttribute.new(
           name, type, opts[:mandatory], opts[:default])
+    elsif BasicAttributes::GENERIC_TYPES.include?(type)
+      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::GenericAttribute.new(
+          name, type, opts[:mandatory], opts[:default])
+    else
+      raise ArgumentError, "Cannot determine type for attribute #{name}"
     end
     self.attach_attribute_accessors(name)
   end
@@ -167,21 +173,25 @@ class BaseEntity < IdPk
   end
 
   def self.parent_reference
-    parent = self.get_references(BasicAttributes::ParentReference)
+    parent = self.get_attributes_by_type(BasicAttributes::ParentReference)
     raise RuntimeError, "found multiple parents" if 1 < parent.size
     parent.first
   end
 
   def self.child_references
-    self.get_references(BasicAttributes::ChildReference)
+    self.get_attributes_by_type(BasicAttributes::ChildReference)
   end
 
   def self.multi_references
-    self.get_references(BasicAttributes::MultiReference)  # TODO: Rename to MultiReference
+    self.get_attributes_by_type(BasicAttributes::MultiReference)  # TODO: Rename to MultiReference
   end
 
-  def self.value_references
-    self.get_references(BasicAttributes::ValueReference)
+  def self.entity_references
+    self.get_attributes_by_type(BasicAttributes::EntityReference)
+  end
+
+  def self.extended_generic_attributes
+    self.get_attributes_by_type(BasicAttributes::ExtendedGenericAttribute)
   end
 
   def self.has_children?
@@ -196,8 +206,12 @@ class BaseEntity < IdPk
     !self.parent_reference.nil?
   end
 
-  def self.has_value_references?
-    !self.value_references.empty?
+  def self.has_entity_references?
+    !self.entity_references.empty?
+  end
+
+  def self.has_extended_generic_attributes?
+    !self.extended_generic_attributes.empty?
   end
 
   def self.reference_type(reference_attr)
@@ -288,7 +302,8 @@ class BaseEntity < IdPk
 
   def load_self_attributes(in_h)
     self.class.attributes.each do |attr|
-      if [BasicAttributes::Attribute, BasicAttributes::ValueReference].include?(attr.class)
+      if [BasicAttributes::GenericAttribute, BasicAttributes::ExtendedGenericAttribute,
+          BasicAttributes::EntityReference].include?(attr.class)
         value = if in_h.include?(attr.name)
                   in_h[attr.name]
                 else
@@ -332,9 +347,9 @@ class BaseEntity < IdPk
     end
   end
 
-  def self.get_references(type)
+  def self.get_attributes_by_type(type)
     attrs = self.attributes
-    refs = attrs.reduce([]){|m,attr| attr.is_a?(type) ? m<<attr.name : m }
+    refs = attrs.reduce([]){|m,attr| attr.instance_of?(type) ? m<<attr.name : m }
     refs
   end
 

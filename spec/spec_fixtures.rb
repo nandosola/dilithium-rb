@@ -4,10 +4,13 @@ require_relative 'fixtures/chained_refs'
 
 module SpecFixtures
   def insert_test_users
+    tstamp = '2013-09-23T18:42:14+02:00'
+    password = '$2a$10$hqlENYeHZYy9eYHnZ2ONH.5N9qnXV9uzXA/h27XCMq5HBytCLo6bm'  # 'secret'
+
     items = $database[:users]
-    items.insert(:name => 'Alice', :email => 'alice@example.net', :active=>true)
-    items.insert(:name => 'Bob', :email => 'bob@example.net', :active=>true)
-    items.insert(:name => 'Charly', :email => 'charly@example.net', :active=>true)
+    items.insert(:name => 'Alice', :email => 'alice@example.net', :tstamp=> tstamp, :password=>password, :active=>true)
+    items.insert(:name => 'Bob', :email => 'bob@example.net', :tstamp=> tstamp, :password=>password,  :active=>true)
+    items.insert(:name => 'Charly', :email => 'charly@example.net', :tstamp=> tstamp, :password=>password,  :active=>true)
   end
 
   def delete_test_users

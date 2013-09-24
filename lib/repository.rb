@@ -27,21 +27,30 @@ module Repository
             found_h = DB[table.to_sym]
             unless found_h.empty?
               found_h.map do |reg|
-                self.fetch_by_id(reg[:id])
+                fetch_by_id(reg[:id])
               end
             else
               []
             end
           end
 
-          #TODO Refactor in reference repository
+          #TODO Refactor in Reference class
           def fetch_reference_by_id(id)
             ReferenceEntity.new(id, self)
           end
 
-          def resolve_value_references(in_h)
-            if self.has_value_references?
-              self.value_references.each do |ref|
+          def resolve_extended_generic_attributes(in_h)
+            if self.has_extended_generic_attributes?
+              self.extended_generic_attributes.each do |gen_attr|
+                attr = self.class_variable_get(:'@@attributes')[gen_attr]
+                in_h[gen_attr] = attr.type.new(in_h[attr.name])
+              end
+            end
+          end
+
+          def resolve_entity_references(in_h)
+            if self.has_entity_references?
+              self.entity_references.each do |ref|
                 attr = self.class_variable_get(:'@@attributes')[ref]
                 ref_id = in_h[attr.reference]  #TODO change to "_id" here, not at the BasicAttribute
                 ref_value = ref_id.nil? ? nil : in_h[attr.name] = attr.type.fetch_by_id(ref_id)
@@ -51,10 +60,10 @@ module Repository
             end
           end
 
-          private
           def create_object(in_h)
             unless in_h.nil?
-              self.resolve_value_references(in_h)
+              resolve_entity_references(in_h)
+              resolve_extended_generic_attributes(in_h)
               root_obj = self.new(in_h)
               root_obj.attach_children
               root_obj.attach_multi_references
@@ -95,7 +104,7 @@ module Repository
 
           def attach_child(parent_obj, child_name, child_h)
             child_class =  parent_obj.class.reference_type(child_name)
-            child_class.resolve_value_references(child_h)
+            child_class.resolve_entity_references(child_h)
             child_h.delete_if{|k,v| k.to_s.end_with?('_id')}
             method = "make_#{child_name.to_s.singularize}"
             child_obj = parent_obj.send(method.to_sym, child_h)

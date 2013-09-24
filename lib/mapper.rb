@@ -152,10 +152,16 @@ module Mapper
           yield 'primary_key', ":#{attr.name}"
         else
           case attr
-            when BasicAttributes::ParentReference, BasicAttributes::ValueReference
+            # TODO Refactor this behaviour to a class
+            when BasicAttributes::ParentReference, BasicAttributes::EntityReference
               yield 'foreign_key', ":#{attr.reference}, :#{attr.name.to_s.pluralize}"
-            when BasicAttributes::Attribute
+            when BasicAttributes::ExtendedGenericAttribute
               default = attr.default.nil? ? 'nil' : attr.default
+              default = "'#{default}'" if default.is_a?(String) && attr.default
+              yield "#{attr.type.superclass}", ":#{attr.name}, :default => #{attr.to_generic_type(default)}"
+            when BasicAttributes::GenericAttribute
+              default = attr.default.nil? ? 'nil' : attr.default
+              default = "'#{default}'" if default.is_a?(String) && attr.default
               yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
             when BasicAttributes::MultiReference
               dependent = to_table_name(entity_class)

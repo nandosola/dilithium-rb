@@ -5,8 +5,10 @@ require 'uow/transaction'
 require 'uow/registry'
 
 require 'sequel'
-# Load plugins/extensions for every model
+
+# Sequel config
 Sequel.extension :inflector
+Sequel.datetime_class = DateTime
 
 require 'persistence_service'
 require 'base_entity'

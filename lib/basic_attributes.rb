@@ -1,9 +1,12 @@
 module BasicAttributes
 
-  class Attribute
+  GENERIC_TYPES = [String, Integer, DateTime, TrueClass, FalseClass]
+
+  class GenericAttribute
     attr_reader :name, :type, :default, :mandatory
     def initialize(name, type, mandatory=false, default=nil)
-      # TODO validate entry
+      raise ArgumentError, "The attribute #{name} is not a Ruby generic type" unless \
+       BasicAttributes::GENERIC_TYPES.include?(type)
       @name = name
       @type = type
       @mandatory = mandatory
@@ -56,10 +59,26 @@ module BasicAttributes
     end
   end
 
-  class ValueAttribute < Attribute
+  class ExtendedGenericAttribute < GenericAttribute
+    def initialize(name, type, mandatory=false, default=nil)
+      raise ArgumentError, "The attribute #{name} does not extend a Ruby generic type" unless \
+       BasicAttributes::GENERIC_TYPES.include?(type.superclass)
+      @name = name
+      @type = type
+      @mandatory = mandatory
+      @default = default  # TODO extra check for default value type
+    end
+    def to_generic_type(attr)
+      case attr
+        when String
+          attr.to_s
+        when Integer
+          attr.to_i
+      end
+    end
   end
 
-  class ValueReference < Reference
+  class EntityReference < Reference
   end
 
   class ParentReference < Reference

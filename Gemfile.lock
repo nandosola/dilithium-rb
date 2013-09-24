@@ -7,6 +7,8 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
+    bcrypt-ruby (3.1.2)
+    bcrypt-ruby (3.1.2-java)
     diff-lcs (1.2.4)
     rake (0.9.6)
     rspec (2.14.1)
@@ -25,6 +27,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  bcrypt-ruby (~> 3.1.2)
   rake (~> 0.9.6)
   rspec (~> 2.14.1)
   sequel-uow!
