@@ -1,5 +1,6 @@
 require_relative 'basic_attributes'
 require_relative 'entity_serializer'
+require_relative 'database_utils'
 
 module Mapper
 
@@ -27,7 +28,7 @@ module Mapper
       # First insert entity
       entity_data = EntitySerializer.to_row(entity, parent_id)
       entity_data.delete(:id)
-      entity.id = DB[to_table_name(entity)].insert(entity_data)
+      entity.id = DB[DatabaseUtils.to_table_name(entity)].insert(entity_data)
 
       # Then recurse children for inserting them
       entity.each_child do |child|
@@ -43,7 +44,7 @@ module Mapper
     def self.delete(entity)
      check_uow_transaction(entity)
 
-      DB[to_table_name(entity)].where(id: entity.id).update(active: false)
+      DB[DatabaseUtils.to_table_name(entity)].where(id: entity.id).update(active: false)
 
       entity.each_child do |child|
         delete(child)
@@ -57,7 +58,7 @@ module Mapper
       original_data = EntitySerializer.to_row(original_entity)
 
       unless modified_data.eql?(original_data)
-        DB[to_table_name(modified_entity)].where(id: modified_entity.id).update(modified_data)
+        DB[DatabaseUtils.to_table_name(modified_entity)].where(id: modified_entity.id).update(modified_data)
       end
 
       modified_entity.each_child do |child|
@@ -81,36 +82,12 @@ module Mapper
      original_entity.each_multi_reference do |ref|
        delete_in_intermediate_table(original_entity, ref) if modified_entity.find_multi_reference{|r| ref.id == r.id}.nil?
      end
-
-    end
-
-    # Returns an entity associated DB table name
-    #
-    # Example:
-    #   Employee => :employees
-    #
-    # Params:
-    # - entity: entity for converting class to table name
-    # Returns:
-    #   Symbol with table name
-    def self.to_table_name(entity)
-      #TODO : extract this to an utilities class/module
-      klazz = case entity
-                # TODO refactor to a single class method in IdPk
-                when BaseEntity
-                  entity.class
-                when ReferenceEntity  #TODO make this inherit from IdPK
-                  entity.type
-                when Class
-                  entity
-              end
-      klazz.to_s.split('::').last.underscore.downcase.pluralize.to_sym
     end
 
     private
     def self.insert_in_intermediate_table(dependee, dependent, from=:insert)
-      table_dependee = to_table_name(dependee)
-      table_dependent = to_table_name(dependent)
+      table_dependee = DatabaseUtils.to_table_name(dependee)
+      table_dependent = DatabaseUtils.to_table_name(dependent)
       intermediate_table_name = :"#{table_dependee}_#{table_dependent}"
       column_dependee = :"#{table_dependee.to_s.singularize}_id"
       column_dependent = :"#{table_dependent.to_s.singularize}_id"
@@ -130,8 +107,8 @@ module Mapper
 
     # TODO refactor this
     def self.delete_in_intermediate_table(dependee, dependent)
-      table_dependee = to_table_name(dependee)
-      table_dependent = to_table_name(dependent)
+      table_dependee = DatabaseUtils.to_table_name(dependee)
+      table_dependent = DatabaseUtils.to_table_name(dependent)
       intermediate_table_name = :"#{table_dependee}_#{table_dependent}"
       column_dependee = :"#{table_dependee.to_s.singularize}_id"
       column_dependent = :"#{table_dependent.to_s.singularize}_id"
@@ -154,7 +131,7 @@ module Mapper
           case attr
             # TODO Refactor this behaviour to a class
             when BasicAttributes::ParentReference, BasicAttributes::EntityReference
-              yield 'foreign_key', ":#{attr.reference}, :#{attr.name.to_s.pluralize}"
+              yield 'foreign_key', ":#{DatabaseUtils.to_reference_name(attr)}, :#{attr.name.to_s.pluralize}"
             when BasicAttributes::ExtendedGenericAttribute
               default = attr.default.nil? ? 'nil' : attr.default
               default = "'#{default}'" if default.is_a?(String) && attr.default
@@ -164,7 +141,7 @@ module Mapper
               default = "'#{default}'" if default.is_a?(String) && attr.default
               yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
             when BasicAttributes::MultiReference
-              dependent = to_table_name(entity_class)
+              dependent = DatabaseUtils.to_table_name(entity_class)
               create_intermediate_table(dependent, attr.name)
           end
         end

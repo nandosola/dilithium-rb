@@ -18,6 +18,7 @@ class BaseEntity < IdPk
 
     base.instance_eval do
       def attributes
+        #TODO return the whole attr array
         self.class_variable_get(:'@@attributes').values
       end
     end

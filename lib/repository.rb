@@ -1,4 +1,5 @@
 require 'reference_entity'
+require_relative 'database_utils'
 
 module Repository
 
@@ -52,9 +53,10 @@ module Repository
             if self.has_entity_references?
               self.entity_references.each do |ref|
                 attr = self.class_variable_get(:'@@attributes')[ref]
-                ref_id = in_h[attr.reference]  #TODO change to "_id" here, not at the BasicAttribute
+                ref_name = DatabaseUtils.to_reference_name(attr)
+                ref_id = in_h[ref_name]  #TODO change to "_id" here, not at the BasicAttribute
                 ref_value = ref_id.nil? ? nil : in_h[attr.name] = attr.type.fetch_by_id(ref_id)
-                in_h.delete(attr.reference)
+                in_h.delete(ref_name)
                 in_h[ref] = ref_value
               end
             end
@@ -114,7 +116,7 @@ module Repository
           def attach_multi_references
             unless self.class.multi_references.empty?
               self.class.multi_references.each do |ref_name|
-                intermediate_table = "#{Mapper::Sequel.to_table_name(self)}_#{ref_name}"
+                intermediate_table = "#{DatabaseUtils.to_table_name(self)}_#{ref_name}"
                 module_path = self.class.to_s.split('::')
                 dependent_name = "#{module_path.last.underscore.downcase}_id"
                 multi_refs = DB[intermediate_table.to_sym].where(dependent_name.to_sym=>self.id).all

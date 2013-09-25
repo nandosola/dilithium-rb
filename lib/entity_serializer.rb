@@ -1,3 +1,5 @@
+require_relative 'database_utils'
+
 class EntitySerializer
 
   def self.to_hash(entity)
@@ -56,7 +58,7 @@ class EntitySerializer
       unless [BasicAttributes::ChildReference, BasicAttributes::ParentReference,
               BasicAttributes::MultiReference].include?(attr_type.class)
         if attr_type.is_a?(BasicAttributes::EntityReference)
-          row[attr_type.reference] = value.nil? ? attr_type.default : value.id
+          row[DatabaseUtils.to_reference_name(attr_type)] = value.nil? ? attr_type.default : value.id
         else
           row[attr] = value
         end

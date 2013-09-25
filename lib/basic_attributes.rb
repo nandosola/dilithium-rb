@@ -23,11 +23,10 @@ module BasicAttributes
   end
 
   class Reference
-    attr_reader :name, :type, :reference
+    attr_reader :name, :type
     def initialize(name, type=BaseEntity)
       @name = name
       @type = type
-      @reference = "#{name.to_s.singularize}_id".to_sym  # TODO coupling smell: get this property out! handle at Mapper
     end
     def check_constraints(value)  # check invariant constraints, called by setter
       raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless value.nil? || value.is_a?(@type)
