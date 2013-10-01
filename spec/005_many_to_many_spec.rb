@@ -174,8 +174,8 @@ describe 'A BasicEntity with a many to many relationship' do
 
     katrina.departments.first.class.should eq(Association::ReferenceEntity)
     katrina.departments.first.resolve
-    katrina.departments.first.resolved_object.name.should eq('Accounting')
-    katrina.departments.first.resolved_object.id.should eq(1)
+    katrina.departments.first.resolved_entity.name.should eq('Accounting')
+    katrina.departments.first.resolved_entity.id.should eq(1)
 
     @@kati_id = katrina.id
   end

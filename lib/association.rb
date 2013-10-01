@@ -3,7 +3,7 @@ require 'ostruct'
 
 module Association
   class ReferenceEntity
-    attr_reader :id, :type, :resolved_object
+    attr_reader :id, :type, :resolved_entity
     def initialize(id, referenced_class, resolver_class)
       @id = id
       @type = referenced_class
