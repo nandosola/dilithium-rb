@@ -15,7 +15,7 @@ module DatabaseUtils
               # TODO refactor to a single class method in IdPk
               when BaseEntity
                 entity.class
-              when ReferenceEntity  #TODO make this inherit from IdPK
+              when Association::ReferenceEntity  #TODO make this inherit from IdPK
                 entity.type
               when Class
                 entity

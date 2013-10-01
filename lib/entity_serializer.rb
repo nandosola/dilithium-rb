@@ -5,7 +5,7 @@ class EntitySerializer
   def self.to_hash(entity)
     h = {}
 
-    if entity.is_a?(ReferenceEntity)
+    if entity.is_a?(Association::ReferenceEntity)
       h[:"#{entity.type.to_s.split('::').last.downcase.singularize}_id"] = entity.id
     else
       entity.instance_variables.each do |attr|
@@ -25,7 +25,7 @@ class EntitySerializer
 
     entity_h.each do |attr, value|
 
-      unless entity.is_a?(ReferenceEntity)
+      unless entity.is_a?(Association::ReferenceEntity)
         attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
 
         case attr_type

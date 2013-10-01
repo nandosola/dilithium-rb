@@ -79,7 +79,7 @@ describe 'A BasicEntity with a many to many relationship' do
     dept = Department.new({name:'Evil'})
 
     emp2 = Employee.new({name:'Mayer'})
-    ref_dept = ReferenceEntity.new(42, Department)
+    ref_dept = Association::ReferenceEntity.new(42, Department, Association::Sequel)
 
     emp.departments<<dept
     EntitySerializer.to_hash(emp)[:departments].should eq([dept])
@@ -125,7 +125,7 @@ describe 'A BasicEntity with a many to many relationship' do
     dept2 = Department.fetch_reference_by_id(2)
 
 
-    # TODO: this sould be ReferenceRepository.fetch_by_id(Department, 1)
+    # TODO: this should be ReferenceRepository.fetch_by_id(Department, 1)
     # #=> <ReferenceEntity 0xf00b45: @id=1 @type=Department>
     #
     # Likewise: AggregateRepository.fetch_by_id(Department, 1)
@@ -171,6 +171,12 @@ describe 'A BasicEntity with a many to many relationship' do
     katrina.departments[1].id.should eq(2)
     katrina.buildings.size.should eq(1)
     katrina.buildings[0].id.should eq(1)
+
+    katrina.departments.first.class.should eq(Association::ReferenceEntity)
+    katrina.departments.first.resolve
+    katrina.departments.first.resolved_entity.name.should eq('Accounting')
+    katrina.departments.first.resolved_entity.id.should be_nil
+
     @@kati_id = katrina.id
   end
 

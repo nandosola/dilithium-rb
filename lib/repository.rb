@@ -1,4 +1,4 @@
-require 'reference_entity'
+require 'association'
 require_relative 'database_utils'
 
 module Repository
@@ -37,7 +37,7 @@ module Repository
 
           #TODO Refactor in Reference class
           def fetch_reference_by_id(id)
-            ReferenceEntity.new(id, self)
+            Association::ReferenceEntity.new(id, self, Association::Sequel)
           end
 
           def resolve_extended_generic_attributes(in_h)
