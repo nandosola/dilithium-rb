@@ -2,6 +2,10 @@ require 'database_utils'
 require 'ostruct'
 
 module Association
+
+  class ResolvedEntity < OpenStruct
+  end
+
   class ReferenceEntity
     attr_reader :id, :type, :resolved_entity
     def initialize(id, referenced_class, resolver_class)
@@ -12,7 +16,8 @@ module Association
     end
     def resolve
       # FIXME this should be done via a ResolvedEntity and method objects
-      @resolved_entity = OpenStruct.new(@resolver_class.send(:resolve, self))
+      @resolved_entity = ResolvedEntity.new(@resolver_class.send(:resolve, self))
+      self
     end
   end
 

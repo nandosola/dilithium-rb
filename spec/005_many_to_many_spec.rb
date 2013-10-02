@@ -90,6 +90,11 @@ describe 'A BasicEntity with a many to many relationship' do
     EntitySerializer.to_hash(emp2)[:departments].should eq([ref_dept])
     EntitySerializer.to_nested_hash(emp2)[:departments].should eq([EntitySerializer.to_hash(ref_dept)])
     EntitySerializer.to_row(emp2)[:departments].should be_nil
+
+    existing_ref_dept = Association::ReferenceEntity.new(1, Department, Association::Sequel)
+    existing_ref_dept.resolve
+    EntitySerializer.to_hash(existing_ref_dept.resolved_entity).should eq({id:1, name:'Accounting', active:true})
+
   end
 
   it 'is persisted in two tables (accessor initialization)' do
