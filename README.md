@@ -1,65 +1,82 @@
 Sequel + Unit Of Work
 ---------------------
-This is an experiment (not yet thread safe!!!) that attempts to apply some PoEA best practices on top of Sequel's Active Record layer
-(blasphemy!). The goal is being able to manage both transactions and concurrency with an ORM-agnostic aproach. Here you'll find some
+This is an experiment (not yet thread safe!!!) that attempts to apply some PoEA best practices on top of Sequel's DataSet layer.
+The goal is being able to manage both transactions and concurrency with an ORM-agnostic aproach. Here you'll find some
 interesting patterns:
 
 * Repository
 * Mapper
-* Unit Of Work (UoW) with Offline Pessimistic Locking
+* Unit Of Work (UoW) with concurrency
 * A Registry for finding active UoWs
 
 Until a real Data Mapper pattern (in [DataMapper](http://datamapper.org/articles/the_great_refactoring.html) or [ROM](http://rom-rb.org/))
-is implemented in Rubby, our domain objects must extend `Sequel::Model`. To this date, Sequel is the most lightweight Ruby ORM. It also 
-supports a "dataset" mode, which could be used by `sequel-uow` in the future instead of twisting the concepts behind `Sequel::Model`.
+is implemented in Ruby, our domain objects must extend `BaseEntity`.
 
 ### Installation
 First install the gem via Bundler: `gem 'sequel-uow', :git => 'git://github.com/nandosola/sequel-uow.git'`
 
 ### Sample usage
-The gem includes a `FinderService` facade to be used by our domain objects so that their active transactions can be found:
-
 ```ruby
 require 'sequel-uow'
 
 # ...
 
-moduleUnitOfWork::TransactionRegistry
+String.inflections do |inflect|
+  inflect.irregular 'company', 'companies'
+  inflect.irregular 'local_office', 'local_offices'
+  inflect.irregular 'address', 'addresses'
+end
+
+class Company < BaseEntity
+  children :local_offices
+
+  attribute :name, String
+  attribute :url, String
+  attribute :email, String
+  attribute :vat_number, String
+end
+
+class LocalOffice < BaseEntity
+  children  :addresses
+  parent :company
+
+  attribute :description, String
+end
+
+class Address < BaseEntity
+  parent :local_office
+
+  attribute :description, String
+  attribute :address, String
+  attribute :city, String
+  attribute :state, String
+  attribute :country, String
+  attribute :zip, String
+  attribute :phone, String
+  attribute :fax, String
+  attribute :email, String
+  attribute :office, TrueClass, :default => true
+  attribute :warehouse, TrueClass, :default => false
+end
+
 # ...
-module FinderService
-  module ClassMethods
-    def self.extended(base_class)
-      base_class.instance_eval {
-        def fetch_from_transaction(uuid, obj_id)
-          tr = Registry.instance[uuid.to_sym]
-          (tr.nil?) ? nil : tr.fetch_object_by_id(self, obj_id)
-        end
-      }
-    end
-  end
-  module InstanceMethods
-    def transactions
-      Registry.instance.find_transactions(self)
-    end
-  end
-end
-end
+transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+company_h = {
+        name: 'FooBar, Inc',
+        local_offices: [
+            {
+                description: 'branch1',
+                addresses: [{description: 'addr1'}]
+            }
+        ]
+    }
 
-# ...
+a_company = Company.new(company_h)
+transaction.register_new(a_company)
 
-class User < Sequel::Model
-  extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
-  include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
-
-  # specific repository methods:
-  extend Repository::Sequel::User
-
-  # Business logic
-  # ...
-end
 ```
 
-`UnitOfWork::Transaction` instances handle the states and their persistence:
+`UnitOfWork::Transaction` handles aggregate states and their persistence:
 
 * `register_new`
 * `register_clean`
@@ -69,47 +86,14 @@ end
 * `rollback`
 * `complete`
 
-
-For a simple Sinatra, CRUD-like web application:
-```ruby
-post '/activities/user/new' do
-
-  transaction = UnitOfWork::Transaction.new()
-  a_user = User.new()
-  transaction.register_new(a_user)
-  [201, "{id: #{transaction.uuid}}"]  # commands could be sent as hypermedia
-end
-
-# ...
-
-# update command
-put '/transactions/:uuid/user/:id/update' do
-
-  parsed_body = JsonParserService.parse(body)  # To be implemented by the developer
-
-  result = User.fetch_from_transaction(:uuid, :id)
-    # returns a TransactionRegistry::Registry::SearchResult or nil
-
-  user = result.object
-  transaction = result.transaction
-
-  user.validate(parsed_body)
-  user.set_all(parsed_body)
-  transaction.commit
-  transaction.complete
-  200
-end
-```
-
 ### TO-DO
 * Validate state transitions
-* Process URI CRUD commands as a group of `Transaction` operations
-* Aggregate handling
 * Example/test with complex (multi-object) transaction
 * Thread safety
 * Serialize state-keeping structures to files
 * Optimistic offline concurrency handler
 * RDocs & UML docs
+* Clearer tests
 * ...
 
 ### See also
@@ -118,5 +102,5 @@ end
 * [Ruby Object Mapper](https://github.com/rom-rb/rom)
 
 ### License
-Licensed under the [New BSD License](http://opensource.org/licenses/BSD-3-Clause). See LICENSE file for more details.
+Licensed under the [3-clause BSD License](http://opensource.org/licenses/BSD-3-Clause). See LICENSE file for more details.
 
