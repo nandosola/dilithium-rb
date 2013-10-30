@@ -1,14 +1,12 @@
 require 'pp'
 require 'sequel'
-# connect to an in-memory database
-DB = Sequel.sqlite
+require 'logger'
+require_relative '../lib/sequel-uow'
 
-# create an items table
-DB.create_table :users do
-  primary_key :id
-  String :name
-  String :email
-end
+$database = Sequel.sqlite
+PersistenceService::Sequel.db = $database
+
+#$database.logger = Logger.new($stdout)
 
 $:<< File.join(File.dirname(__FILE__), '..')
 require_relative 'spec_fixtures'
