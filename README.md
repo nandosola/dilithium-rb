@@ -9,9 +9,6 @@ interesting patterns:
 * Unit Of Work (UoW) with concurrency
 * A Registry for finding active UoWs
 
-Until a real Data Mapper pattern (in [DataMapper](http://datamapper.org/articles/the_great_refactoring.html) or [ROM](http://rom-rb.org/))
-is implemented in Ruby, our domain objects must extend `BaseEntity`.
-
 ### Installation
 First install the gem via Bundler: `gem 'sequel-uow', :git => 'git://github.com/nandosola/sequel-uow.git'`
 
@@ -100,6 +97,7 @@ transaction.register_new(a_company)
 
 * [datamappify](https://github.com/fredwu/datamappify)
 * [Ruby Object Mapper](https://github.com/rom-rb/rom)
+* [DataMapper](http://datamapper.org/articles/the_great_refactoring.html) as a real data mapper pattern
 
 ### License
 Licensed under the [3-clause BSD License](http://opensource.org/licenses/BSD-3-Clause). See LICENSE file for more details.
