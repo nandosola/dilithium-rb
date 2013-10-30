@@ -66,13 +66,13 @@ module Mapper
           insert(child, modified_entity.id)
         else
           update(child, original_entity.find_child do |c|
-            child.id == c.id
+            child.class == c.class && child.id == c.id
           end)
         end
       end
 
       original_entity.each_child do |child|
-        delete(child) if modified_entity.find_child{|c| child.id == c.id}.nil?
+        delete(child) if modified_entity.find_child{|c| child.class == c.class && child.id == c.id}.nil?
       end
 
       modified_entity.each_multi_reference do |ref|
@@ -80,7 +80,8 @@ module Mapper
       end
 
      original_entity.each_multi_reference do |ref|
-       delete_in_intermediate_table(original_entity, ref) if modified_entity.find_multi_reference{|r| ref.id == r.id}.nil?
+       found_ref = modified_entity.find_multi_reference{|r| ref.class == r.class && ref.id == r.id}
+       delete_in_intermediate_table(original_entity, ref) if found_ref.nil?
      end
     end
 
