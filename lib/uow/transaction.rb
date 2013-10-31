@@ -5,6 +5,8 @@ module UnitOfWork
   # CAVEAT: this is not threadsafe nor distribution-friendly
   class Transaction
 
+    include TransactionExceptions
+
     STATE_NEW = :new
     STATE_DIRTY = :dirty
     STATE_CLEAN = :clean
@@ -89,7 +91,7 @@ module UnitOfWork
           else
             id = res.object.id
             RuntimeError "Cannot rollback #{res.object.class} with identity (id=#{id.nil? ? 'nil' : id })\n"+
-                "-- it couldn't be found in history[object_id=#{working_obj.object_id}]"
+                             "-- it couldn't be found in history[object_id=#{working_obj.object_id}]"
           end
         end
       end

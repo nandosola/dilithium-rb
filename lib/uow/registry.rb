@@ -5,6 +5,8 @@ module UnitOfWork
 
     # TODO maybe the registry should store nodename/class/id/transaction/state - this would allow easier distribution
     class Registry
+      include TransactionRegistryExceptions
+
       class SearchResult
         attr_reader :transaction, :object, :state
         def initialize(transaction, tracked_object_sr)
@@ -16,7 +18,9 @@ module UnitOfWork
 
       include Singleton
       def initialize
-        @@registry = {}
+        @@registry = Hash.new do |hash,key|
+                      raise TransactionNotFound.new()
+                    end
       end
       def [](tr_uuid)
         @@registry[tr_uuid.to_sym]
@@ -55,15 +59,15 @@ module UnitOfWork
         def self.extended(base_class)
           base_class.instance_eval {
             def fetch_from_transaction(uuid, obj_id=nil)
-              tr = Registry.instance[uuid.to_sym]
-              unless tr.nil?
+              begin
+                tr = Registry.instance[uuid.to_sym]
                 if obj_id.nil?
                   entities = tr.fetch_object_by_class(self)
                   entities.each { |entity| yield(TransactionRegistry::Registry::SearchResult.new(tr, entity)) }
                 else
                   TransactionRegistry::Registry::SearchResult.new(tr,tr.fetch_object_by_id(self, obj_id))
                 end
-              else
+              rescue TransactionRegistryExceptions::TransactionNotFound
                 nil
               end
             end
