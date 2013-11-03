@@ -4,6 +4,9 @@ require_relative 'database_utils'
 
 module Mapper
 
+  class NullMapper
+  end
+
   class Sequel
     # TODO - evaluate deferrable transactions
     TRANSACTION_DEFAULT_PARAMS = {:rollback => :reraise}
