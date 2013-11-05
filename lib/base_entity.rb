@@ -68,17 +68,15 @@ class BaseEntity < IdPk
   #
   # Example:
   #   class Department < BaseEntity
-  #     multi_reference :employees, :buildings
+  #     multi_reference :employees
+  #     multi_reference :buildings
+  #     multi_reference :sub_departments, Department
   #
   # Params:
-  # - (Symbol) *names: pluralized list of BasicEntities
+  # - (Symbol) name: name of the attribute. If no type is provided, will be treated as a pluralized name of a BaseEntity
+  # - (BaseEntity) type: type of the BaseEntity this reference holds. If not supplied will be inferred from name
   #
   def self.multi_reference(name, type = nil)
-#      names.each do |reference|
-#        # TODO pass type
-#        self.class_variable_get(:'@@attributes')[reference] = BasicAttributes::MultiReference.new(reference, self)
-#        self.attach_attribute_accessors(reference, :list)
-
     self.class_variable_get(:'@@attributes')[name] = BasicAttributes::MultiReference.new(name, self, type)
     self.attach_attribute_accessors(name, :list)
   end
