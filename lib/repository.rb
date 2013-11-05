@@ -138,7 +138,8 @@ module Repository
 
           def attach_reference(dependent_obj, ref_name, ref_h)
             ref_class = dependent_obj.class.class_variable_get(:'@@attributes')[ref_name].inner_type
-            ref_attr = "#{ref_name.to_s.singularize}_id".to_sym
+            ref_module_path = ref_class.to_s.split('::')
+            ref_attr = "#{ref_module_path.last.underscore.downcase}_id".to_sym
             # TODO should all references inbetween aggregates be lazy??
             found_ref = ref_class.fetch_reference_by_id(ref_h[ref_attr])
 

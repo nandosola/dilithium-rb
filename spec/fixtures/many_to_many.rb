@@ -6,13 +6,16 @@ class Building < BaseEntity
   #many :employees
   attribute :name, String, mandatory:true
 end
-class Employee < BaseEntity
-  # TODO evaluate: "many :employee, dependent:true" - 'dependent' means that Employees can't exist without Department
-  multi_reference :departments, :buildings
-  attribute :name, String, mandatory:true
-end
 
 class Department < BaseEntity
   #many :employees
+  attribute :name, String, mandatory:true
+end
+
+class Employee < BaseEntity
+  # TODO evaluate: "many :employee, dependent:true" - 'dependent' means that Employees can't exist without Department
+  multi_reference :departments
+  multi_reference :buildings
+  multi_reference :managed_departments, Department
   attribute :name, String, mandatory:true
 end

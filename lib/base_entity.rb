@@ -10,7 +10,7 @@ class BaseEntity < IdPk
   def self.inherited(base)
     # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Super layer type)
     base.class_variable_set(:'@@attributes',{PRIMARY_KEY[:identifier]=>BasicAttributes::GenericAttribute.new(
-        PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])})
+      PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])})
     base.attach_attribute_accessors(PRIMARY_KEY[:identifier])
 
     base.class_variable_get(:'@@attributes')[:active] = BasicAttributes::GenericAttribute.new(:active,TrueClass, false, true)
@@ -59,8 +59,8 @@ class BaseEntity < IdPk
   # - (Symbol) parent
   #
   def self.parent(parent)
-  # TODO pass type
-  self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent)
+    # TODO pass type
+    self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent)
     self.attach_attribute_accessors(parent, :none)
   end
 
@@ -68,17 +68,17 @@ class BaseEntity < IdPk
   #
   # Example:
   #   class Department < BaseEntity
-  #     multi_reference :employees, :buildings
+  #     multi_reference :employees
+  #     multi_reference :buildings
+  #     multi_reference :sub_departments, Department
   #
   # Params:
-  # - (Symbol) *names: pluralized list of BasicEntities
+  # - (Symbol) name: name of the attribute. If no type is provided, will be treated as a pluralized name of a BaseEntity
+  # - (BaseEntity) type: type of the BaseEntity this reference holds. If not supplied will be inferred from name
   #
-  def self.multi_reference(*names)
-    names.each do |reference|
-      # TODO pass type
-      self.class_variable_get(:'@@attributes')[reference] = BasicAttributes::MultiReference.new(reference, self)
-      self.attach_attribute_accessors(reference, :list)
-    end
+  def self.multi_reference(name, type = nil)
+    self.class_variable_get(:'@@attributes')[name] = BasicAttributes::MultiReference.new(name, self, type)
+    self.attach_attribute_accessors(name, :list)
   end
 
   # Creates an attribute or a reference to a single BasicEntity (many-to-one). The attribute must extend BaseEntity,
@@ -101,10 +101,10 @@ class BaseEntity < IdPk
       self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::EntityReference.new(name, type)
     elsif BasicAttributes::GENERIC_TYPES.include?(type.superclass)
       self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::ExtendedGenericAttribute.new(
-          name, type, opts[:mandatory], opts[:default])
+        name, type, opts[:mandatory], opts[:default])
     elsif BasicAttributes::GENERIC_TYPES.include?(type)
       self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::GenericAttribute.new(
-          name, type, opts[:mandatory], opts[:default])
+        name, type, opts[:mandatory], opts[:default])
     else
       raise ArgumentError, "Cannot determine type for attribute #{name}"
     end
@@ -153,7 +153,7 @@ class BaseEntity < IdPk
       self.class.multi_references.each do |ref_attr|
         references = Array(self.send(ref_attr)).clone
         references.each do |ref|
-          yield(ref)
+          yield(ref, ref_attr)
         end
       end
     end
@@ -167,8 +167,8 @@ class BaseEntity < IdPk
   end
 
   def find_multi_reference
-    each_multi_reference do |ref|
-      return ref if yield(ref)
+    each_multi_reference do |ref, ref_attr|
+      return ref if yield(ref, ref_attr)
     end
     nil
   end
@@ -307,10 +307,9 @@ class BaseEntity < IdPk
 
   def detach_multi_references
     if self.class.has_multi_references?
-      each_multi_reference do |ref|
+      each_multi_reference do |ref, ref_attr|
         # TODO: ref.type!! See Mapper::Sequel.to_table_name
-        reference_attr = ref.type.to_s.split('::').last.underscore.downcase.pluralize
-        instance_variable_get("@#{reference_attr}".to_sym).clear
+        instance_variable_get("@#{ref_attr}".to_sym).clear
       end
     end
   end
