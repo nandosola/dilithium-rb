@@ -57,6 +57,11 @@ describe 'A Simple Entity' do
     duke
   end
 
+  it 'has not parent reference' do
+    user = User.fetch_by_id(1)
+    user.class.parent_reference.should eq(nil)
+  end
+
   it "accepts empty or full-hash constructors and validates its attributes" do
 
     norbert = {:name => 'Norbert', :email => 'norb@example.net'}
@@ -105,6 +110,8 @@ describe 'A Simple Entity' do
     transaction.commit
     transaction.complete
     User.fetch_by_name('Norbert').first.email.should eq('norb@example.net')
+    a = User.fetch_by_name('Norbert')
+    a
     User.fetch_by_name('Dilbert').first.email.should eq('dilbert@example.net')
   end
 

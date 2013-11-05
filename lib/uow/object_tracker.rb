@@ -136,7 +136,7 @@ module UnitOfWork
 
     def self.check_not_nil(tracked_object)
       if tracked_object.nil?
-        raise RuntimeError, "Object #{obj.inspect} is not tracked!"
+        raise RuntimeError, "Object #{tracked_object.inspect} is not tracked!"
       else
         tracked_object
       end
