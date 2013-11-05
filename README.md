@@ -12,6 +12,10 @@ interesting patterns:
 ### Installation
 First install the gem via Bundler: `gem 'sequel-uow', :git => 'git://github.com/nandosola/sequel-uow.git'`
 
+### Tests
+All tests can be run with the `rake spec` task.
+Individual tests can also be run via the `rspec` command, i.e.: `rspec --color spec/001*`
+
 ### Sample usage
 ```ruby
 require 'sequel-uow'
