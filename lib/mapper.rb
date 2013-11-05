@@ -36,8 +36,8 @@ module Mapper
       end
 
       # Then recurse multi_ref for inserting the intermediate table
-      entity.each_multi_reference do |ref|
-        insert_in_intermediate_table(entity, ref)
+      entity.each_multi_reference do |ref, ref_attr|
+        insert_in_intermediate_table(entity, ref, ref_attr)
       end
     end
 
@@ -75,21 +75,21 @@ module Mapper
         delete(child) if modified_entity.find_child{|c| child.class == c.class && child.id == c.id}.nil?
       end
 
-      modified_entity.each_multi_reference do |ref|
-        insert_in_intermediate_table(modified_entity, ref, :update)
+      modified_entity.each_multi_reference do |ref, ref_attr|
+        insert_in_intermediate_table(modified_entity, ref, ref_attr, :update)
       end
 
-     original_entity.each_multi_reference do |ref|
-       found_ref = modified_entity.find_multi_reference{|r| ref.class == r.class && ref.id == r.id}
-       delete_in_intermediate_table(original_entity, ref) if found_ref.nil?
+     original_entity.each_multi_reference do |ref, ref_attr|
+       found_ref = modified_entity.find_multi_reference{|r, attr| ref_attr == attr && ref.id == r.id}
+       delete_in_intermediate_table(original_entity, ref, ref_attr) if found_ref.nil?
      end
     end
 
     private
-    def self.insert_in_intermediate_table(dependee, dependent, from=:insert)
+    def self.insert_in_intermediate_table(dependee, dependent, ref_attr, from=:insert)
       table_dependee = DatabaseUtils.to_table_name(dependee)
       table_dependent = DatabaseUtils.to_table_name(dependent)
-      intermediate_table_name = :"#{table_dependee}_#{table_dependent}"
+      intermediate_table_name = :"#{table_dependee}_#{ref_attr}"
       column_dependee = :"#{table_dependee.to_s.singularize}_id"
       column_dependent = :"#{table_dependent.to_s.singularize}_id"
 
@@ -107,10 +107,10 @@ module Mapper
     end
 
     # TODO refactor this
-    def self.delete_in_intermediate_table(dependee, dependent)
+    def self.delete_in_intermediate_table(dependee, dependent, ref_attr)
       table_dependee = DatabaseUtils.to_table_name(dependee)
       table_dependent = DatabaseUtils.to_table_name(dependent)
-      intermediate_table_name = :"#{table_dependee}_#{table_dependent}"
+      intermediate_table_name = :"#{table_dependee}_#{ref_attr}"
       column_dependee = :"#{table_dependee.to_s.singularize}_id"
       column_dependent = :"#{table_dependent.to_s.singularize}_id"
 
@@ -143,19 +143,19 @@ module Mapper
               yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
             when BasicAttributes::MultiReference
               dependent = DatabaseUtils.to_table_name(entity_class)
-              create_intermediate_table(dependent, attr.name)
+              create_intermediate_table(dependent, attr.name, attr.reference_path.last.downcase)
           end
         end
       end
     end
 
-    def self.create_intermediate_table(dependent, dependee)
+    def self.create_intermediate_table(dependent, dependee, ref_attr)
       dependent_fk = "#{dependent.to_s.singularize}_id".to_sym
-      dependee_fk = "#{dependee.to_s.singularize}_id".to_sym
+      dependee_fk = "#{ref_attr.to_s.singularize}_id".to_sym
       DB.create_table("#{dependent}_#{dependee}".to_sym) do
         primary_key :id
         foreign_key dependent_fk, dependent
-        foreign_key dependee_fk, dependee
+        foreign_key dependee_fk, ref_attr.pluralize.to_sym
       end
     end
 
