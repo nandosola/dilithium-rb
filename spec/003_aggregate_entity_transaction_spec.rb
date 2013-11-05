@@ -1,3 +1,5 @@
+require_relative 'spec_base'
+
 describe 'A Transaction handling an Aggregate Entity' do
   before(:all) do
     Mapper::Sequel.create_tables(Company, LocalOffice, Address)

@@ -1,3 +1,5 @@
+require_relative 'spec_base'
+
 describe 'A transaction handling a Simple Entity' do
   before(:all) do
     insert_test_users

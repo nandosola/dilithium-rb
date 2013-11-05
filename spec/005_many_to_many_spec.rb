@@ -1,3 +1,5 @@
+require_relative 'spec_base'
+
 require_relative '../spec/fixtures/many_to_many'
 
 describe 'A BasicEntity with a many to many relationship' do
