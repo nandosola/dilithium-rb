@@ -1,3 +1,5 @@
+require_relative 'spec_base'
+
 describe 'A Simple Entity' do
 
   before(:all) do

@@ -1,3 +1,5 @@
+require_relative 'spec_base'
+
 describe 'A Chained Reference' do
 
   before(:all) do
