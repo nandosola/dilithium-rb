@@ -97,6 +97,8 @@ module SpecFixtures
     items.insert(:name => 'Accounting', :active=>true)
     items.insert(:name => 'IT Ops', :active=>true)
     items.insert(:name => 'Sales', :active=>true)
+    items.insert(:name => 'Marketing', :active=>true)
+    items.insert(:name => 'Administration', :active=>true)
 
     items = $database[:buildings]
     items.insert(:name => 'Main', :active=>true)
