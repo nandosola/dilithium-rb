@@ -9,7 +9,15 @@ describe 'A Transaction handling an Aggregate Entity' do
         @object_tracker
       end
     end
+  end
+
+  before(:each) do
     @transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+  end
+
+  after(:each) do
+    @transaction.rollback unless @transaction.committed
+    @transaction.finalize
   end
 
   it 'creates a new Aggregate in the database and retrieves it correctly' do
@@ -192,7 +200,6 @@ describe 'A Transaction handling an Aggregate Entity' do
                                }
                            ]})
     @transaction.commit
-    @transaction.finalize
 
   end
 
