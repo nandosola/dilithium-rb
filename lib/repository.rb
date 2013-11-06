@@ -50,15 +50,13 @@ module Repository
           end
 
           def resolve_entity_references(in_h)
-            if self.has_entity_references?
-              self.entity_references.each do |ref|
-                attr = self.class_variable_get(:'@@attributes')[ref]
-                ref_name = DatabaseUtils.to_reference_name(attr)
-                ref_id = in_h[ref_name]  #TODO change to "_id" here, not at the BasicAttribute
-                ref_value = ref_id.nil? ? nil : in_h[attr.name] = attr.type.fetch_by_id(ref_id)
-                in_h.delete(ref_name)
-                in_h[ref] = ref_value
-              end
+            self.entity_references.each do |ref|
+              attr = self.class_variable_get(:'@@attributes')[ref]
+              ref_name = DatabaseUtils.to_reference_name(attr)
+              ref_id = in_h[ref_name]  #TODO change to "_id" here, not at the BasicAttribute
+              ref_value = ref_id.nil? ? nil : in_h[attr.name] = attr.type.fetch_by_id(ref_id)
+              in_h.delete(ref_name)
+              in_h[ref] = ref_value
             end
           end
 
@@ -91,10 +89,8 @@ module Repository
                 children = DB[child_name].where("#{parent_name}_id".to_sym=> self.id).where(active: true).all
                 unless children.nil?
                   if children.is_a?(Array)
-                    unless children.empty?
-                      children.each do |child_h|
-                        attach_child(self, child_name, child_h)
-                      end
+                    children.each do |child_h|
+                      attach_child(self, child_name, child_h)
                     end
                   else
                     attach_child(self, child_name, children)
@@ -123,10 +119,8 @@ module Repository
 
                 unless multi_refs.nil?
                   if multi_refs.is_a?(Array)
-                    unless multi_refs.empty?
-                      multi_refs.each do |ref_h|
-                        attach_reference(self, ref_name, ref_h)
-                      end
+                    multi_refs.each do |ref_h|
+                      attach_reference(self, ref_name, ref_h)
                     end
                   else
                     attach_reference(self, ref_name, multi_refs)

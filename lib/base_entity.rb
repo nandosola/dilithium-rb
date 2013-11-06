@@ -138,23 +138,19 @@ class BaseEntity < IdPk
 
   # Executes a proc for each child, passing child as parameter to proc
   def each_child
-    if self.class.has_children?
-      self.class.child_references.each do |child_attr|
-        children = Array(self.send(child_attr)).clone
-        children.each do |child|
-          yield(child)
-        end
+    self.class.child_references.each do |child_attr|
+      children = Array(self.send(child_attr)).clone
+      children.each do |child|
+        yield(child)
       end
     end
   end
 
   def each_multi_reference
-    if self.class.has_multi_references?
-      self.class.multi_references.each do |ref_attr|
-        references = Array(self.send(ref_attr)).clone
-        references.each do |ref|
-          yield(ref, ref_attr)
-        end
+    self.class.multi_references.each do |ref_attr|
+      references = Array(self.send(ref_attr)).clone
+      references.each do |ref|
+        yield(ref, ref_attr)
       end
     end
   end
@@ -271,10 +267,8 @@ class BaseEntity < IdPk
 
     # TODO refactor to collection_accessor (add_{plural} -> add_{singular} -> <<)
     (references.each do |k,v|
-      unless v.empty?
-        v.each do |ref|
-          send("#{k}<<".to_sym, ref)
-        end
+      v.each do |ref|
+        send("#{k}<<".to_sym, ref)
       end
     end) unless references.empty?
   end
@@ -295,22 +289,18 @@ class BaseEntity < IdPk
   end
 
   def detach_children
-    if self.class.has_children?
-      each_child do |child|
-        child_attr = child.class.to_s.split('::').last.underscore.downcase.pluralize
-        child.detach_parent(self)
-        child.detach_children
-        instance_variable_get("@#{child_attr}".to_sym).clear
-      end
+    each_child do |child|
+      child_attr = child.class.to_s.split('::').last.underscore.downcase.pluralize
+      child.detach_parent(self)
+      child.detach_children
+      instance_variable_get("@#{child_attr}".to_sym).clear
     end
   end
 
   def detach_multi_references
-    if self.class.has_multi_references?
-      each_multi_reference do |ref, ref_attr|
-        # TODO: ref.type!! See Mapper::Sequel.to_table_name
-        instance_variable_get("@#{ref_attr}".to_sym).clear
-      end
+    each_multi_reference do |ref, ref_attr|
+      # TODO: ref.type!! See Mapper::Sequel.to_table_name
+      instance_variable_get("@#{ref_attr}".to_sym).clear
     end
   end
 
