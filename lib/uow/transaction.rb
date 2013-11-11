@@ -1,4 +1,5 @@
 require_relative 'object_history'
+require_relative 'states'
 
 module UnitOfWork
 
@@ -6,12 +7,8 @@ module UnitOfWork
   class Transaction
 
     include TransactionExceptions
+    include States::Default
 
-    STATE_NEW = :new
-    STATE_DIRTY = :dirty
-    STATE_CLEAN = :clean
-    STATE_DELETED = :removed
-    ALL_STATES = [STATE_NEW, STATE_DIRTY, STATE_CLEAN, STATE_DELETED]
     attr_reader :uuid, :valid, :committed
 
     def initialize(mapper_class)
@@ -103,32 +100,36 @@ module UnitOfWork
     def commit
       check_valid_uow
 
-      # TODO: Check optimistic concurrency (in a subclass) - it has an additional :stale state
       # TODO handle Repository::DatabaseError
       # TODO: store entity's latest payload before commit() and restore it
-      @mapper.transaction do  #TODO make sure this is a deferred transaction
+      begin
+        @mapper.transaction do
 
-        @object_tracker.fetch_by_state(STATE_NEW).each do |res|
-          working_obj = res.object
-          @mapper.insert(working_obj)
-          @history << working_obj
+          @object_tracker.fetch_in_dependency_order(STATE_NEW).each do |res|
+            working_obj = res.object
+            @mapper.insert(working_obj)
+            @history << working_obj
+          end
+
+          @object_tracker.fetch_by_state(STATE_DIRTY).each do |res|
+            working_obj = res.object
+            orig_obj = @history[working_obj.object_id].last
+            @mapper.update(working_obj, orig_obj)
+            @history << working_obj
+          end
+
+          #TODO handle nested transactions (@history)
+          @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.delete(res.object) }
+
+          clear_all_objects_in_state(STATE_DELETED)
+
+          move_all_objects(STATE_NEW, STATE_DIRTY)
+
+          @committed = true
         end
-
-        @object_tracker.fetch_by_state(STATE_DIRTY).each do |res|
-          working_obj = res.object
-          orig_obj = @history[working_obj.object_id].last
-          @mapper.update(working_obj, orig_obj)
-          @history << working_obj
-        end
-
-        #TODO handle nested transactions (@history)
-        @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.delete(res.object) }
-
-        clear_all_objects_in_state(STATE_DELETED)
-
-        move_all_objects(STATE_NEW, STATE_DIRTY)
-
-        @committed = true
+      rescue ObjectTrackerExceptions::UntrackedReferenceException => ex
+        register_new(ex.untracked_reference)
+        commit
       end
     end
 
@@ -211,6 +212,7 @@ module UnitOfWork
 
   end
 
+  # TODO: Check optimistic concurrency (in a subclass) - it has an additional :stale state
 =begin TODO
     class ReadWriteLockingTransaction < Transaction
       def check_register_clean(obj)

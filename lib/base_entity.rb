@@ -155,6 +155,15 @@ class BaseEntity < IdPk
     end
   end
 
+  def each_entity_reference
+    self.class.entity_references.each do |ref_attr|
+      references = Array(self.send(ref_attr)).clone
+      references.each do |ref|
+        yield(ref, ref_attr)
+      end
+    end
+  end
+
   def find_child
     each_child do |child|
       return child if yield(child)
@@ -164,6 +173,13 @@ class BaseEntity < IdPk
 
   def find_multi_reference
     each_multi_reference do |ref, ref_attr|
+      return ref if yield(ref, ref_attr)
+    end
+    nil
+  end
+
+  def find_entity_reference
+    each_entity_reference do |ref, ref_attr|
       return ref if yield(ref, ref_attr)
     end
     nil

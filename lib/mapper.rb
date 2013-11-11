@@ -9,7 +9,7 @@ module Mapper
 
   class Sequel
     # TODO - evaluate deferrable transactions
-    TRANSACTION_DEFAULT_PARAMS = {:rollback => :reraise}
+    TRANSACTION_DEFAULT_PARAMS = {rollback: :reraise, deferrable: true}
 
     def self.transaction(params = TRANSACTION_DEFAULT_PARAMS, &block)
       DB.transaction &block

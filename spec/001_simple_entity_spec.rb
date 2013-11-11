@@ -105,13 +105,14 @@ describe 'A Simple Entity' do
     another_user.email.should eq('dilbert@example.net')
 
     transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+
     transaction.register_new(new_user)
     transaction.register_new(another_user)
     transaction.commit
     transaction.complete
-    User.fetch_by_name('Norbert').first.email.should eq('norb@example.net')
-    a = User.fetch_by_name('Norbert')
-    a
+    norb = User.fetch_by_name('Norbert')
+    norb.first.email.should eq('norb@example.net')
+    norb.first.reference.should_not be_nil
     User.fetch_by_name('Dilbert').first.email.should eq('dilbert@example.net')
   end
 

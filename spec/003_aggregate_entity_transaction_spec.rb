@@ -277,6 +277,7 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                        :foo=>"foo",
                                                        :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}})
       tr.register_new(a_foo)
+      tr.register_clean(a_baz)
       tr.commit
 
       EntitySerializer.to_nested_hash(Foo.fetch_by_id(1)).should ==({:id=>1,

@@ -1,5 +1,10 @@
+require 'tsort'
+require 'set'
+
 module UnitOfWork
   class ObjectTracker
+    include ObjectTrackerExceptions
+
     attr_reader :allowed_states
 
     protected
@@ -19,8 +24,10 @@ module UnitOfWork
       end
 
       def check_valid_state(st)
-        raise RuntimeError, "State is not valid. Allowed states are #{@parent.allowed_states}" unless \
-          @parent.allowed_states.include?(st)
+        unless @parent.allowed_states.include?(st)
+          raise InvalidStateException,
+                "State is not valid. Allowed states are #{@parent.allowed_states}"
+        end
       end
     end
 
@@ -68,7 +75,48 @@ module UnitOfWork
 
       def self.check_single_or_empty_result(results)
         if 1 < results.count
-          raise RuntimeError, "Found same object #{results.count} times!"
+          raise MultipleTrackedObjectsException, "Found same object #{results.count} times!"
+        end
+      end
+    end
+
+    class ReferenceSorter
+      include ObjectTrackerExceptions
+      include TSort
+
+      def initialize(results_collection, tracker)
+        @obj_tracker = tracker
+        @results = results_collection
+        @sorted_results = Array.new
+      end
+
+      def sort
+        sorted_deps = tsort
+        root_classes = (Set.new(@results.map{|res| res.object}) - Set.new(sorted_deps)).to_a
+        (sorted_deps + root_classes).reduce(@sorted_results) do |memo, entity|
+          found_res = @results.select{|res| entity == res.object}
+          Array(found_res).empty? ? memo: memo.push(found_res.first)
+        end
+        @sorted_results
+      end
+
+      private
+      def tsort_each_node(&block)
+        @results.each do |res|
+          entity = res.object
+          entity.each_entity_reference(&block)
+        end
+      end
+
+      def tsort_each_child(node, &block)
+        check_valid_reference(node)
+        node.each_entity_reference(&block)
+      end
+
+      def check_valid_reference(ref)
+        sr = @obj_tracker.fetch_object(ref)
+        if ref.id.nil? && sr.nil?
+          raise UntrackedReferenceException.new(ref, @obj_tracker)
         end
       end
     end
@@ -99,6 +147,11 @@ module UnitOfWork
     def fetch_by_state(st)
       found_array = @tracker.select {|to| st == to.state}
       TrackedObjectSearchResult.factory(found_array)
+    end
+
+    def fetch_in_dependency_order(st)
+      search_results = fetch_by_state(st)
+      ReferenceSorter.new(search_results, self).sort
     end
 
     def fetch_all
@@ -134,11 +187,11 @@ module UnitOfWork
       found_array[0]
     end
 
-    def self.check_not_nil(tracked_object)
-      if tracked_object.nil?
-        raise RuntimeError, "Object #{tracked_object.inspect} is not tracked!"
+    def self.check_not_nil(obj)
+      if obj.nil?
+        raise UntrackedObjectException, "Object #{obj.inspect} is not tracked!"
       else
-        tracked_object
+        obj
       end
     end
   end
