@@ -8,7 +8,6 @@ module Mapper
   end
 
   class Sequel
-    # TODO - evaluate deferrable transactions
     TRANSACTION_DEFAULT_PARAMS = {rollback: :reraise, deferrable: true}
 
     def self.transaction(params = TRANSACTION_DEFAULT_PARAMS, &block)
