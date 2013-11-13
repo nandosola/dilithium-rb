@@ -13,9 +13,7 @@ module DatabaseUtils
     #TODO : extract this to an utilities class/module
     klazz = case entity
               # TODO refactor to a single class method in IdPk
-              when BaseEntity
-                entity.class
-              when Association::ReferenceEntity  #TODO make this inherit from IdPK
+              when BaseEntity, Association::ReferenceEntity  #TODO make this inherit from IdPK
                 entity.type
               when Class
                 entity
@@ -25,5 +23,10 @@ module DatabaseUtils
 
   def self.to_reference_name(attr)
     "#{attr.name.to_s.singularize}_id".to_sym
+  end
+
+  def self.to_class(attr)
+    #TODO What if the class is in a module
+    const_get(attr.name.to_s.camelize.to_sym)
   end
 end

@@ -29,7 +29,8 @@ module BasicAttributes
       @type = type
     end
     def check_constraints(value)  # check invariant constraints, called by setter
-      raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless value.nil? || value.is_a?(@type)
+      raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless
+        value.nil? || value.is_a?(@type) || (value.is_a?(Association::ReferenceEntity) && value.type <= @type)
       # check_reference_active
     end
     def default
