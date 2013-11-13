@@ -372,4 +372,41 @@ describe 'A Transaction handling an Aggregate Entity' do
     parent.type.should == Company
     parent.resolve.name.should == 'Gallifreyan Sonic Widgets, Inc.'
   end
+
+  it 'Correctly persists an intermediate root' do
+    company_h = {
+      name: 'TARDIS Console Repair, Inc.',
+      local_offices: [
+        {
+          description: 'HQ',
+          addresses: [{description: 'Warehouse District'}]
+        }
+      ]
+    }
+
+    a_company = Company.new(company_h)
+    @transaction.register_new(a_company)
+    @transaction.commit
+    @transaction.register_clean(a_company)
+
+    office = LocalOffice.fetch_by_description("HQ").first
+    @transaction.register_dirty(office)
+
+    office.description = 'Headquarters'
+    office.addresses << Address.new({description: 'Timelord Palace'})
+    @transaction.commit
+
+    LocalOffice.fetch_by_description("HQ").should be_empty
+
+    office = LocalOffice.fetch_by_description("Headquarters").first
+    office.description.should == 'Headquarters'
+    office.addresses.length.should == 2
+    office.addresses[0].description.should == 'Warehouse District'
+    office.addresses[1].description.should == 'Timelord Palace'
+
+    parent = office.company
+    parent.should be_a Association::ReferenceEntity
+    parent.type.should == Company
+    parent.resolve.name.should == 'TARDIS Console Repair, Inc.'
+  end
 end
