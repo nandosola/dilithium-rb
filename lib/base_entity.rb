@@ -117,10 +117,14 @@ class BaseEntity < IdPk
       instance_variable_set("@#{k}".to_sym, v.default)
     end
     unless parent.nil?
-      parent_attr = parent.class.to_s.split('::').last.underscore.downcase
+      parent_attr = parent.type.to_s.split('::').last.underscore.downcase
       instance_variable_set("@#{parent_attr}".to_sym, parent)
     end
     load_attributes(in_h)
+  end
+
+  def type
+    self.class
   end
 
   def full_update(in_h)

@@ -37,7 +37,7 @@ module Repository
 
           #TODO Refactor in Reference class
           def fetch_reference_by_id(id)
-            Association::ReferenceEntity.new(id, self, Association::Sequel)
+            Association::ReferenceEntity.new(id, self)
           end
 
           def resolve_extended_generic_attributes(in_h)
@@ -60,11 +60,31 @@ module Repository
             end
           end
 
+          def resolve_parent(in_h)
+            attr = self.class_variable_get(:'@@attributes')[self.parent_reference]
+            ret = nil
+
+            unless attr.nil? || in_h.has_key?(attr.name)
+              ref_name = DatabaseUtils.to_reference_name(attr)
+              if in_h.has_key?(ref_name)
+                ref_id = in_h[ref_name] #TODO change to "_id" here, not at the BasicAttribute
+                parent_class = DatabaseUtils.to_class(attr)
+                ref_value = Association::ReferenceEntity.new(ref_id, parent_class)
+                in_h.delete(ref_name)
+                in_h[attr.name] = ref_value
+                ret = ref_value
+              end
+            end
+
+            ret
+          end
+
           def create_object(in_h)
             unless in_h.nil?
               resolve_entity_references(in_h)
               resolve_extended_generic_attributes(in_h)
-              root_obj = self.new(in_h)
+              parent = resolve_parent(in_h)
+              root_obj = self.new(in_h, parent)
               root_obj.attach_children
               root_obj.attach_multi_references
               root_obj

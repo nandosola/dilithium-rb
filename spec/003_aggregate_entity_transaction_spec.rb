@@ -2,7 +2,7 @@ require_relative 'spec_base'
 
 describe 'A Transaction handling an Aggregate Entity' do
   before(:all) do
-    Mapper::Sequel.create_tables(Company, LocalOffice, Address)
+    Mapper::Sequel.create_tables(Company, LocalOffice, Address, Contractor)
     class UnitOfWork::Transaction
       # exposed ONLY for testing purposes
       def tracked_objects
@@ -336,4 +336,40 @@ describe 'A Transaction handling an Aggregate Entity' do
     end
   end
 
+  it 'Correctly handles references between different roots' do
+    company_h = {
+      name: 'Gallifreyan Sonic Widgets, Inc.',
+      local_offices: [
+        {
+          description: 'Head Office',
+          addresses: [{description: 'Gallifrey'}]
+        }
+      ]
+    }
+
+    a_company = Company.new(company_h)
+    @transaction.register_new(a_company)
+    @transaction.commit
+
+    office = LocalOffice.fetch_by_description('Head Office').first
+
+    contractor_h = {
+      local_office: office,
+      name: 'Romana I',
+      email: 'romana@timelords.com'
+    }
+
+    contractor = Contractor.new(contractor_h)
+    @transaction.register_new(contractor)
+    @transaction.commit
+
+    romana = Contractor.fetch_by_name('Romana I').first
+
+    romana.local_office.id.should == office.id
+    romana.name.should eq('Romana I')
+    parent = romana.local_office.company
+    parent.should be_a Association::ReferenceEntity
+    parent.type.should == Company
+    parent.resolve.name.should == 'Gallifreyan Sonic Widgets, Inc.'
+  end
 end

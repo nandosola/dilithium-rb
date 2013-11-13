@@ -7,7 +7,6 @@ module PersistenceService
     def self.db=(db)
       Mapper::Sequel.const_set(:DB, db)
       Repository::Sequel.const_set(:DB, db)
-      Association::Sequel.const_set(:DB, db)
     end
   end
 end
