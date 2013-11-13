@@ -21,6 +21,8 @@ Session.vim
 
 # RubyMine
 .idea/workspace.xml
+.idea/cssxfire.xml
+.idea/jenkinsSettings.xml
 
 # Rubby
 *.gem
