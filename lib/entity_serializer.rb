@@ -8,8 +8,6 @@ class EntitySerializer
     case entity
     when Association::ReferenceEntity
       h[:"#{entity.type.to_s.split('::').last.downcase.singularize}_id"] = entity.id
-    when Association::ResolvedEntity
-      h = entity.marshal_dump
     else
       entity.instance_variables.each do |attr|
         attr_name = attr.to_s[1..-1].to_sym

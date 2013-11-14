@@ -4,9 +4,6 @@ require 'ostruct'
 module Association
   #TODO This should really be an Attribute
 
-  class ResolvedEntity < OpenStruct
-  end
-
   class ReferenceEntity
     attr_reader :id, :type, :resolved_entity
     def initialize(id, referenced_class)
