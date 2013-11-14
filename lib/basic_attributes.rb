@@ -24,33 +24,31 @@ module BasicAttributes
 
   class Reference
     attr_reader :name, :type
-    def initialize(name, type=BaseEntity)
+    def initialize(name, klazz)
       @name = name
-      @type = type
+      @type = klazz
     end
     def check_constraints(value)  # check invariant constraints, called by setter
       raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless
-        value.nil? || value.is_a?(@type) || (value.is_a?(Association::ReferenceEntity) && value.type <= @type)
-      # check_reference_active
+      value.nil? || value.is_a?(@type) || (value.is_a?(Association::ReferenceEntity) && value.type <= @type)
     end
     def default
       nil
     end
+    protected
+    def self.get_reference_path(clazz, attr_name)
+      module_path = clazz.to_s.split('::')
+      reference_literal = attr_name.to_s.singularize.camelize
+      module_path.pop
+      module_path.push(reference_literal)
+    end
   end
 
   class ListReference < Reference
-    def initialize(name, containing_class, type = nil)
+    def initialize(name, containing_class, type=nil)
       super(name, Array)
-      module_path = containing_class.to_s.split('::')
       if type.nil?
-        reference_literal = name.to_s.singularize.camelize
-        @reference_path = if 1 == module_path.size
-                            [reference_literal]
-                          elsif 1 < module_path.size
-                            module_path[0..-2] << reference_literal
-                          else
-                            raise RuntimeError, "Cannot determine #{reference_literal} namespace for parent path #{module_path.join('::')}"
-                          end
+        @reference_path = Reference.get_reference_path(containing_class, name)
       else
         @reference_path = type.to_s.split('::')
       end
@@ -91,6 +89,11 @@ module BasicAttributes
   end
 
   class ParentReference < Reference
+    def initialize(parent_name, child_klazz)
+      reference_path = Reference.get_reference_path(child_klazz, parent_name)
+      parent_klazz = reference_path.reduce(Object){ |m,c| m.const_get(c) }
+      super(parent_name, parent_klazz)
+    end
   end
 
   class ChildReference < ListReference
@@ -98,6 +101,5 @@ module BasicAttributes
 
   class MultiReference < ListReference
   end
-
 
 end

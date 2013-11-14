@@ -68,8 +68,7 @@ module Repository
               ref_name = DatabaseUtils.to_reference_name(attr)
               if in_h.has_key?(ref_name)
                 ref_id = in_h[ref_name] #TODO change to "_id" here, not at the BasicAttribute
-                parent_class = DatabaseUtils.to_class(attr)
-                ref_value = Association::ReferenceEntity.new(ref_id, parent_class)
+                ref_value = Association::ReferenceEntity.new(ref_id, attr.type)
                 in_h.delete(ref_name)
                 in_h[attr.name] = ref_value
                 ret = ref_value

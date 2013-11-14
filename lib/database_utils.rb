@@ -24,9 +24,4 @@ module DatabaseUtils
   def self.to_reference_name(attr)
     "#{attr.name.to_s.singularize}_id".to_sym
   end
-
-  def self.to_class(attr)
-    #TODO What if the class is in a module
-    const_get(attr.name.to_s.camelize.to_sym)
-  end
 end

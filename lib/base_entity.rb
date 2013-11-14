@@ -60,11 +60,11 @@ class BaseEntity < IdPk
   #
   def self.parent(parent)
     # TODO pass type
-    self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent)
+    self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent, self)
     self.attach_attribute_accessors(parent, :none)
   end
 
-  # Creates a reference to a list of BaseEntities (many-to-many)
+  # Creates a reference to a list of BaseEntities (many-to-many).
   #
   # Example:
   #   class Department < BaseEntity
@@ -74,7 +74,7 @@ class BaseEntity < IdPk
   #
   # Params:
   # - (Symbol) name: name of the attribute. If no type is provided, will be treated as a pluralized name of a BaseEntity
-  # - (BaseEntity) type: type of the BaseEntity this reference holds. If not supplied will be inferred from name
+  # - (BaseEntity) type: type of the BaseEntity this reference holds. If not supplied will be inferred from name.
   #
   def self.multi_reference(name, type = nil)
     self.class_variable_get(:'@@attributes')[name] = BasicAttributes::MultiReference.new(name, self, type)

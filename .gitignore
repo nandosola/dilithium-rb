@@ -20,7 +20,7 @@ Session.vim
 *~
 
 # RubyMine
-.idea
+.idea/
 
 # Rubby
 *.gem
