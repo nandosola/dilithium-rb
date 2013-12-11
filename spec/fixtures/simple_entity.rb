@@ -29,4 +29,5 @@ class User < BaseEntity
   attribute :password, BCrypt::Password, default:BCrypt::Password.create('secret')
 
   attribute :reference, Reference
+  attribute :refers_to, Reference
 end

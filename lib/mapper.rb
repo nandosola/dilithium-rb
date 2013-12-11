@@ -134,7 +134,12 @@ module Mapper
           case attr
             # TODO Refactor this behaviour to a class
             when BasicAttributes::ParentReference, BasicAttributes::EntityReference
-              yield 'foreign_key', ":#{DatabaseUtils.to_reference_name(attr)}, :#{attr.name.to_s.pluralize}"
+              name = if attr.type.nil?
+                       attr.name.to_s.pluralize
+                     else
+                       attr.type.to_s.split('::').last.underscore.pluralize
+                     end
+              yield 'foreign_key', ":#{DatabaseUtils.to_reference_name(attr)}, :#{name}"
             when BasicAttributes::ExtendedGenericAttribute
               default = attr.default.nil? ? 'nil' : attr.default
               default = "'#{default}'" if default.is_a?(String) && attr.default
