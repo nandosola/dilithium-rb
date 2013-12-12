@@ -54,11 +54,11 @@ describe 'A Simple Entity' do
     references.insert(:name => 'Foo ref')
     users.insert(:name => 'Duke', :email => 'duke@example.net', :reference_id => 1, :refers_to_id => 2, :active=>true)
 
-    duke = User.fetch_by_id(4)
+    duke = User.fetch_by_email('duke@example.net').first
     duke.reference.should be_a(Reference)
-    duke.reference.id should eq(1)
+    duke.reference.id.should eq(1)
     duke.refers_to.should be_a(Reference)
-    duke.refers_to.id should eq(2)
+    duke.refers_to.id.should eq(2)
   end
 
   it 'has not parent reference' do
