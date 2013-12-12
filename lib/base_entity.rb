@@ -7,14 +7,23 @@ class BaseEntity < IdPk
   extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
   include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
 
-  def self.inherited(base)
-    # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Super layer type)
-    base.class_variable_set(:'@@attributes',{PRIMARY_KEY[:identifier]=>BasicAttributes::GenericAttribute.new(
-      PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])})
-    base.attach_attribute_accessors(PRIMARY_KEY[:identifier])
+  # Each BaseEntity subclass will have an internal class called Immutable that contains the immutable representation of
+  # said BaseEntity. The Immutable classes are all subclasses of BaseEntity::Immutable
+  class Immutable
+  end
 
-    base.class_variable_get(:'@@attributes')[:active] = BasicAttributes::GenericAttribute.new(:active,TrueClass, false, true)
-    base.attach_attribute_accessors(:active)
+  def self.inherited(base)
+    # Create the internal Immutable class for this BaseEntity
+    base.const_set(:Immutable, Class.new(BaseEntity::Immutable))
+
+    # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Super layer type)
+    descriptor = BasicAttributes::GenericAttribute.new(PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])
+    base.class_variable_set(:'@@attributes', { PRIMARY_KEY[:identifier]=> descriptor })
+    base.attach_attribute_accessors(PRIMARY_KEY[:identifier], :plain, descriptor)
+
+    descriptor = BasicAttributes::GenericAttribute.new(:active,TrueClass, false, true)
+    base.class_variable_get(:'@@attributes')[:active] = descriptor
+    base.attach_attribute_accessors(:active, :plain, :descriptor)
 
     base.instance_eval do
       def attributes
@@ -36,8 +45,9 @@ class BaseEntity < IdPk
   def self.children(*names)
     names.each do |child|
       # TODO pass type
-      self.class_variable_get(:'@@attributes')[child] = BasicAttributes::ChildReference.new(child, self)
-      self.attach_attribute_accessors(child, :list)
+      descriptor = BasicAttributes::ChildReference.new(child, self)
+      self.class_variable_get(:'@@attributes')[child] = descriptor
+      self.attach_attribute_accessors(child, :list, descriptor)
       self.define_aggregate_method(child)
     end
   end
@@ -60,8 +70,9 @@ class BaseEntity < IdPk
   #
   def self.parent(parent)
     # TODO pass type
-    self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent, self)
-    self.attach_attribute_accessors(parent, :none)
+    descriptor = BasicAttributes::ParentReference.new(parent, self)
+    self.class_variable_get(:'@@attributes')[parent] = descriptor
+    self.attach_attribute_accessors(parent, :none, descriptor)
   end
 
   # Creates a reference to a list of BaseEntities (many-to-many).
@@ -77,8 +88,9 @@ class BaseEntity < IdPk
   # - (BaseEntity) type: type of the BaseEntity this reference holds. If not supplied will be inferred from name.
   #
   def self.multi_reference(name, type = nil)
-    self.class_variable_get(:'@@attributes')[name] = BasicAttributes::MultiReference.new(name, self, type)
-    self.attach_attribute_accessors(name, :list)
+    descriptor = BasicAttributes::MultiReference.new(name, self, type)
+    self.class_variable_get(:'@@attributes')[name] = descriptor
+    self.attach_attribute_accessors(name, :list, descriptor)
   end
 
   # Creates an attribute or a reference to a single BasicEntity (many-to-one). The attribute must extend BaseEntity,
@@ -97,18 +109,19 @@ class BaseEntity < IdPk
   #     * default: default value
   #
   def self.attribute(name, type, opts = {})
-    if BaseEntity == type.superclass
-      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::EntityReference.new(name, type)
-    elsif BasicAttributes::GENERIC_TYPES.include?(type.superclass)
-      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::ExtendedGenericAttribute.new(
-        name, type, opts[:mandatory], opts[:default])
-    elsif BasicAttributes::GENERIC_TYPES.include?(type)
-      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::GenericAttribute.new(
-        name, type, opts[:mandatory], opts[:default])
-    else
-      raise ArgumentError, "Cannot determine type for attribute #{name}"
-    end
-    self.attach_attribute_accessors(name)
+    descriptor = if BaseEntity == type.superclass
+                   BasicAttributes::EntityReference.new(name, type)
+                 elsif BasicAttributes::GENERIC_TYPES.include?(type.superclass)
+                   BasicAttributes::ExtendedGenericAttribute.new(name, type, opts[:mandatory], opts[:default])
+                 elsif BasicAttributes::GENERIC_TYPES.include?(type)
+                   BasicAttributes::GenericAttribute.new(name, type, opts[:mandatory], opts[:default])
+                 else
+                   raise ArgumentError, "Cannot determine type for attribute #{name}"
+                 end
+
+    self.class_variable_get(:'@@attributes')[name] = descriptor
+
+    self.attach_attribute_accessors(name, :plain, descriptor)
   end
 
   def initialize(in_h={}, parent=nil)
@@ -187,6 +200,23 @@ class BaseEntity < IdPk
       return ref if yield(ref, ref_attr)
     end
     nil
+  end
+
+  # Return an immutable copy of this object. The immutable copy will be disconnected from its parent and children and
+  # any references (i.e., it will contain only GenericAttributes and ExtendedGenericAttributes). If you need to get
+  # a reference you need to use a Finder in the entity's Root to get the Entity and from there get the reference.
+  def immutable
+    obj = self.class.const_get(:Immutable).new
+    attributes = self.class.class_variable_get(:'@@attributes')
+
+    attributes.each do |name, attr|
+      if attr.is_a?(BasicAttributes::GenericAttribute)
+        value = self.instance_variable_get(:"@#{name}")
+        obj.instance_variable_set(:"@#{name}", value)
+      end
+    end
+
+    obj
   end
 
   def self.parent_reference
@@ -341,7 +371,14 @@ class BaseEntity < IdPk
     refs
   end
 
-  def self.attach_attribute_accessors(name, type=:plain)
+  #TODO Remove type parameter, infer from attribute_descriptor
+  def self.attach_attribute_accessors(name, type, attribute_descriptor)
+    if attribute_descriptor.is_a? BasicAttributes::GenericAttribute
+      self.const_get(:Immutable).class_eval do
+        define_method(name){instance_variable_get("@#{name}".to_sym)}
+      end
+    end
+
     self.class_eval do
       define_method(name){instance_variable_get("@#{name}".to_sym)}
       if :plain == type

@@ -151,6 +151,33 @@ describe 'A Simple Entity' do
                                                     })
   end
 
+  it 'can return an immutable copy of itself' do
+    users = $database[:users]
+    users.insert(:name => 'Zaphod', :email => 'zaphod@example.net', :reference_id => 1, :refers_to_id => 2, :active=>true)
+
+    a_user = User.fetch_by_email('zaphod@example.net').first
+    an_immutable_user = a_user.immutable
+
+    an_immutable_user.should be_a(User::Immutable)
+
+    an_immutable_user.respond_to?(:id).should be_true
+    an_immutable_user.respond_to?(:id=).should be_false
+    an_immutable_user.respond_to?(:name).should be_true
+    an_immutable_user.respond_to?(:name=).should be_false
+    an_immutable_user.respond_to?(:email).should be_true
+    an_immutable_user.respond_to?(:email=).should be_false
+    an_immutable_user.respond_to?(:reference).should be_false
+    an_immutable_user.respond_to?(:reference=).should be_false
+    an_immutable_user.respond_to?(:refers_to).should be_false
+    an_immutable_user.respond_to?(:refers_to=).should be_false
+
+    an_immutable_user.respond_to?(:my_thing).should be_false
+
+    an_immutable_user.id.should eq(a_user.id)
+    an_immutable_user.name.should eq(a_user.name)
+    an_immutable_user.email.should eq(a_user.email)
+  end
+
   after(:all) do
     delete_test_users
   end

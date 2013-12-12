@@ -61,17 +61,17 @@ describe 'A BasicEntity with a many to many relationship' do
     dept2 = Department.new({name:'Hell'})
     dept3 = Department.new({name:'Mad Science'})
     dept4 = Department.new({name:'Apocalypse'})
-    
+
     bld1 = Building.new({name:'Marquee'})
     bld2 = Building.new({name:'Fawlty Towers'})
-    
+
     employee.departments<<(dept1)
     employee.departments<<(dept2)
     employee.managed_departments<<(dept3)
     employee.managed_departments<<(dept4)
     employee.buildings<<(bld1)
     employee.buildings<<(bld2)
-    
+
     employee.departments.should eq([dept1, dept2])
     employee.managed_departments.should eq([dept3, dept4])
     employee.buildings.should eq([bld1, bld2])
@@ -83,10 +83,10 @@ describe 'A BasicEntity with a many to many relationship' do
     dept2 = Department.new({name:'Hell'})
     dept3 = Department.new({name:'Mad Science'})
     dept4 = Department.new({name:'Apocalypse'})
-    
+
     bld1 = Building.new({name:'Marquee'})
     bld2 = Building.new({name:'Fawlty Towers'})
-    
+
     employee.departments<<(dept1)
     employee.departments<<(dept2)
     employee.managed_departments<<(dept3)
@@ -100,6 +100,30 @@ describe 'A BasicEntity with a many to many relationship' do
     end
 
     many_a.should eq([dept1, dept2, bld1, bld2, dept3, dept4])
+  end
+
+  it 'is ignored when generating the immutable version of an entity' do
+    employee = Employee.new({name:'Beppe'})
+    dept1 = Department.new({name:'Evil'})
+    dept2 = Department.new({name:'Hell'})
+    dept3 = Department.new({name:'Mad Science'})
+    dept4 = Department.new({name:'Apocalypse'})
+
+    bld1 = Building.new({name:'Marquee'})
+    bld2 = Building.new({name:'Fawlty Towers'})
+
+    employee.departments<<(dept1)
+    employee.departments<<(dept2)
+    employee.managed_departments<<(dept3)
+    employee.managed_departments<<(dept4)
+    employee.buildings<<(bld1)
+    employee.buildings<<(bld2)
+
+    immutable = employee.immutable
+
+    immutable.respond_to?(:departments).should be_false
+    immutable.respond_to?(:managed_departments).should be_false
+    immutable.respond_to?(:buildings).should be_false
   end
 
   it 'is correctly serialized' do
@@ -138,7 +162,7 @@ describe 'A BasicEntity with a many to many relationship' do
     dept2 = Department.fetch_by_id(2)
     dept3 = Department.fetch_by_id(3)
     dept4 = Department.fetch_by_id(4)
-    
+
     emp.departments<<dept
     emp.departments<<dept2
     emp.managed_departments<<dept3
