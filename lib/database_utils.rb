@@ -13,7 +13,7 @@ module DatabaseUtils
     #TODO : extract this to an utilities class/module
     klazz = case entity
               # TODO refactor to a single class method in IdPk
-              when BaseEntity, Association::ReferenceEntity  #TODO make this inherit from IdPK
+              when BaseEntity, Association::LazyEntityReference  #TODO make this inherit from IdPK
                 entity.type
               when Class
                 entity

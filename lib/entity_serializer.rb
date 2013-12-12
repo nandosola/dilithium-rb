@@ -6,7 +6,7 @@ class EntitySerializer
     h = {}
 
     case entity
-    when Association::ReferenceEntity
+    when Association::LazyEntityReference
       h[:"#{entity.type.to_s.split('::').last.downcase.singularize}_id"] = entity.id
     else
       entity.instance_variables.each do |attr|
@@ -26,7 +26,7 @@ class EntitySerializer
 
     entity_h.each do |attr, value|
 
-      unless entity.is_a?(Association::ReferenceEntity)
+      unless entity.is_a?(Association::LazyEntityReference)
         attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
 
         case attr_type

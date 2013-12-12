@@ -4,7 +4,7 @@ require 'ostruct'
 module Association
   #TODO This should really be an Attribute
 
-  class ReferenceEntity
+  class LazyEntityReference
     attr_reader :id, :type, :resolved_entity
     def initialize(id, referenced_class)
       @id = id

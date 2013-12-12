@@ -37,7 +37,7 @@ module Repository
 
           #TODO Refactor in Reference class
           def fetch_reference_by_id(id)
-            Association::ReferenceEntity.new(id, self)
+            Association::LazyEntityReference.new(id, self)
           end
 
           def resolve_extended_generic_attributes(in_h)
@@ -68,7 +68,7 @@ module Repository
               ref_name = DatabaseUtils.to_reference_name(attr)
               if in_h.has_key?(ref_name)
                 ref_id = in_h[ref_name] #TODO change to "_id" here, not at the BasicAttribute
-                ref_value = Association::ReferenceEntity.new(ref_id, attr.type)
+                ref_value = Association::LazyEntityReference.new(ref_id, attr.type)
                 in_h.delete(ref_name)
                 in_h[attr.name] = ref_value
                 ret = ref_value
