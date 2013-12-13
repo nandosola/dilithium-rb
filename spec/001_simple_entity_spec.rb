@@ -7,9 +7,9 @@ describe 'A Simple Entity' do
     insert_test_users
   end
 
-  before_attrs = User.attributes
-
   it "is not messed with by another entities" do
+    before_attrs = User.attributes
+
     class AnotherThing < BaseEntity
       attribute :my_thing, String, mandatory:true
     end
