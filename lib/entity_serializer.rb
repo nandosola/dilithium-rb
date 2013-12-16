@@ -13,7 +13,7 @@ class EntitySerializer
         attr_name = attr.to_s[1..-1].to_sym
         attr_value = entity.instance_variable_get(attr)
         # TODO: uncomment when BasicEntityBuilder is ready
-        # attr_type = entity.class.class_variable_get(:'@@attributes')[attr_name]
+        # attr_type = entity.class.attribute_descriptor[attr_name]
         # attr_value = attr_type.to_generic_type(attr_value) if attr_type.instance_of?(BasicAttributes::ExtendedGenericAttribute)
         h[attr_name] =  attr_value
       end
@@ -27,7 +27,7 @@ class EntitySerializer
     entity_h.each do |attr, value|
 
       unless entity.is_a?(Association::LazyEntityReference)
-        attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
+        attr_type = entity.class.attribute_descriptors[attr]
 
         case attr_type
           when BasicAttributes::ChildReference, BasicAttributes::MultiReference
@@ -55,7 +55,7 @@ class EntitySerializer
       entity_h[parent_ref] = parent_id if parent_id
     end
     entity_h.each do |attr,value|
-      attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
+      attr_type = entity.class.attribute_descriptors[attr]
       unless [BasicAttributes::ChildReference, BasicAttributes::ParentReference,
               BasicAttributes::MultiReference].include?(attr_type.class)
         if attr_type.is_a?(BasicAttributes::EntityReference)

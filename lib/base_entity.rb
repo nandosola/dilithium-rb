@@ -12,24 +12,39 @@ class BaseEntity < IdPk
   class Immutable
   end
 
+  def self.attribute_descriptor
+    {}
+  end
+
   def self.inherited(base)
-    # Create the internal Immutable class for this BaseEntity
-    base.const_set(:Immutable, Class.new(BaseEntity::Immutable))
-
-    # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Super layer type)
-    descriptor = BasicAttributes::GenericAttribute.new(PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])
-    base.class_variable_set(:'@@attributes', { PRIMARY_KEY[:identifier]=> descriptor })
-    base.attach_attribute_accessors(PRIMARY_KEY[:identifier], :plain, descriptor)
-
-    descriptor = BasicAttributes::GenericAttribute.new(:active,TrueClass, false, true)
-    base.class_variable_get(:'@@attributes')[:active] = descriptor
-    base.attach_attribute_accessors(:active, :plain, :descriptor)
 
     base.instance_eval do
       def attributes
-        #TODO return the whole attr array
-        self.class_variable_get(:'@@attributes').values
+        self.attribute_descriptors.values
       end
+
+      def attribute_descriptors
+        self.superclass.attribute_descriptors.merge(@attributes)
+      end
+
+      def add_attribute(descriptor)
+        #TODO Call add_attribute_accessors here instead of at each call site
+        #TODO Inheritance tests A < BaseEntity; B < A
+        @attributes[descriptor.name] = descriptor
+      end
+
+      # Create the internal Immutable class for this BaseEntity
+      const_set(:Immutable, Class.new(BaseEntity::Immutable))
+      @attributes = { }
+
+      # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Super layer type)
+      descriptor = BasicAttributes::GenericAttribute.new(PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])
+      add_attribute(descriptor)
+      attach_attribute_accessors(PRIMARY_KEY[:identifier], :plain, descriptor)
+
+      descriptor = BasicAttributes::GenericAttribute.new(:active,TrueClass, false, true)
+      add_attribute(descriptor)
+      attach_attribute_accessors(:active, :plain, :descriptor)
     end
   end
 
@@ -46,7 +61,7 @@ class BaseEntity < IdPk
     names.each do |child|
       # TODO pass type
       descriptor = BasicAttributes::ChildReference.new(child, self)
-      self.class_variable_get(:'@@attributes')[child] = descriptor
+      self.add_attribute(descriptor)
       self.attach_attribute_accessors(child, :list, descriptor)
       self.define_aggregate_method(child)
     end
@@ -71,7 +86,7 @@ class BaseEntity < IdPk
   def self.parent(parent)
     # TODO pass type
     descriptor = BasicAttributes::ParentReference.new(parent, self)
-    self.class_variable_get(:'@@attributes')[parent] = descriptor
+    self.add_attribute(descriptor)
     self.attach_attribute_accessors(parent, :none, descriptor)
   end
 
@@ -89,7 +104,7 @@ class BaseEntity < IdPk
   #
   def self.multi_reference(name, type = nil)
     descriptor = BasicAttributes::MultiReference.new(name, self, type)
-    self.class_variable_get(:'@@attributes')[name] = descriptor
+    self.add_attribute(descriptor)
     self.attach_attribute_accessors(name, :list, descriptor)
   end
 
@@ -109,7 +124,7 @@ class BaseEntity < IdPk
   #     * default: default value
   #
   def self.attribute(name, type, opts = {})
-    descriptor = if BaseEntity == type.superclass
+    descriptor = if self.is_a_base_entity?(type)
                    BasicAttributes::EntityReference.new(name, type)
                  elsif BasicAttributes::GENERIC_TYPES.include?(type.superclass)
                    BasicAttributes::ExtendedGenericAttribute.new(name, type, opts[:mandatory], opts[:default])
@@ -119,14 +134,23 @@ class BaseEntity < IdPk
                    raise ArgumentError, "Cannot determine type for attribute #{name}"
                  end
 
-    self.class_variable_get(:'@@attributes')[name] = descriptor
-
+    self.add_attribute(descriptor)
     self.attach_attribute_accessors(name, :plain, descriptor)
+  end
+
+  def self.is_a_base_entity?(type)
+    if type == BaseEntity
+      true
+    elsif type == Object
+      false
+    else
+      self.is_a_base_entity?(type.superclass)
+    end
   end
 
   def initialize(in_h={}, parent=nil)
     check_input_h(in_h)
-    self.class.class_variable_get(:'@@attributes').each do |k,v|
+    self.class.attribute_descriptor.each do |k,v|
       instance_variable_set("@#{k}".to_sym, v.default)
     end
     unless parent.nil?
@@ -207,7 +231,7 @@ class BaseEntity < IdPk
   # a reference you need to use a Finder in the entity's Root to get the Entity and from there get the reference.
   def immutable
     obj = self.class.const_get(:Immutable).new
-    attributes = self.class.class_variable_get(:'@@attributes')
+    attributes = self.class.attribute_descriptor
 
     attributes.each do |name, attr|
       if attr.is_a?(BasicAttributes::GenericAttribute)
@@ -268,7 +292,7 @@ class BaseEntity < IdPk
     raise ArgumentError, "BaseEntity must be initialized with a Hash - got: #{in_h.class}" unless in_h.is_a?(Hash)
     unless in_h.empty?
       # TODO: check_reserved_keys(in_h) => :metadata
-      attributes = self.class.class_variable_get(:'@@attributes')
+      attributes = self.class.attribute_descriptor
       attr_keys = attributes.keys
       in_h.each do |k,v|
         raise ArgumentError, "Attribute #{k} is not allowed in #{self.class}" unless attr_keys.include?(k)
@@ -383,7 +407,7 @@ class BaseEntity < IdPk
       define_method(name){instance_variable_get("@#{name}".to_sym)}
       if :plain == type
         define_method("#{name}="){ |new_value|
-          self.class.class_variable_get(:'@@attributes')[name].check_constraints(new_value)
+          self.class.attribute_descriptors[name].check_constraints(new_value)
           instance_variable_set("@#{name}".to_sym, new_value)
         }
       elsif :list == type
@@ -405,7 +429,7 @@ class BaseEntity < IdPk
       # Single-entity methods:
 
       define_method(singular_make_method_name) do |in_h|
-        child_class = self.class.class_variable_get(:'@@attributes')[plural_child_name].inner_type
+        child_class = self.class.attribute_descriptors[plural_child_name].inner_type
         a_child = child_class.new(in_h, self)
         send(plural_add_method_name, a_child)
 

@@ -43,7 +43,7 @@ module Repository
           def resolve_extended_generic_attributes(in_h)
             if self.has_extended_generic_attributes?
               self.extended_generic_attributes.each do |gen_attr|
-                attr = self.class_variable_get(:'@@attributes')[gen_attr]
+                attr = self.attribute_descriptors[gen_attr]
                 in_h[gen_attr] = attr.type.new(in_h[attr.name])
               end
             end
@@ -51,7 +51,7 @@ module Repository
 
           def resolve_entity_references(in_h)
             self.entity_references.each do |ref|
-              attr = self.class_variable_get(:'@@attributes')[ref]
+              attr = self.attribute_descriptors[ref]
               ref_name = DatabaseUtils.to_reference_name(attr)
               ref_id = in_h[ref_name]  #TODO change to "_id" here, not at the BasicAttribute
               ref_value = ref_id.nil? ? nil : in_h[attr.name] = attr.type.fetch_by_id(ref_id)
@@ -61,7 +61,7 @@ module Repository
           end
 
           def resolve_parent(in_h)
-            attr = self.class_variable_get(:'@@attributes')[self.parent_reference]
+            attr = self.attribute_descriptors[self.parent_reference]
             ret = nil
 
             unless attr.nil? || in_h.has_key?(attr.name)
@@ -120,7 +120,7 @@ module Repository
           end
 
           def attach_child(parent_obj, child_name, child_h)
-            child_class = parent_obj.class.class_variable_get(:'@@attributes')[child_name].inner_type
+            child_class = parent_obj.class.attribute_descriptors[child_name].inner_type
             child_class.resolve_entity_references(child_h)
             child_h.delete_if{|k,v| k.to_s.end_with?('_id')}
             method = "make_#{child_name.to_s.singularize}"
@@ -150,7 +150,7 @@ module Repository
           end
 
           def attach_reference(dependent_obj, ref_name, ref_h)
-            ref_class = dependent_obj.class.class_variable_get(:'@@attributes')[ref_name].inner_type
+            ref_class = dependent_obj.class.attribute_descriptors[ref_name].inner_type
             ref_module_path = ref_class.to_s.split('::')
             ref_attr = "#{ref_module_path.last.underscore.downcase}_id".to_sym
             # TODO should all references inbetween aggregates be lazy??
