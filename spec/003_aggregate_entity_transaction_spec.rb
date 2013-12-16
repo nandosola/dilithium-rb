@@ -226,7 +226,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     company = Company.fetch_by_id(2)
     company.should be_nil
 
-    ct = Company.attribute_descriptor[:local_offices].inner_type
+    ct = Company.attribute_descriptors[:local_offices].inner_type
     (ct < BaseEntity).should be_true
     ct.should eq(LocalOffice)
 
