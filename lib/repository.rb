@@ -40,6 +40,10 @@ module Repository
             Association::LazyEntityReference.new(id, self)
           end
 
+          def fetch_immutable_reference_by_id(id)
+            Association::ImmutableEntityReference.new(id, self)
+          end
+
           def resolve_extended_generic_attributes(in_h)
             if self.has_extended_generic_attributes?
               self.extended_generic_attributes.each do |gen_attr|
@@ -50,7 +54,7 @@ module Repository
           end
 
           def resolve_entity_references(in_h)
-            self.entity_references.each do |ref|
+            (self.entity_references + self.immutable_references).each do |ref|
               attr = self.attribute_descriptors[ref]
               ref_name = DatabaseUtils.to_reference_name(attr)
               ref_id = in_h[ref_name]  #TODO change to "_id" here, not at the BasicAttribute
@@ -129,21 +133,21 @@ module Repository
           end
 
           def attach_multi_references
-            unless self.class.multi_references.empty?
-              self.class.multi_references.each do |ref_name|
-                intermediate_table = "#{DatabaseUtils.to_table_name(self)}_#{ref_name}"
-                module_path = self.class.to_s.split('::')
-                dependent_name = "#{module_path.last.underscore.downcase}_id"
-                multi_refs = DB[intermediate_table.to_sym].where(dependent_name.to_sym=>self.id).all
+            references = self.class.multi_references + self.class.immutable_multi_references
 
-                unless multi_refs.nil?
-                  if multi_refs.is_a?(Array)
-                    multi_refs.each do |ref_h|
-                      attach_reference(self, ref_name, ref_h)
-                    end
-                  else
-                    attach_reference(self, ref_name, multi_refs)
+            references.each do |ref_name|
+              intermediate_table = "#{DatabaseUtils.to_table_name(self)}_#{ref_name}"
+              module_path = self.class.to_s.split('::')
+              dependent_name = "#{module_path.last.underscore.downcase}_id"
+              multi_refs = DB[intermediate_table.to_sym].where(dependent_name.to_sym=>self.id).all
+
+              unless multi_refs.nil?
+                if multi_refs.is_a?(Array)
+                  multi_refs.each do |ref_h|
+                    attach_reference(self, ref_name, ref_h)
                   end
+                else
+                  attach_reference(self, ref_name, multi_refs)
                 end
               end
             end
@@ -152,7 +156,12 @@ module Repository
           def attach_reference(dependent_obj, ref_name, ref_h)
             ref_class = dependent_obj.class.attribute_descriptors[ref_name].inner_type
             ref_module_path = ref_class.to_s.split('::')
-            ref_attr = "#{ref_module_path.last.underscore.downcase}_id".to_sym
+            name = if ref_module_path.last == 'Immutable'
+                         ref_module_path[-2]
+                       else
+                         ref_module_path.last
+                       end
+            ref_attr = "#{name.underscore.downcase}_id".to_sym
             # TODO should all references inbetween aggregates be lazy??
             found_ref = ref_class.fetch_reference_by_id(ref_h[ref_attr])
 

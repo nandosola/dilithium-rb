@@ -140,7 +140,7 @@ describe 'A Simple Entity' do
   end
 
   it 'can be fully serialized' do
-    pending 'Implement BasicEntityBuilder'
+    #TODO Implement BasicEntityBuilder
     a_user = User.fetch_by_id(1)
     EntitySerializer.to_nested_hash(a_user).should eq({
                                                        :name => 'Alice',

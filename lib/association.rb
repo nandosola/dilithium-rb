@@ -15,4 +15,18 @@ module Association
       @resolved_entity = @type.fetch_by_id(@id)
     end
   end
+
+  class ImmutableEntityReference < LazyEntityReference
+    def self.create(entity)
+      if entity.is_a?(Association::ImmutableEntityReference)
+        entity
+      else
+        Association::ImmutableEntityReference.new(entity.id, entity.class)
+      end
+    end
+
+    def resolve
+      @resolved_entity = super.immutable
+    end
+  end
 end

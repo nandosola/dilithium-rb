@@ -14,7 +14,7 @@ module BasicAttributes
     end
     def check_constraints(value)  # check invariant constraints, called by setter
       raise RuntimeError, "#{@name} must be defined" if @mandatory && value.nil?
-      if [TrueClass, FalseClass].include?@type
+      if [TrueClass, FalseClass].include?(@type)
         raise RuntimeError, "#{@name} must be a boolean - got: #{value.class}" unless !!value == value
       else
         raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless value.nil? || value.is_a?(@type)
@@ -30,7 +30,9 @@ module BasicAttributes
     end
     def check_constraints(value)  # check invariant constraints, called by setter
       raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless
-      value.nil? || value.is_a?(@type) || (value.is_a?(Association::LazyEntityReference) && value.type <= @type)
+        value.nil? ||
+          value.is_a?(@type) ||
+          (value.is_a?(Association::LazyEntityReference || value.is_a?(Association::ImmutableEntityReference)) && value.type <= @type)
     end
     def default
       nil
@@ -102,4 +104,22 @@ module BasicAttributes
   class MultiReference < ListReference
   end
 
+  class ImmutableReference < Reference
+    def check_constraints(value)
+      raise RuntimeError, "Reference to #{@name} must be a #{@type} - got: #{value.class}" unless
+        case value
+          when Association::ImmutableEntityReference
+            value.type <= @type
+          when Hash
+            value.include?(:id)
+          when BaseEntity, NilClass
+            true
+          else
+            false
+        end
+    end
+  end
+
+  class ImmutableMultiReference < ListReference
+  end
 end
