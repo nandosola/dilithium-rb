@@ -141,6 +141,7 @@ class BaseEntity < IdPk
       instance_variable_set("@#{k}".to_sym, v.default)
     end
     unless parent.nil?
+      #TODO Add child to parent
       parent_attr = parent.type.to_s.split('::').last.underscore.downcase
       instance_variable_set("@#{parent_attr}".to_sym, parent)
     end

@@ -44,4 +44,19 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
     tardis.name.should eq('TARDIS')
     tardis.owner.should eq('The Doctor')
   end
+
+  it 'should manage the parent and child references correctly' do
+    fleet = Fleet.new(:name => 'Test fleet')
+    car = Car.new({:seats => 4}, fleet)
+    van = DeliveryVan.new({:capacity => 1000}, fleet)
+    #TODO This should not be necessary
+    fleet.ground_vehicles<< car
+    fleet.ground_vehicles<< van
+
+    car.fleet.should eq(fleet)
+    van.fleet.should eq(fleet)
+
+    fleet.ground_vehicles.should include(car)
+    fleet.ground_vehicles.should include(van)
+  end
 end
