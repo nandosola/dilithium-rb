@@ -32,7 +32,7 @@ module BasicAttributes
       raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless
         value.nil? ||
           value.is_a?(@type) ||
-          (value.is_a?(Association::LazyEntityReference || value.is_a?(Association::ImmutableEntityReference)) && value.type <= @type)
+          (value.is_a?(Association::LazyEntityReference) && value.type <= @type)
     end
     def default
       nil

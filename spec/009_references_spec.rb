@@ -130,6 +130,7 @@ describe 'An entity with references' do
     a_shipyard = Shipyard.new(shipyard_h)
     location = a_shipyard.location
     location.class.should eq(Association::ImmutableEntityReference)
+    #TODO Resolve automatically when calling resolved_entity (and rename resolve to resolve!)
     location.resolve
     location.resolved_entity.class.should eq(Location::Immutable)
     location.resolved_entity.name.should eq('tumbolia')
@@ -146,6 +147,7 @@ describe 'An entity with references' do
     containers[1].resolve
     containers[1].resolved_entity.class.should eq(Container::Immutable)
     containers[1].resolved_entity.kind.should eq('Small')
+    #TODO Add test for modifying the array (add/delete/update)
   end
 
   it 'should serialize correctly to a Hash' do
@@ -164,6 +166,27 @@ describe 'An entity with references' do
 
     serialized = EntitySerializer.to_nested_hash(a_shipyard)
 
+    shipyard_h = {
+      :name => 'The shipyard',
+      :location => {
+        :id => a_location.id,
+        :name => a_location.name,
+        :active => a_location.active,
+
+      },
+      :containers => [
+        {
+          :id => a_shipment.containers[0].id,
+          :active => a_shipment.containers[0].active,
+          :kind => a_shipment.containers[0].kind
+        },
+        {
+          :id => a_shipment.containers[1].id,
+          :active => a_shipment.containers[1].active,
+          :kind => a_shipment.containers[1].kind
+        }
+      ]
+    }
     shipyard_h.each do |k, v|
       serialized[k].should eq(v)
     end

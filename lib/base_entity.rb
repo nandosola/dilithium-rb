@@ -28,7 +28,6 @@ class BaseEntity < IdPk
       end
 
       def add_attribute(descriptor)
-        #TODO Call add_attribute_accessors here instead of at each call site
         @attributes[descriptor.name] = descriptor
         attach_attribute_accessors(descriptor)
       end
@@ -326,7 +325,7 @@ class BaseEntity < IdPk
   def load_attributes(in_h)
     unless in_h.empty?
       load_self_attributes(in_h)
-      load_references(in_h)
+      load_immutable_references(in_h)
       load_child_attributes(in_h)
       load_multi_reference_attributes(in_h)
     end
@@ -385,13 +384,14 @@ class BaseEntity < IdPk
     end
   end
 
-  def load_references(in_h)
+  def load_immutable_references(in_h)
     self.class.attributes.each do |attr|
       if [BasicAttributes::ImmutableReference].include?(attr.class)
         in_value = in_h[attr.name]
         value = case in_value
                   when Association::ImmutableEntityReference
                     in_value
+                  #FIXME We should NEVER get a Hash at this level
                   when Hash
                     Association::ImmutableEntityReference.new(in_value[:id], attr.type)
                   when BaseEntity
@@ -408,6 +408,7 @@ class BaseEntity < IdPk
           value = case in_value
                     when Association::ImmutableEntityReference
                       in_value
+                    #FIXME We should NEVER get a Hash at this level
                     when Hash
                       Association::ImmutableEntityReference.new(in_value[:id], attr.inner_type)
                     when BaseEntity

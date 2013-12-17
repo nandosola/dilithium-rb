@@ -40,10 +40,6 @@ module Repository
             Association::LazyEntityReference.new(id, self)
           end
 
-          def fetch_immutable_reference_by_id(id)
-            Association::ImmutableEntityReference.new(id, self)
-          end
-
           def resolve_extended_generic_attributes(in_h)
             if self.has_extended_generic_attributes?
               self.extended_generic_attributes.each do |gen_attr|
@@ -162,9 +158,9 @@ module Repository
                          ref_module_path.last
                        end
             ref_attr = "#{name.underscore.downcase}_id".to_sym
-            # TODO should all references inbetween aggregates be lazy??
             found_ref = ref_class.fetch_reference_by_id(ref_h[ref_attr])
 
+            #For ImmutableMultiReferences, the << method takes care of converting them to ImmutableReferences
             method = "#{ref_name}<<"
             dependent_obj.send(method.to_sym, found_ref)
           end

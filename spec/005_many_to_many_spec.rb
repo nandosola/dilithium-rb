@@ -144,7 +144,6 @@ describe 'A BasicEntity with a many to many relationship' do
     EntitySerializer.to_nested_hash(emp)[:managed_departments].should eq([EntitySerializer.to_hash(dept2)])
     EntitySerializer.to_row(emp)[:managed_departments].should be_nil
 
-    #TODO Do this check for managed_departments. What is the 42 above?
     emp2.departments<<ref_dept
     EntitySerializer.to_hash(emp2)[:departments].should eq([ref_dept])
     EntitySerializer.to_nested_hash(emp2)[:departments].should eq([EntitySerializer.to_hash(ref_dept)])

@@ -40,10 +40,12 @@ class EntitySerializer
           when BasicAttributes::ImmutableMultiReference
             entity_h[attr] = Array.new
             value.each do |ref|
-              entity_h[attr] << { :id => ref.id }
+              ref.resolve
+              entity_h[attr] << to_hash(ref.resolved_entity)
             end
           when BasicAttributes::ImmutableReference
-            entity_h[attr] = { :id => value.id } unless value.nil?
+            value.resolve
+            entity_h[attr] = to_hash(value.resolved_entity) unless value.nil?
           when BasicAttributes::ParentReference
             entity_h.delete(attr)
         end

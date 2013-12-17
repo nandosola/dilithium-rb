@@ -47,9 +47,9 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
 
   it 'should manage the parent and child references correctly' do
     fleet = Fleet.new(:name => 'Test fleet')
+    #TODO This should change, the parent should have a factory for its children
     car = Car.new({:seats => 4}, fleet)
     van = DeliveryVan.new({:capacity => 1000}, fleet)
-    #TODO This should not be necessary
     fleet.ground_vehicles<< car
     fleet.ground_vehicles<< van
 
@@ -58,5 +58,26 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
 
     fleet.ground_vehicles.should include(car)
     fleet.ground_vehicles.should include(van)
+  end
+
+  it 'should serialize/deserialize correctly into Hashes' do
+    fleet = Fleet.new(:name => 'Test fleet')
+    #TODO This should change, the parent should have a factory for its children
+    car = Car.new({:seats => 4}, fleet)
+    van = DeliveryVan.new({:capacity => 1000}, fleet)
+    fleet.ground_vehicles<< car
+    fleet.ground_vehicles<< van
+
+    fleet_h = EntitySerializer.to_nested_hash(fleet)
+    fleet_h.should eq({
+                        :active => true,
+                        :ground_vehicles => [
+                          {:id=>nil, :active=>true, :name=>nil, :wheels=>nil, :seats=>4},
+                          {:id=>nil, :active=>true, :name=>nil, :wheels=>nil, :capacity=>1000}],
+                        :id => nil,
+                        :name => "Test fleet"
+                    })
+
+    #TODO Deserialize (add type tags - :_subtype and use a Factory?)
   end
 end
