@@ -142,13 +142,19 @@ describe 'A Simple Entity' do
   it 'can be fully serialized' do
     #TODO Implement BasicEntityBuilder
     a_user = User.fetch_by_id(1)
-    EntitySerializer.to_nested_hash(a_user).should eq({
-                                                       :name => 'Alice',
-                                                       :email => 'alice@example.net',
-                                                       :tstamp=> '2013-09-23T18:42:14+02:00',
-                                                       :password=>'$2a$10$hqlENYeHZYy9eYHnZ2ONH.5N9qnXV9uzXA/h27XCMq5HBytCLo6bm',
-                                                       :active=>true
-                                                    })
+    test_hash ={
+      :id => 1,
+      :name => 'Alice',
+      :email => 'alice@example.net',
+      :tstamp=> DateTime.strptime('2013-09-23T18:42:14+02:00', '%Y-%m-%dT%H:%M:%S%z'),
+      :password=>'$2a$10$hqlENYeHZYy9eYHnZ2ONH.5N9qnXV9uzXA/h27XCMq5HBytCLo6bm',
+      :active=>true,
+      :reference => nil,
+      :refers_to => nil,
+      :title => 'Esq.'
+    }
+
+    EntitySerializer.to_nested_hash(a_user).each { |k, v| test_hash[k].should eq(v) }
   end
 
   it 'can return an immutable copy of itself' do
