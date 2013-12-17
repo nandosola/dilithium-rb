@@ -226,7 +226,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     company = Company.fetch_by_id(2)
     company.should be_nil
 
-    ct = Company.class_variable_get(:'@@attributes')[:local_offices].inner_type
+    ct = Company.attribute_descriptors[:local_offices].inner_type
     (ct < BaseEntity).should be_true
     ct.should eq(LocalOffice)
 
@@ -368,7 +368,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     romana.local_office.id.should == office.id
     romana.name.should eq('Romana I')
     parent = romana.local_office.company
-    parent.should be_a Association::ReferenceEntity
+    parent.should be_a Association::LazyEntityReference
     parent.type.should == Company
     parent.resolve.name.should == 'Gallifreyan Sonic Widgets, Inc.'
   end
@@ -405,7 +405,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     office.addresses[1].description.should == 'Timelord Palace'
 
     parent = office.company
-    parent.should be_a Association::ReferenceEntity
+    parent.should be_a Association::LazyEntityReference
     parent.type.should == Company
     parent.resolve.name.should == 'TARDIS Console Repair, Inc.'
   end

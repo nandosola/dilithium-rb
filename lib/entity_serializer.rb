@@ -6,17 +6,17 @@ class EntitySerializer
     h = {}
 
     case entity
-    when Association::ReferenceEntity
-      h[:"#{entity.type.to_s.split('::').last.downcase.singularize}_id"] = entity.id
-    else
-      entity.instance_variables.each do |attr|
-        attr_name = attr.to_s[1..-1].to_sym
-        attr_value = entity.instance_variable_get(attr)
-        # TODO: uncomment when BasicEntityBuilder is ready
-        # attr_type = entity.class.class_variable_get(:'@@attributes')[attr_name]
-        # attr_value = attr_type.to_generic_type(attr_value) if attr_type.instance_of?(BasicAttributes::ExtendedGenericAttribute)
-        h[attr_name] =  attr_value
-      end
+      when Association::LazyEntityReference
+        h[:"#{entity.type.to_s.split('::').last.downcase.singularize}_id"] = entity.id
+      else
+        entity.instance_variables.each do |attr|
+          attr_name = attr.to_s[1..-1].to_sym
+          attr_value = entity.instance_variable_get(attr)
+          # TODO: uncomment when BasicEntityBuilder is ready
+          # attr_type = entity.class.attribute_descriptor[attr_name]
+          # attr_value = attr_type.to_generic_type(attr_value) if attr_type.instance_of?(BasicAttributes::ExtendedGenericAttribute)
+          h[attr_name] =  attr_value
+        end
     end
     h
   end
@@ -26,8 +26,8 @@ class EntitySerializer
 
     entity_h.each do |attr, value|
 
-      unless entity.is_a?(Association::ReferenceEntity)
-        attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
+      unless entity.is_a?(Association::LazyEntityReference)
+        attr_type = entity.class.attribute_descriptors[attr]
 
         case attr_type
           when BasicAttributes::ChildReference, BasicAttributes::MultiReference
@@ -37,6 +37,15 @@ class EntitySerializer
             end
           when BasicAttributes::EntityReference
             entity_h[attr] = to_nested_hash(value) unless value.nil?
+          when BasicAttributes::ImmutableMultiReference
+            entity_h[attr] = Array.new
+            value.each do |ref|
+              ref.resolve
+              entity_h[attr] << to_hash(ref.resolved_entity)
+            end
+          when BasicAttributes::ImmutableReference
+            value.resolve
+            entity_h[attr] = to_hash(value.resolved_entity) unless value.nil?
           when BasicAttributes::ParentReference
             entity_h.delete(attr)
         end
@@ -55,13 +64,14 @@ class EntitySerializer
       entity_h[parent_ref] = parent_id if parent_id
     end
     entity_h.each do |attr,value|
-      attr_type = entity.class.class_variable_get(:'@@attributes')[attr]
+      attr_type = entity.class.attribute_descriptors[attr]
       unless [BasicAttributes::ChildReference, BasicAttributes::ParentReference,
-              BasicAttributes::MultiReference].include?(attr_type.class)
-        if attr_type.is_a?(BasicAttributes::EntityReference)
-          row[DatabaseUtils.to_reference_name(attr_type)] = value.nil? ? attr_type.default : value.id
-        else
-          row[attr] = value
+              BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference].include?(attr_type.class)
+        case attr_type
+          when BasicAttributes::EntityReference, BasicAttributes::ImmutableReference
+            row[DatabaseUtils.to_reference_name(attr_type)] = value.nil? ? attr_type.default : value.id
+          else
+            row[attr] = value
         end
       end
     end

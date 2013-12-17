@@ -7,20 +7,38 @@ class BaseEntity < IdPk
   extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
   include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
 
-  def self.inherited(base)
-    # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Super layer type)
-    base.class_variable_set(:'@@attributes',{PRIMARY_KEY[:identifier]=>BasicAttributes::GenericAttribute.new(
-      PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])})
-    base.attach_attribute_accessors(PRIMARY_KEY[:identifier])
+  # Each BaseEntity subclass will have an internal class called Immutable that contains the immutable representation of
+  # said BaseEntity. The Immutable classes are all subclasses of BaseEntity::Immutable
+  class Immutable
+  end
 
-    base.class_variable_get(:'@@attributes')[:active] = BasicAttributes::GenericAttribute.new(:active,TrueClass, false, true)
-    base.attach_attribute_accessors(:active)
+  def self.attribute_descriptors
+    {}
+  end
+
+  def self.inherited(base)
 
     base.instance_eval do
       def attributes
-        #TODO return the whole attr array
-        self.class_variable_get(:'@@attributes').values
+        self.attribute_descriptors.values
       end
+
+      def attribute_descriptors
+        self.superclass.attribute_descriptors.merge(@attributes)
+      end
+
+      def add_attribute(descriptor)
+        @attributes[descriptor.name] = descriptor
+        attach_attribute_accessors(descriptor)
+      end
+
+      # Create the internal Immutable class for this BaseEntity
+      const_set(:Immutable, Class.new(BaseEntity::Immutable))
+      @attributes = { }
+
+      # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Super layer type)
+      add_attribute(BasicAttributes::GenericAttribute.new(PRIMARY_KEY[:identifier], PRIMARY_KEY[:type]))
+      add_attribute(BasicAttributes::GenericAttribute.new(:active,TrueClass, false, true))
     end
   end
 
@@ -36,8 +54,7 @@ class BaseEntity < IdPk
   def self.children(*names)
     names.each do |child|
       # TODO pass type
-      self.class_variable_get(:'@@attributes')[child] = BasicAttributes::ChildReference.new(child, self)
-      self.attach_attribute_accessors(child, :list)
+      self.add_attribute(BasicAttributes::ChildReference.new(child, self))
       self.define_aggregate_method(child)
     end
   end
@@ -59,9 +76,7 @@ class BaseEntity < IdPk
   # - (Symbol) parent
   #
   def self.parent(parent)
-    # TODO pass type
-    self.class_variable_get(:'@@attributes')[parent] = BasicAttributes::ParentReference.new(parent, self)
-    self.attach_attribute_accessors(parent, :none)
+    self.add_attribute(BasicAttributes::ParentReference.new(parent, self))
   end
 
   # Creates a reference to a list of BaseEntities (many-to-many).
@@ -77,8 +92,7 @@ class BaseEntity < IdPk
   # - (BaseEntity) type: type of the BaseEntity this reference holds. If not supplied will be inferred from name.
   #
   def self.multi_reference(name, type = nil)
-    self.class_variable_get(:'@@attributes')[name] = BasicAttributes::MultiReference.new(name, self, type)
-    self.attach_attribute_accessors(name, :list)
+    self.add_attribute(BasicAttributes::MultiReference.new(name, self, type))
   end
 
   # Creates an attribute or a reference to a single BasicEntity (many-to-one). The attribute must extend BaseEntity,
@@ -97,26 +111,57 @@ class BaseEntity < IdPk
   #     * default: default value
   #
   def self.attribute(name, type, opts = {})
-    if BaseEntity == type.superclass
-      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::EntityReference.new(name, type)
-    elsif BasicAttributes::GENERIC_TYPES.include?(type.superclass)
-      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::ExtendedGenericAttribute.new(
-        name, type, opts[:mandatory], opts[:default])
-    elsif BasicAttributes::GENERIC_TYPES.include?(type)
-      self.class_variable_get(:'@@attributes')[name] =  BasicAttributes::GenericAttribute.new(
-        name, type, opts[:mandatory], opts[:default])
+    descriptor = if self.is_a_base_entity?(type)
+                   BasicAttributes::EntityReference.new(name, type)
+                 elsif BasicAttributes::GENERIC_TYPES.include?(type.superclass)
+                   BasicAttributes::ExtendedGenericAttribute.new(name, type, opts[:mandatory], opts[:default])
+                 elsif BasicAttributes::GENERIC_TYPES.include?(type)
+                   BasicAttributes::GenericAttribute.new(name, type, opts[:mandatory], opts[:default])
+                 else
+                   raise ArgumentError, "Cannot determine type for attribute #{name}"
+                 end
+
+    self.add_attribute(descriptor)
+  end
+
+  # Creates an immutable reference to a BaseEntity or multiple BaseEntities in a different root.
+  #
+  # Example:
+  #   reference :owner, Department
+  #   reference :departments, Department, :multi => true
+  #
+  # Params:
+  # - name: attribute name
+  # - type: atrribute class
+  #
+  def self.reference(name, type, opts = {})
+    raise ArgumentError, 'Attributes should only be primitive types' unless is_a_base_entity?(type)
+    attr = if opts[:multi]
+             BasicAttributes::ImmutableMultiReference.new(name, type)
+           else
+             BasicAttributes::ImmutableReference.new(name, type)
+           end
+
+    self.add_attribute(attr)
+  end
+
+  def self.is_a_base_entity?(type)
+    if type == BaseEntity
+      true
+    elsif type == Object
+      false
     else
-      raise ArgumentError, "Cannot determine type for attribute #{name}"
+      self.is_a_base_entity?(type.superclass)
     end
-    self.attach_attribute_accessors(name)
   end
 
   def initialize(in_h={}, parent=nil)
     check_input_h(in_h)
-    self.class.class_variable_get(:'@@attributes').each do |k,v|
+    self.class.attribute_descriptors.each do |k,v|
       instance_variable_set("@#{k}".to_sym, v.default)
     end
     unless parent.nil?
+      #TODO Add child to parent
       parent_attr = parent.type.to_s.split('::').last.underscore.downcase
       instance_variable_set("@#{parent_attr}".to_sym, parent)
     end
@@ -150,8 +195,13 @@ class BaseEntity < IdPk
     end
   end
 
-  def each_multi_reference
-    self.class.multi_references.each do |ref_attr|
+  def each_multi_reference(include_immutable = false)
+    refs = self.class.multi_references
+    if include_immutable
+      refs += self.class.immutable_multi_references
+    end
+
+    refs.each do |ref_attr|
       references = Array(self.send(ref_attr)).clone
       references.each do |ref|
         yield(ref, ref_attr)
@@ -189,6 +239,23 @@ class BaseEntity < IdPk
     nil
   end
 
+  # Return an immutable copy of this object. The immutable copy will be disconnected from its parent and children and
+  # any references (i.e., it will contain only GenericAttributes and ExtendedGenericAttributes). If you need to get
+  # a reference you need to use a Finder in the entity's Root to get the Entity and from there get the reference.
+  def immutable
+    obj = self.class.const_get(:Immutable).new
+    attributes = self.class.attribute_descriptors
+
+    attributes.each do |name, attr|
+      if attr.is_a?(BasicAttributes::GenericAttribute)
+        value = self.instance_variable_get(:"@#{name}")
+        obj.instance_variable_set(:"@#{name}", value)
+      end
+    end
+
+    obj
+  end
+
   def self.parent_reference
     parent = self.get_attributes_by_type(BasicAttributes::ParentReference)
     raise RuntimeError, "found multiple parents" unless parent.size < 2
@@ -200,11 +267,19 @@ class BaseEntity < IdPk
   end
 
   def self.multi_references
-    self.get_attributes_by_type(BasicAttributes::MultiReference)  # TODO: Rename to MultiReference
+    self.get_attributes_by_type(BasicAttributes::MultiReference)
+  end
+
+  def self.immutable_multi_references
+    self.get_attributes_by_type(BasicAttributes::ImmutableMultiReference)
   end
 
   def self.entity_references
     self.get_attributes_by_type(BasicAttributes::EntityReference)
+  end
+
+  def self.immutable_references
+    self.get_attributes_by_type(BasicAttributes::ImmutableReference)
   end
 
   def self.extended_generic_attributes
@@ -238,7 +313,7 @@ class BaseEntity < IdPk
     raise ArgumentError, "BaseEntity must be initialized with a Hash - got: #{in_h.class}" unless in_h.is_a?(Hash)
     unless in_h.empty?
       # TODO: check_reserved_keys(in_h) => :metadata
-      attributes = self.class.class_variable_get(:'@@attributes')
+      attributes = self.class.attribute_descriptors
       attr_keys = attributes.keys
       in_h.each do |k,v|
         raise ArgumentError, "Attribute #{k} is not allowed in #{self.class}" unless attr_keys.include?(k)
@@ -250,6 +325,7 @@ class BaseEntity < IdPk
   def load_attributes(in_h)
     unless in_h.empty?
       load_self_attributes(in_h)
+      load_immutable_references(in_h)
       load_child_attributes(in_h)
       load_multi_reference_attributes(in_h)
     end
@@ -308,6 +384,48 @@ class BaseEntity < IdPk
     end
   end
 
+  def load_immutable_references(in_h)
+    self.class.attributes.each do |attr|
+      if [BasicAttributes::ImmutableReference].include?(attr.class)
+        in_value = in_h[attr.name]
+        value = case in_value
+                  when Association::ImmutableEntityReference
+                    in_value
+                  #FIXME We should NEVER get a Hash at this level
+                  when Hash
+                    Association::ImmutableEntityReference.new(in_value[:id], attr.type)
+                  when BaseEntity
+                    in_value.immutable
+                  when NilClass
+                    nil
+                  else
+                    raise IllegalArgumentException("Invalid reference #{attr.name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}")
+                end
+
+        send("#{attr.name}=".to_sym,value)
+      elsif [BasicAttributes::ImmutableMultiReference].include?(attr.class) && in_h.include?(attr.name)
+        in_h[attr.name].each do |in_value|
+          value = case in_value
+                    when Association::ImmutableEntityReference
+                      in_value
+                    #FIXME We should NEVER get a Hash at this level
+                    when Hash
+                      Association::ImmutableEntityReference.new(in_value[:id], attr.inner_type)
+                    when BaseEntity
+                      in_value.immutable
+                    when NilClass
+                      nil
+                    else
+                      raise IllegalArgumentException, "Invalid reference #{attr.name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
+                  end
+          send("#{attr.name}<<".to_sym,value)
+        end
+
+        in_h.delete(attr.name)
+      end
+    end
+  end
+
   def detach_children
     each_child do |child|
       child_attr = child.class.to_s.split('::').last.underscore.downcase.pluralize
@@ -341,18 +459,37 @@ class BaseEntity < IdPk
     refs
   end
 
-  def self.attach_attribute_accessors(name, type=:plain)
+  def self.attach_attribute_accessors(attribute_descriptor)
+    name = attribute_descriptor.name
+
+    if attribute_descriptor.is_a? BasicAttributes::GenericAttribute
+      self.const_get(:Immutable).class_eval do
+        define_method(name){instance_variable_get("@#{name}".to_sym)}
+      end
+    end
+
     self.class_eval do
       define_method(name){instance_variable_get("@#{name}".to_sym)}
-      if :plain == type
-        define_method("#{name}="){ |new_value|
-          self.class.class_variable_get(:'@@attributes')[name].check_constraints(new_value)
-          instance_variable_set("@#{name}".to_sym, new_value)
-        }
-      elsif :list == type
-        define_method("#{name}<<"){ |new_value|
-          instance_variable_get("@#{name}".to_sym)<< new_value
-        }
+      case attribute_descriptor
+        when BasicAttributes::ParentReference
+          # No mutator should be defined for parent
+        when BasicAttributes::ChildReference, BasicAttributes::MultiReference
+          define_method("#{name}<<"){ |new_value|
+            instance_variable_get("@#{name}".to_sym) << new_value
+          }
+        when BasicAttributes::ImmutableMultiReference
+          define_method("#{name}<<"){ |new_value|
+            instance_variable_get("@#{name}".to_sym) << Association::ImmutableEntityReference.create(new_value)
+          }
+        when BasicAttributes::ImmutableReference
+          define_method("#{name}="){ |new_value|
+            instance_variable_set("@#{name}".to_sym, Association::ImmutableEntityReference.create(new_value))
+          }
+        else
+          define_method("#{name}="){ |new_value|
+            self.class.attribute_descriptors[name].check_constraints(new_value)
+            instance_variable_set("@#{name}".to_sym, new_value)
+          }
       end
     end
   end
@@ -368,7 +505,7 @@ class BaseEntity < IdPk
       # Single-entity methods:
 
       define_method(singular_make_method_name) do |in_h|
-        child_class = self.class.class_variable_get(:'@@attributes')[plural_child_name].inner_type
+        child_class = self.class.attribute_descriptors[plural_child_name].inner_type
         a_child = child_class.new(in_h, self)
         send(plural_add_method_name, a_child)
 

@@ -7,9 +7,9 @@ describe 'A Simple Entity' do
     insert_test_users
   end
 
-  before_attrs = User.attributes
-
   it "is not messed with by another entities" do
+    before_attrs = User.attributes
+
     class AnotherThing < BaseEntity
       attribute :my_thing, String, mandatory:true
     end
@@ -54,11 +54,11 @@ describe 'A Simple Entity' do
     references.insert(:name => 'Foo ref')
     users.insert(:name => 'Duke', :email => 'duke@example.net', :reference_id => 1, :refers_to_id => 2, :active=>true)
 
-    duke = User.fetch_by_id(4)
+    duke = User.fetch_by_email('duke@example.net').first
     duke.reference.should be_a(Reference)
-    duke.reference.id should eq(1)
+    duke.reference.id.should eq(1)
     duke.refers_to.should be_a(Reference)
-    duke.refers_to.id should eq(2)
+    duke.refers_to.id.should eq(2)
   end
 
   it 'has not parent reference' do
@@ -140,15 +140,48 @@ describe 'A Simple Entity' do
   end
 
   it 'can be fully serialized' do
-    pending 'Implement BasicEntityBuilder'
+    #TODO Implement BasicEntityBuilder
     a_user = User.fetch_by_id(1)
-    EntitySerializer.to_nested_hash(a_user).should eq({
-                                                       :name => 'Alice',
-                                                       :email => 'alice@example.net',
-                                                       :tstamp=> '2013-09-23T18:42:14+02:00',
-                                                       :password=>'$2a$10$hqlENYeHZYy9eYHnZ2ONH.5N9qnXV9uzXA/h27XCMq5HBytCLo6bm',
-                                                       :active=>true
-                                                    })
+    test_hash ={
+      :id => 1,
+      :name => 'Alice',
+      :email => 'alice@example.net',
+      :tstamp=> DateTime.strptime('2013-09-23T18:42:14+02:00', '%Y-%m-%dT%H:%M:%S%z'),
+      :password=>'$2a$10$hqlENYeHZYy9eYHnZ2ONH.5N9qnXV9uzXA/h27XCMq5HBytCLo6bm',
+      :active=>true,
+      :reference => nil,
+      :refers_to => nil,
+      :title => 'Esq.'
+    }
+
+    EntitySerializer.to_nested_hash(a_user).each { |k, v| test_hash[k].should eq(v) }
+  end
+
+  it 'can return an immutable copy of itself' do
+    users = $database[:users]
+    users.insert(:name => 'Zaphod', :email => 'zaphod@example.net', :reference_id => 1, :refers_to_id => 2, :active=>true)
+
+    a_user = User.fetch_by_email('zaphod@example.net').first
+    an_immutable_user = a_user.immutable
+
+    an_immutable_user.should be_a(User::Immutable)
+
+    an_immutable_user.respond_to?(:id).should be_true
+    an_immutable_user.respond_to?(:id=).should be_false
+    an_immutable_user.respond_to?(:name).should be_true
+    an_immutable_user.respond_to?(:name=).should be_false
+    an_immutable_user.respond_to?(:email).should be_true
+    an_immutable_user.respond_to?(:email=).should be_false
+    an_immutable_user.respond_to?(:reference).should be_false
+    an_immutable_user.respond_to?(:reference=).should be_false
+    an_immutable_user.respond_to?(:refers_to).should be_false
+    an_immutable_user.respond_to?(:refers_to=).should be_false
+
+    an_immutable_user.respond_to?(:my_thing).should be_false
+
+    an_immutable_user.id.should eq(a_user.id)
+    an_immutable_user.name.should eq(a_user.name)
+    an_immutable_user.email.should eq(a_user.email)
   end
 
   after(:all) do

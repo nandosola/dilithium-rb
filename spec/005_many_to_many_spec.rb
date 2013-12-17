@@ -61,17 +61,17 @@ describe 'A BasicEntity with a many to many relationship' do
     dept2 = Department.new({name:'Hell'})
     dept3 = Department.new({name:'Mad Science'})
     dept4 = Department.new({name:'Apocalypse'})
-    
+
     bld1 = Building.new({name:'Marquee'})
     bld2 = Building.new({name:'Fawlty Towers'})
-    
+
     employee.departments<<(dept1)
     employee.departments<<(dept2)
     employee.managed_departments<<(dept3)
     employee.managed_departments<<(dept4)
     employee.buildings<<(bld1)
     employee.buildings<<(bld2)
-    
+
     employee.departments.should eq([dept1, dept2])
     employee.managed_departments.should eq([dept3, dept4])
     employee.buildings.should eq([bld1, bld2])
@@ -83,10 +83,10 @@ describe 'A BasicEntity with a many to many relationship' do
     dept2 = Department.new({name:'Hell'})
     dept3 = Department.new({name:'Mad Science'})
     dept4 = Department.new({name:'Apocalypse'})
-    
+
     bld1 = Building.new({name:'Marquee'})
     bld2 = Building.new({name:'Fawlty Towers'})
-    
+
     employee.departments<<(dept1)
     employee.departments<<(dept2)
     employee.managed_departments<<(dept3)
@@ -102,13 +102,37 @@ describe 'A BasicEntity with a many to many relationship' do
     many_a.should eq([dept1, dept2, bld1, bld2, dept3, dept4])
   end
 
+  it 'is ignored when generating the immutable version of an entity' do
+    employee = Employee.new({name:'Beppe'})
+    dept1 = Department.new({name:'Evil'})
+    dept2 = Department.new({name:'Hell'})
+    dept3 = Department.new({name:'Mad Science'})
+    dept4 = Department.new({name:'Apocalypse'})
+
+    bld1 = Building.new({name:'Marquee'})
+    bld2 = Building.new({name:'Fawlty Towers'})
+
+    employee.departments<<(dept1)
+    employee.departments<<(dept2)
+    employee.managed_departments<<(dept3)
+    employee.managed_departments<<(dept4)
+    employee.buildings<<(bld1)
+    employee.buildings<<(bld2)
+
+    immutable = employee.immutable
+
+    immutable.respond_to?(:departments).should be_false
+    immutable.respond_to?(:managed_departments).should be_false
+    immutable.respond_to?(:buildings).should be_false
+  end
+
   it 'is correctly serialized' do
     emp = Employee.new({name:'Oscar'})
     dept = Department.new({name:'Evil'})
     dept2 = Department.new({name:'Mad Science'})
 
     emp2 = Employee.new({name:'Mayer'})
-    ref_dept = Association::ReferenceEntity.new(42, Department)
+    ref_dept = Association::LazyEntityReference.new(42, Department)
 
     emp.departments<<dept
     EntitySerializer.to_hash(emp)[:departments].should eq([dept])
@@ -120,13 +144,12 @@ describe 'A BasicEntity with a many to many relationship' do
     EntitySerializer.to_nested_hash(emp)[:managed_departments].should eq([EntitySerializer.to_hash(dept2)])
     EntitySerializer.to_row(emp)[:managed_departments].should be_nil
 
-    #TODO Do this check for managed_departments. What is the 42 above?
     emp2.departments<<ref_dept
     EntitySerializer.to_hash(emp2)[:departments].should eq([ref_dept])
     EntitySerializer.to_nested_hash(emp2)[:departments].should eq([EntitySerializer.to_hash(ref_dept)])
     EntitySerializer.to_row(emp2)[:departments].should be_nil
 
-    existing_ref_dept = Association::ReferenceEntity.new(1, Department)
+    existing_ref_dept = Association::LazyEntityReference.new(1, Department)
     existing_ref_dept.resolve
     EntitySerializer.to_hash(existing_ref_dept.resolved_entity).should eq({id:1, name:'Accounting', active:true})
 
@@ -138,7 +161,7 @@ describe 'A BasicEntity with a many to many relationship' do
     dept2 = Department.fetch_by_id(2)
     dept3 = Department.fetch_by_id(3)
     dept4 = Department.fetch_by_id(4)
-    
+
     emp.departments<<dept
     emp.departments<<dept2
     emp.managed_departments<<dept3
@@ -189,7 +212,7 @@ describe 'A BasicEntity with a many to many relationship' do
     dept4 = Department.fetch_reference_by_id(4)
 
     # TODO: this should be ReferenceRepository.fetch_by_id(Department, 1)
-    # #=> <ReferenceEntity 0xf00b45: @id=1 @type=Department>
+    # #=> <LazyEntityReference 0xf00b45: @id=1 @type=Department>
     #
     # Likewise: AggregateRepository.fetch_by_id(Department, 1)
     # #=> <Department 0xf00b45: @id=1 ... BaseEntity attrs...>
@@ -251,12 +274,12 @@ describe 'A BasicEntity with a many to many relationship' do
     katrina.buildings.size.should eq(1)
     katrina.buildings[0].id.should eq(1)
 
-    katrina.departments.first.class.should eq(Association::ReferenceEntity)
+    katrina.departments.first.class.should eq(Association::LazyEntityReference)
     katrina.departments.first.resolve
     katrina.departments.first.resolved_entity.name.should eq('Accounting')
     katrina.departments.first.resolved_entity.id.should eq(1)
 
-    katrina.managed_departments.first.class.should eq(Association::ReferenceEntity)
+    katrina.managed_departments.first.class.should eq(Association::LazyEntityReference)
     katrina.managed_departments.first.resolve
     katrina.managed_departments.first.resolved_entity.name.should eq('Sales')
     katrina.managed_departments.first.resolved_entity.id.should eq(3)

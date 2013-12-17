@@ -11,14 +11,24 @@ module DatabaseUtils
   #   Symbol with table name
   def self.to_table_name(entity)
     #TODO : extract this to an utilities class/module
-    klazz = case entity
-              # TODO refactor to a single class method in IdPk
-              when BaseEntity, Association::ReferenceEntity  #TODO make this inherit from IdPK
-                entity.type
-              when Class
-                entity
-            end
-    klazz.to_s.split('::').last.underscore.downcase.pluralize.to_sym
+    case entity
+      # TODO refactor to a single class method in IdPk
+      when BaseEntity, Association::LazyEntityReference, Association::ImmutableEntityReference  #TODO make this inherit from IdPK
+        table_name_for(entity.type)
+      when Class
+        table_name_for(entity)
+    end
+  end
+
+  def self.table_name_for(klazz)
+    path = klazz.to_s.split('::')
+    last = if path.last == 'Immutable'
+             path[-2]
+           else
+             path.last
+           end
+
+    last.underscore.downcase.pluralize.to_sym
   end
 
   def self.to_reference_name(attr)

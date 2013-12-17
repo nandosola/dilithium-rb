@@ -38,7 +38,7 @@ module Mapper
       end
 
       # Then recurse multi_ref for inserting the intermediate table
-      entity.each_multi_reference do |ref, ref_attr|
+      entity.each_multi_reference(true) do |ref, ref_attr|
         insert_in_intermediate_table(entity, ref, ref_attr)
       end
     end
@@ -133,7 +133,7 @@ module Mapper
         else
           case attr
             # TODO Refactor this behaviour to a class
-            when BasicAttributes::ParentReference, BasicAttributes::EntityReference
+            when BasicAttributes::ParentReference, BasicAttributes::EntityReference, BasicAttributes::ImmutableReference
               name = if attr.type.nil?
                        attr.name.to_s.pluralize
                      else
@@ -148,7 +148,7 @@ module Mapper
               default = attr.default.nil? ? 'nil' : attr.default
               default = "'#{default}'" if default.is_a?(String) && attr.default
               yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
-            when BasicAttributes::MultiReference
+            when BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference
               dependent = DatabaseUtils.to_table_name(entity_class)
               create_intermediate_table(dependent, attr.name, attr.reference_path.last.downcase)
           end
