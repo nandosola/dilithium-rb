@@ -1,4 +1,4 @@
-require 'fixtures/class_table_inheritance'
+require 'fixtures/leaf_table_inheritance'
 
 describe 'A single-inheritance hierarchy of BaseEntities' do
   before(:all) do
