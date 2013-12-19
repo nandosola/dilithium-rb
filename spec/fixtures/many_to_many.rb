@@ -14,7 +14,6 @@ end
 
 class Employee < BaseEntity
   # TODO evaluate: "many :employee, dependent:true" - 'dependent' means that Employees can't exist without Department
-  # TODO: is multi_reference and reference :multi => true the same case? If not the same case, multi_reference should be attribute :multi => true
   multi_reference :departments
   multi_reference :buildings
   multi_reference :managed_departments, Department

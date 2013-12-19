@@ -139,8 +139,8 @@ describe 'A Simple Entity' do
 
   end
 
+  pending 'Implement BasicEntityBuilder'
   it 'can be fully serialized' do
-    #TODO Implement BasicEntityBuilder
     a_user = User.fetch_by_id(1)
     test_hash ={
       :id => 1,

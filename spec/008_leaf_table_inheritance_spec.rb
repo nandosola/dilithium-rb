@@ -28,7 +28,7 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
     schema[3][1][:db_type].should eq('varchar(255)')
   end
 
-  it 'should manage each class independently' do
+  it 'should load data from the database' do
     vehicles = $database[:vehicles]
     registered_vehicles = $database[:registered_vehicles]
 
@@ -43,6 +43,20 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
 
     tardis.name.should eq('TARDIS')
     tardis.owner.should eq('The Doctor')
+  end
+
+  pending 'Implement loading from DB with polymorphism in LTI'
+  it 'should load data from the database with polymorphism' do
+  end
+
+  it 'should save data to the database' do
+    bistromath = RegisteredVehicle.new({:active => true, :name => 'Bistromath', :owner => 'Slartibartfast'})
+    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction.register_new(bistromath)
+    transaction.commit
+
+    result = $database[:registered_vehicles].where(name: 'Bistromath').first
+    result[:name].should eq('Bistromath')
   end
 
   it 'should manage the parent and child references correctly' do
@@ -60,7 +74,7 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
     fleet.ground_vehicles.should include(van)
   end
 
-  it 'should serialize/deserialize correctly into Hashes' do
+  it 'should serialize correctly into Hashes' do
     fleet = Fleet.new(:name => 'Test fleet')
     #TODO This should change, the parent should have a factory for its children
     car = Car.new({:seats => 4}, fleet)
@@ -76,8 +90,34 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
                           {:id=>nil, :active=>true, :name=>nil, :wheels=>nil, :capacity=>1000}],
                         :id => nil,
                         :name => "Test fleet"
-                    })
+                      })
+  end
 
-    #TODO Deserialize (add type tags - :_subtype and use a Factory?)
+  it 'should deserialize correctly into a Hash without polymorphism' do
+    hash = {
+      :name => 'HHGTTG',
+      :company_car => { :id => 1 },
+      :company_van => { :id => 2 }
+    }
+
+    company = SmallCompany.new(hash)
+    company.name.should eq('HHGTTG')
+
+    company.company_car.class.should eq(Association::ImmutableEntityReference)
+    company.company_car.resolve
+    company.company_car.resolved_entity.class.should eq(RegisteredVehicle::Immutable)
+    company.company_car.resolved_entity.name.should eq('TARDIS')
+    company.company_car.resolved_entity.owner.should eq('The Doctor')
+
+    company.company_van.class.should eq(Association::ImmutableEntityReference)
+    company.company_van.resolve
+    company.company_van.resolved_entity.class.should eq(RegisteredVehicle::Immutable)
+    company.company_van.resolved_entity.name.should eq('Bistromath')
+    company.company_van.resolved_entity.owner.should eq('Slartibartfast')
+  end
+
+  pending 'Implement deserialization with polymorphism in LTI'
+  it 'should deserialize correctly into a Hash with polymorphism' do
+
   end
 end

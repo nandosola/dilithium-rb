@@ -33,7 +33,7 @@ class BaseEntity < IdPk
       end
 
       # Create the internal Immutable class for this BaseEntity
-      const_set(:Immutable, Class.new(BaseEntity::Immutable))
+      const_set(:Immutable, Class.new(superclass.const_get(:Immutable)))
       @attributes = { }
 
       # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Super layer type)
