@@ -23,3 +23,9 @@ end
 class DeliveryVan < GroundVehicle
   attribute :capacity, Integer
 end
+
+class SmallCompany < BaseEntity
+  attribute :name, String
+  reference :company_car, RegisteredVehicle
+  reference :company_van, RegisteredVehicle
+end
