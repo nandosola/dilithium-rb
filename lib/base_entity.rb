@@ -28,6 +28,9 @@ class BaseEntity < IdPk
       end
 
       def add_attribute(descriptor)
+        name = descriptor.name
+        raise ArgumentError, "Duplicate definition for #{name}" if @attributes.has_key?(name)
+
         @attributes[descriptor.name] = descriptor
         attach_attribute_accessors(descriptor)
       end
