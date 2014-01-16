@@ -12,3 +12,4 @@ Sequel.datetime_class = DateTime
 
 require 'persistence_service'
 require 'base_entity'
+require 'embeddable_value'

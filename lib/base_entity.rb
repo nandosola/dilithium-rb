@@ -1,11 +1,92 @@
 require 'basic_attributes'
 require 'idpk'
 
+# Common methods for BaseEntity and EmbeddableValue
+module BaseMethods
+  # Creates a reference to a list of BaseEntities (many-to-many).
+  #
+  # Example:
+  #   class Department < BaseEntity
+  #     multi_reference :employees
+  #     multi_reference :buildings
+  #     multi_reference :sub_departments, Department
+  #
+  # Params:
+  # - (Symbol) name: name of the attribute. If no type is provided, will be treated as a pluralized name of a BaseEntity
+  # - (BaseEntity) type: type of the BaseEntity this reference holds. If not supplied will be inferred from name.
+  #
+  def multi_reference(name, type = nil)
+    self.add_attribute(BasicAttributes::MultiReference.new(name, self, type))
+  end
+
+  # Creates an attribute or a reference to a single BasicEntity (many-to-one). The attribute must extend BaseEntity,
+  # any Ruby Generic type (except for Enumerable) or be a generic type itself.
+  #
+  # Example:
+  #   attribute :desc, String, mandatory:true, default:'foo'
+  #   attribute :country, CountryEntity
+  #   attribute :password, BCrypt::Password
+  #
+  # Params:
+  # - name: attribute name
+  # - type: atrribute class
+  # - opts: hash with options(only for attribute)
+  #     * mandatory: true or false,
+  #     * default: default value
+  #
+  def attribute(name, type, opts = {})
+    descriptor = if self.is_a_base_entity?(type)
+                   BasicAttributes::EntityReference.new(name, type)
+                 elsif BasicAttributes::GENERIC_TYPES.include?(type.superclass)
+                   BasicAttributes::ExtendedGenericAttribute.new(name, type, opts[:mandatory], opts[:default])
+                 elsif BasicAttributes::GENERIC_TYPES.include?(type)
+                   BasicAttributes::GenericAttribute.new(name, type, opts[:mandatory], opts[:default])
+                 else
+                   raise ArgumentError, "Cannot determine type for attribute #{name}"
+                 end
+
+    self.add_attribute(descriptor)
+  end
+
+  # Creates an immutable reference to a BaseEntity or multiple BaseEntities in a different root.
+  #
+  # Example:
+  #   reference :owner, Department
+  #   reference :departments, Department, :multi => true
+  #
+  # Params:
+  # - name: attribute name
+  # - type: atrribute class
+  #
+  def reference(name, type, opts = {})
+    raise ArgumentError, 'Attributes should only be primitive types' unless is_a_base_entity?(type)
+    attr = if opts[:multi]
+             BasicAttributes::ImmutableMultiReference.new(name, self, type)
+           else
+             BasicAttributes::ImmutableReference.new(name, type)
+           end
+
+    self.add_attribute(attr)
+  end
+
+  def is_a_base_entity?(type)
+    if type == BaseEntity
+      true
+    elsif type == Object
+      false
+    else
+      self.is_a_base_entity?(type.superclass)
+    end
+  end
+
+end
+
 class BaseEntity < IdPk
   extend Repository::Sequel::ClassFinders
   include Repository::Sequel::InstanceFinders
   extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
   include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
+  extend BaseMethods
 
   # Each BaseEntity subclass will have an internal class called Immutable that contains the immutable representation of
   # said BaseEntity. The Immutable classes are all subclasses of BaseEntity::Immutable
@@ -28,7 +109,10 @@ class BaseEntity < IdPk
       end
 
       def add_attribute(descriptor)
-        @attributes[descriptor.name] = descriptor
+        name = descriptor.name
+        raise ArgumentError, "Duplicate definition for #{name}" if @attributes.has_key?(name)
+
+        @attributes[name] = descriptor
         attach_attribute_accessors(descriptor)
       end
 
@@ -77,82 +161,6 @@ class BaseEntity < IdPk
   #
   def self.parent(parent)
     self.add_attribute(BasicAttributes::ParentReference.new(parent, self))
-  end
-
-  # Creates a reference to a list of BaseEntities (many-to-many).
-  #
-  # Example:
-  #   class Department < BaseEntity
-  #     multi_reference :employees
-  #     multi_reference :buildings
-  #     multi_reference :sub_departments, Department
-  #
-  # Params:
-  # - (Symbol) name: name of the attribute. If no type is provided, will be treated as a pluralized name of a BaseEntity
-  # - (BaseEntity) type: type of the BaseEntity this reference holds. If not supplied will be inferred from name.
-  #
-  def self.multi_reference(name, type = nil)
-    self.add_attribute(BasicAttributes::MultiReference.new(name, self, type))
-  end
-
-  # Creates an attribute or a reference to a single BasicEntity (many-to-one). The attribute must extend BaseEntity,
-  # any Ruby Generic type (except for Enumerable) or be a generic type itself.
-  #
-  # Example:
-  #   attribute :desc, String, mandatory:true, default:'foo'
-  #   attribute :country, CountryEntity
-  #   attribute :password, BCrypt::Password
-  #
-  # Params:
-  # - name: attribute name
-  # - type: atrribute class
-  # - opts: hash with options(only for attribute)
-  #     * mandatory: true or false,
-  #     * default: default value
-  #
-  def self.attribute(name, type, opts = {})
-    descriptor = if self.is_a_base_entity?(type)
-                   BasicAttributes::EntityReference.new(name, type)
-                 elsif BasicAttributes::GENERIC_TYPES.include?(type.superclass)
-                   BasicAttributes::ExtendedGenericAttribute.new(name, type, opts[:mandatory], opts[:default])
-                 elsif BasicAttributes::GENERIC_TYPES.include?(type)
-                   BasicAttributes::GenericAttribute.new(name, type, opts[:mandatory], opts[:default])
-                 else
-                   raise ArgumentError, "Cannot determine type for attribute #{name}"
-                 end
-
-    self.add_attribute(descriptor)
-  end
-
-  # Creates an immutable reference to a BaseEntity or multiple BaseEntities in a different root.
-  #
-  # Example:
-  #   reference :owner, Department
-  #   reference :departments, Department, :multi => true
-  #
-  # Params:
-  # - name: attribute name
-  # - type: atrribute class
-  #
-  def self.reference(name, type, opts = {})
-    raise ArgumentError, 'Attributes should only be primitive types' unless is_a_base_entity?(type)
-    attr = if opts[:multi]
-             BasicAttributes::ImmutableMultiReference.new(name, type)
-           else
-             BasicAttributes::ImmutableReference.new(name, type)
-           end
-
-    self.add_attribute(attr)
-  end
-
-  def self.is_a_base_entity?(type)
-    if type == BaseEntity
-      true
-    elsif type == Object
-      false
-    else
-      self.is_a_base_entity?(type.superclass)
-    end
   end
 
   def initialize(in_h={}, parent=nil)
@@ -521,5 +529,4 @@ class BaseEntity < IdPk
       end
     end
   end
-
 end
