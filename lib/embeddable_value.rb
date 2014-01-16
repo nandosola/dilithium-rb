@@ -1,3 +1,5 @@
+require 'base_methods'
+
 module EmbeddableValue
   include BaseMethods
 

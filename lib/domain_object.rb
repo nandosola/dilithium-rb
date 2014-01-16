@@ -1,4 +1,4 @@
-class IdPk
+class DomainObject
   PRIMARY_KEY = {:identifier=>:id, :type=>Integer}
 
   def self.pk

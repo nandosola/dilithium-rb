@@ -4,10 +4,9 @@
 == The main project team
 
 Nando Sola - http://github.com/nandosola
-
+Mario Camou - http://github.com/mcamopu
 
 == Contributors
 
-Mario Camou - http://github.com/nandosola
 David Espada - http://github.com/brometeo
 Óscar Lara - http://github.com/choski7
