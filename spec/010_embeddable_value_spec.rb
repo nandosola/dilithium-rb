@@ -2,6 +2,19 @@ require_relative 'spec_base'
 require_relative 'fixtures/embeddable_value'
 
 describe 'An embeddable value' do
+  it 'should fail if mixed into a non-BaseEntity' do
+    expect {
+      module Name
+        extend EmbeddableValue
+        attribute :name, String
+      end
+
+      class NonBaseEntity
+        include Name
+      end
+    }.to raise_error(ArgumentError)
+  end
+
   it 'should contain the proper attribute descriptors' do
     attr = AuditInfo.instance_variable_get(:@attributes)
 
