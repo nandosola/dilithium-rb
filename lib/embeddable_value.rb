@@ -9,6 +9,7 @@ module EmbeddableValue
   def self.extended(base_value)
     base_value.instance_eval do
       def included(base_entity)
+        raise ArgumentError, 'EmbeddabelValue should only be mixed into BaseEntities' unless base_entity < BaseEntity
         @attributes.values.each { |desc| base_entity.add_attribute(desc) }
       end
 
