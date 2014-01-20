@@ -15,10 +15,10 @@ Gem::Specification.new do |s|
   s.files = Dir['./LICENSE']
   s.files += Dir['lib/**/*']
 
-  s.add_runtime_dependency 'sequel', '~> 4.1.0'
+  s.add_runtime_dependency 'sequel', '~> 4.6.0'
 
   s.add_development_dependency 'rake', '~> 10.1.0'
-  s.add_development_dependency 'sqlite3', '~> 1.3.7'
+  s.add_development_dependency 'sqlite3', '~> 1.3.8'
   s.add_development_dependency 'rspec', '~> 2.14.1'
   s.add_development_dependency 'bcrypt-ruby', '~> 3.1.2'
 
