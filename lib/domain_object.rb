@@ -42,7 +42,6 @@ class DomainObject
 
       # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation
       add_attribute(BasicAttributes::GenericAttribute.new(PRIMARY_KEY[:identifier], PRIMARY_KEY[:type]))
-      add_attribute(BasicAttributes::GenericAttribute.new(:active, TrueClass, false, true))
     end
   end
 

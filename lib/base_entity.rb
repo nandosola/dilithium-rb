@@ -1,7 +1,5 @@
 require 'basic_attributes'
 require 'domain_object'
-require 'version'
-
 
 class BaseEntity < DomainObject
   extend Repository::Sequel::ClassFinders
@@ -18,6 +16,8 @@ class BaseEntity < DomainObject
     self.superclass.inherited(base)
 
     base.instance_eval do
+      # Prevent adding multiple metaprogrammed attrs in the case of BaseEntity sub-subclasses
+      add_attribute(BasicAttributes::GenericAttribute.new(:active, TrueClass, false, true)) unless @attributes.has_key? :active
 
       # Create the internal Immutable class for this BaseEntity
       const_set(:Immutable, Class.new(superclass.const_get(:Immutable)))
