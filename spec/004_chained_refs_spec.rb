@@ -47,24 +47,54 @@ describe 'A Chained Reference' do
     h.should eq(
                  {:id=>1,
                   :active=>true,
+                  :_version=>{:id=>8, :_version=>1, :_version_created_at=>my_entity._version._version_created_at,
+                              :_locked_by=>nil, :_locked_at=>nil},
                   :description=>"dependent side",
-                  :bat_ref=>{:id=>1, :active=>true, :name=>"bat ref", :qux=>{:id=>1, :active=>true, :name=>"qux 1"}},
-                  :qux=>{:id=>1, :active=>true, :name=>"qux 1"},
+                  :qux=>{:id=>1, :active=>true,
+                         :_version=>{:id=>6, :_version=>0,
+                         :_version_created_at=>my_entity.qux._version._version_created_at,
+                         :_locked_by=>nil, :_locked_at=>nil},
+                         :name=>"qux 1"},
                   :baz_ref=>
                       {:id=>2,
                        :active=>true,
+                       :_version=>{:id=>5, :_version=>0,
+                                   :_version_created_at=>my_entity.baz_ref._version._version_created_at,
+                                   :_locked_by=>nil, :_locked_at=>nil},
                        :description=>"baz ref 2",
                        :bar_ref=>
                            {:id=>2,
                             :active=>true,
+                            :_version=>{:id=>3, :_version=>0,
+                                        :_version_created_at=>my_entity.baz_ref.bar_ref._version._version_created_at,
+                                        :_locked_by=>nil, :_locked_at=>nil},
                             :description=>"bar ref 2",
-                            :foo_ref=>{:id=>1, :active=>true, :description=>"foo ref"}}}}
+                            :foo_ref=>{:id=>1, :active=>true,
+                                       :_version=>{:id=>1, :_version=>0,
+                                                   :_version_created_at=>my_entity.baz_ref.bar_ref.foo_ref._version._version_created_at,
+                                                   :_locked_by=>nil, :_locked_at=>nil},
+                                       :description=>"foo ref"}}},
+                  :bat_ref=>{:id=>1, :active=>true,
+                             :_version=>{:id=>7, :_version=>0,
+                                         :_version_created_at=>my_entity.bat_ref._version._version_created_at,
+                                         :_locked_by=>nil, :_locked_at=>nil},
+                             :name=>"bat ref",
+                             :qux=>{:id=>1,
+                                    :active=>true,
+                                    :_version=>{:id=>6, :_version=>0,
+                                                :_version_created_at=>my_entity.qux._version._version_created_at,
+                                                :_locked_by=>nil, :_locked_at=>nil},
+                                    :name=>"qux 1"}}
+                  }
              )
 
   end
 
   after(:all) do
-    delete_test_refs
+    %i(my_entities bat_refs baz_refs bar_refs quxes foo_refs _versions).each do |t|
+      $database.drop_table t
+      $database << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{t}'"
+    end
   end
 
 end

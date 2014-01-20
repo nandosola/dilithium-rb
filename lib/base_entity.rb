@@ -1,5 +1,6 @@
 require 'basic_attributes'
 require 'domain_object'
+require 'version'
 
 class BaseEntity < DomainObject
   extend Repository::Sequel::ClassFinders
@@ -18,6 +19,7 @@ class BaseEntity < DomainObject
     base.instance_eval do
       # Prevent adding multiple metaprogrammed attrs in the case of BaseEntity sub-subclasses
       add_attribute(BasicAttributes::GenericAttribute.new(:active, TrueClass, false, true)) unless @attributes.has_key? :active
+      add_attribute(BasicAttributes::Version.new(:_version, Version)) unless @attributes.has_key? :_version
 
       # Create the internal Immutable class for this BaseEntity
       const_set(:Immutable, Class.new(superclass.const_get(:Immutable)))
@@ -61,12 +63,21 @@ class BaseEntity < DomainObject
     self.add_attribute(BasicAttributes::ParentReference.new(parent, self))
   end
 
-  def initialize(in_h={}, parent=nil)
+  def initialize(in_h={}, parent=nil, aggregate_version=nil)
     check_input_h(in_h)
     self.class.attribute_descriptors.each do |k,v|
       instance_variable_set("@#{k}".to_sym, v.default)
     end
-    unless parent.nil?
+    if parent.nil?
+      if aggregate_version.nil?
+        @_version =  Version.create  # Shared version among all the members of the aggregate
+      else
+        raise ArgumentError,
+              "Version is a #{aggregate_version.class} -- Must be a Version object" unless aggregate_version.is_a?(Version)
+        @_version = aggregate_version
+      end
+    else
+      @_version = parent._version
       #TODO Add child to parent
       parent_attr = parent.type.to_s.split('::').last.underscore.downcase
       instance_variable_set("@#{parent_attr}".to_sym, parent)

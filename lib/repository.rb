@@ -49,6 +49,13 @@ module Repository
             end
           end
 
+          def resolve_version(in_h)
+            raise ArgumentError, "nil version found!" if in_h[:_version_id].nil?
+            id = in_h.delete(:_version_id)
+            version_h = DB[:_versions].where(id:id).all.first
+            ::Version.new(version_h)
+          end
+
           def resolve_entity_references(in_h)
             (self.entity_references + self.immutable_references).each do |ref|
               attr = self.attribute_descriptors[ref]
@@ -80,10 +87,11 @@ module Repository
 
           def create_object(in_h)
             unless in_h.nil?
+              version = resolve_version(in_h) if in_h.has_key?(:_version_id)
               resolve_entity_references(in_h)
               resolve_extended_generic_attributes(in_h)
               parent = resolve_parent(in_h)
-              root_obj = self.new(in_h, parent)
+              root_obj = self.new(in_h, parent, version)
               root_obj.attach_children
               root_obj.attach_multi_references
               root_obj

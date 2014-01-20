@@ -47,13 +47,6 @@ describe 'A Simple Entity' do
   end
 
   it 'fetches references' do
-    references = $database[:references]
-    users = $database[:users]
-
-    references.insert(:name => 'Duke ref', :active=>true)
-    references.insert(:name => 'Foo ref')
-    users.insert(:name => 'Duke', :email => 'duke@example.net', :reference_id => 1, :refers_to_id => 2, :active=>true)
-
     duke = User.fetch_by_email('duke@example.net').first
     duke.reference.should be_a(Reference)
     duke.reference.id.should eq(1)
@@ -151,15 +144,15 @@ describe 'A Simple Entity' do
       :active=>true,
       :reference => nil,
       :refers_to => nil,
-      :title => 'Esq.'
+      :title => 'Esq.',
+      :_version => {id:1, _version:0, _version_created_at:DateTime.parse('2013-09-23T18:42:14+02:00'),
+                    _locked_by: nil, _locked_at: nil}
     }
 
     EntitySerializer.to_nested_hash(a_user).each { |k, v| test_hash[k].should eq(v) }
   end
 
   it 'can return an immutable copy of itself' do
-    users = $database[:users]
-    users.insert(:name => 'Zaphod', :email => 'zaphod@example.net', :reference_id => 1, :refers_to_id => 2, :active=>true)
 
     a_user = User.fetch_by_email('zaphod@example.net').first
     an_immutable_user = a_user.immutable
@@ -185,7 +178,10 @@ describe 'A Simple Entity' do
   end
 
   after(:all) do
-    delete_test_users
+    %i(users references _versions).each do |t|
+      $database.drop_table t
+      $database << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{t}'"
+    end
   end
 end
 

@@ -69,8 +69,8 @@ describe 'An entity with references' do
     shipyard_schema = $database.schema(:shipyards)
     shipyard_schema[0][0].should eq(:id)
     shipyard_schema[1][0].should eq(:active)
-    shipyard_schema[2][0].should eq(:name)
-    shipyard_schema[3][0].should eq(:location_id)
+    shipyard_schema[3][0].should eq(:name)
+    shipyard_schema[4][0].should eq(:location_id)
 
     container_schema = $database.schema(:shipyards_containers)
     container_schema[0][0].should eq(:id)

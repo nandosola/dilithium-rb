@@ -40,16 +40,16 @@ describe 'A BasicEntity with a many to many relationship' do
   end
 
   it 'must have the correct class attributes' do
-    attr = Employee.attributes[2]
+    attr = Employee.attributes[3]
     attr.is_a?(BasicAttributes::MultiReference).should be_true
     attr.name.should eq(:departments)
     attr.inner_type.should eq(Department)
 
-    attr = Employee.attributes[3]
+    attr = Employee.attributes[4]
     attr.is_a?(BasicAttributes::MultiReference).should be_true
     attr.name.should eq(:buildings)
 
-    attr = Employee.attributes[4]
+    attr = Employee.attributes[5]
     attr.is_a?(BasicAttributes::MultiReference).should be_true
     attr.name.should eq(:managed_departments)
     attr.inner_type.should eq(Department)
@@ -136,23 +136,27 @@ describe 'A BasicEntity with a many to many relationship' do
 
     emp.departments<<dept
     EntitySerializer.to_hash(emp)[:departments].should eq([dept])
-    EntitySerializer.to_nested_hash(emp)[:departments].should eq([EntitySerializer.to_hash(dept)])
+    EntitySerializer.to_nested_hash(emp)[:departments].should eq([EntitySerializer.to_nested_hash(dept)])
     EntitySerializer.to_row(emp)[:departments].should be_nil
 
     emp.managed_departments<<dept2
     EntitySerializer.to_hash(emp)[:managed_departments].should eq([dept2])
-    EntitySerializer.to_nested_hash(emp)[:managed_departments].should eq([EntitySerializer.to_hash(dept2)])
+    EntitySerializer.to_nested_hash(emp)[:managed_departments].should eq([EntitySerializer.to_nested_hash(dept2)])
     EntitySerializer.to_row(emp)[:managed_departments].should be_nil
 
     emp2.departments<<ref_dept
     EntitySerializer.to_hash(emp2)[:departments].should eq([ref_dept])
-    EntitySerializer.to_nested_hash(emp2)[:departments].should eq([EntitySerializer.to_hash(ref_dept)])
+    EntitySerializer.to_nested_hash(emp2)[:departments].should eq([EntitySerializer.to_nested_hash(ref_dept)])
     EntitySerializer.to_row(emp2)[:departments].should be_nil
 
     existing_ref_dept = Association::LazyEntityReference.new(1, Department)
     existing_ref_dept.resolve
-    EntitySerializer.to_hash(existing_ref_dept.resolved_entity).should eq({id:1, name:'Accounting', active:true})
-
+    EntitySerializer.to_nested_hash(existing_ref_dept.resolved_entity).should eq({id:1,
+                                                                                  name:'Accounting',
+                                                                                  active:true,
+                                                                                  _version:{:id=>4, :_version=>0,
+                                                                                            :_version_created_at=>existing_ref_dept._version._version_created_at,
+                                                                                       :_locked_by=>nil, :_locked_at=>nil}})
   end
 
   it 'is persisted in two tables (accessor initialization)' do
@@ -316,6 +320,10 @@ describe 'A BasicEntity with a many to many relationship' do
   end
 
   after(:all) do
-    delete_test_employees_depts_and_buildings
+    %i(employees_departments employees_buildings employees_managed_departments
+       buildings departments employees _versions).each do |t|
+      $database.drop_table t
+      $database << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{t}'"
+    end
   end
 end

@@ -84,7 +84,11 @@ module UnitOfWork
           restored_obj = @history[working_obj.object_id].last
           unless restored_obj.nil?
             restored_payload = EntitySerializer.to_nested_hash(restored_obj)
-            working_obj.full_update(restored_payload)
+
+            # The version is only incremented during a successful DB update,
+            # so working_obj._version payload is still valid
+            working_obj.full_update(EntitySerializer.strip_key_from_hash(restored_payload, :_version))
+
           else
             id = res.object.id
             RuntimeError "Cannot rollback #{res.object.class} with identity (id=#{id.nil? ? 'nil' : id })\n"+
@@ -119,7 +123,9 @@ module UnitOfWork
           end
 
           #TODO handle nested transactions (@history)
-          @object_tracker.fetch_by_state(STATE_DELETED).each { |res| @mapper.delete(res.object) }
+          @object_tracker.fetch_by_state(STATE_DELETED).each do |res|
+            @mapper.delete(res.object)
+          end
 
           clear_all_objects_in_state(STATE_DELETED)
 

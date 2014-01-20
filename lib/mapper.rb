@@ -1,6 +1,7 @@
 require_relative 'basic_attributes'
 require_relative 'entity_serializer'
 require_relative 'database_utils'
+require 'version'
 
 module Mapper
 
@@ -15,6 +16,7 @@ module Mapper
     end
 
     def self.create_tables(*entity_classes)
+      create_versions_table unless DB.table_exists?(:_versions)
       entity_classes.each do |entity_class|
         table_name = entity_class.to_s.split('::').last.underscore.downcase.pluralize
 
@@ -24,17 +26,30 @@ module Mapper
       end
     end
 
-    def self.insert(entity, parent_id = nil)
+    def self.create_versions_table
+      DB.create_table(:_versions) do
+        Mapper::Sequel.schemify(Version){ |type,opts| eval("#{type} #{opts}") }
+      end
+    end
+
+    def self.insert(entity, parent_id = nil, version_id=nil)
      check_uow_transaction(entity) unless parent_id  # It's the root
 
-      # First insert entity
+     # First insert version when persisting the root; no need to lock the row/table
+     if parent_id.nil?
+       version_data = EntitySerializer.to_row(entity._version)
+       version_id = DB[:_versions].insert(version_data)
+       entity._version.id = version_id
+     end
+
+      # Then insert entity
       entity_data = EntitySerializer.to_row(entity, parent_id)
       entity_data.delete(:id)
-      entity.id = DB[DatabaseUtils.to_table_name(entity)].insert(entity_data)
+      entity.id = DB[DatabaseUtils.to_table_name(entity)].insert(entity_data.merge(_version_id:version_id))
 
       # Then recurse children for inserting them
       entity.each_child do |child|
-        insert(child, entity.id)
+        insert(child, entity.id, entity._version.id)
       end
 
       # Then recurse multi_ref for inserting the intermediate table
@@ -43,38 +58,51 @@ module Mapper
       end
     end
 
-    def self.delete(entity)
-     check_uow_transaction(entity)
+    def self.delete(entity, already_versioned=false)
+      check_uow_transaction(entity)
+
+      unless already_versioned
+        increment_version(entity)
+        already_versioned = true
+      end
 
       DB[DatabaseUtils.to_table_name(entity)].where(id: entity.id).update(active: false)
 
       entity.each_child do |child|
-        delete(child)
+        delete(child, already_versioned)
       end
     end
 
-    def self.update(modified_entity, original_entity)
+    def self.update(modified_entity, original_entity, already_versioned=false)
      check_uow_transaction(modified_entity)
 
       modified_data = EntitySerializer.to_row(modified_entity)
       original_data = EntitySerializer.to_row(original_entity)
+      version = modified_entity._version
+      version_id = version.id
 
       unless modified_data.eql?(original_data)
+        unless already_versioned
+          increment_version(modified_entity)
+          already_versioned = true
+        end
+
+        # no need to update :_version_id:
         DB[DatabaseUtils.to_table_name(modified_entity)].where(id: modified_entity.id).update(modified_data)
       end
 
       modified_entity.each_child do |child|
         if child.id.nil?
-          insert(child, modified_entity.id)
+          insert(child, modified_entity.id, version_id)
         else
-          update(child, original_entity.find_child do |c|
+          update(child, (original_entity.find_child do |c|
             child.class == c.class && child.id == c.id
-          end)
+          end), already_versioned)
         end
       end
 
       original_entity.each_child do |child|
-        delete(child) if modified_entity.find_child{|c| child.class == c.class && child.id == c.id}.nil?
+        delete(child, already_versioned) if modified_entity.find_child{|c| child.class == c.class && child.id == c.id}.nil?
       end
 
       modified_entity.each_multi_reference do |ref, ref_attr|
@@ -88,6 +116,14 @@ module Mapper
     end
 
     private
+    def self.increment_version(entity)
+      version = entity._version
+      version_id = version.id
+      version.increment!
+      version_data = EntitySerializer.to_row(version)
+      DB[:_versions].for_update.where(id:version_id).update(version_data)
+    end
+
     def self.insert_in_intermediate_table(dependee, dependent, ref_attr, from=:insert)
       table_dependee = DatabaseUtils.to_table_name(dependee)
       table_dependent = DatabaseUtils.to_table_name(dependent)
@@ -133,8 +169,9 @@ module Mapper
         else
           case attr
             # TODO Refactor this behaviour to a class
-            when BasicAttributes::ParentReference, BasicAttributes::EntityReference, BasicAttributes::ImmutableReference
-              name = if attr.type.nil?
+            when BasicAttributes::ParentReference, BasicAttributes::EntityReference,
+                BasicAttributes::ImmutableReference, BasicAttributes::Version
+              name = if attr.type.nil? || Version == attr.type
                        attr.name.to_s.pluralize
                      else
                        attr.type.to_s.split('::').last.underscore.pluralize

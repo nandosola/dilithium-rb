@@ -14,6 +14,10 @@ module Association
     def resolve
       @resolved_entity = @type.fetch_by_id(@id)
     end
+
+    def _version
+      resolve._version
+    end
   end
 
   class ImmutableEntityReference < LazyEntityReference

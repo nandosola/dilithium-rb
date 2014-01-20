@@ -35,7 +35,7 @@ class EntitySerializer
             value.each do |ref|
               entity_h[attr] << to_nested_hash(ref)
             end
-          when BasicAttributes::EntityReference
+          when BasicAttributes::EntityReference, BasicAttributes::Version
             entity_h[attr] = to_nested_hash(value) unless value.nil?
           when BasicAttributes::ImmutableMultiReference
             entity_h[attr] = Array.new
@@ -65,7 +65,7 @@ class EntitySerializer
     end
     entity_h.each do |attr,value|
       attr_type = entity.class.attribute_descriptors[attr]
-      unless [BasicAttributes::ChildReference, BasicAttributes::ParentReference,
+      unless [BasicAttributes::Version, BasicAttributes::ChildReference, BasicAttributes::ParentReference,
               BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference].include?(attr_type.class)
         case attr_type
           when BasicAttributes::EntityReference, BasicAttributes::ImmutableReference
@@ -76,6 +76,21 @@ class EntitySerializer
       end
     end
     row
+  end
+
+  def self.strip_key_from_hash(a_hash, key)
+    if a_hash.is_a?(Hash)
+      a_hash.inject({}) do |m, (k,v)|
+        if v.is_a?(Array)
+          m[k] = v.map{|y| strip_key_from_hash(y, key)}
+        else
+          m[k] = strip_key_from_hash(v, key) unless key == k
+        end
+        m
+      end
+    else
+      a_hash
+    end
   end
 
 end

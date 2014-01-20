@@ -255,8 +255,10 @@ describe 'A Transaction handling an Aggregate Entity' do
       include FooModule::Models
       Mapper::Sequel.create_tables(Foo, Bar, Baz)
 
+      versions = $database[:_versions]
+      v_id = versions.insert(:_version => 0, :_version_created_at => DateTime.parse('2013-09-23T18:42:14+02:00'))
       bazs = $database[:bazs]
-      bazs.insert(:baz => 'baz ref 1')
+      bazs.insert(:baz => 'baz ref 1', :_version_id => v_id)
 
       tr = UnitOfWork::Transaction.new(Mapper::Sequel)
 
@@ -264,35 +266,94 @@ describe 'A Transaction handling an Aggregate Entity' do
       a_foo = Foo.new({foo:'foo', bars:[{bar:'bar', baz:a_baz}, {bar:'bar2', baz:a_baz}], baz:a_baz})
 
       EntitySerializer.to_nested_hash(a_foo).should ==({:id=>nil,
-                                                       :active=>true,
-                                                       :bars=>
+                                                        :active=>true,
+                                                        :_version=>{:id=>nil,
+                                                                    :_version=>0,
+                                                                    :_version_created_at=>a_foo._version._version_created_at,
+                                                                    :_locked_by=>nil, :_locked_at=>nil},
+                                                        :bars=>
                                                            [{:id=>nil,
                                                              :active=>true,
+                                                             :_version=>{:id=>nil,
+                                                                         :_version=>0,
+                                                                         :_version_created_at=>a_foo.bars[0]._version._version_created_at,
+                                                                         :_locked_by=>nil, :_locked_at=>nil},
                                                              :bar=>"bar",
-                                                             :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}},
+                                                             :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
+                                                                    :_version=>{:id=>v_id,
+                                                                                :_version=>0,
+                                                                                :_version_created_at=>a_baz._version._version_created_at,
+                                                                                :_locked_by=>nil, :_locked_at=>nil} }
+                                                            },
                                                             {:id=>nil,
                                                              :active=>true,
+                                                             :_version=>{:id=>nil,
+                                                                         :_version=>0,
+                                                                         :_version_created_at=>a_foo.bars[1]._version._version_created_at,
+                                                                         :_locked_by=>nil, :_locked_at=>nil},
                                                              :bar=>"bar2",
-                                                             :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}}],
-                                                       :foo=>"foo",
-                                                       :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}})
+                                                             :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
+                                                             :_version=>{:id=>v_id,
+                                                                         :_version=>0,
+                                                                         :_version_created_at=>a_baz._version._version_created_at,
+                                                                         :_locked_by=>nil, :_locked_at=>nil} }
+                                                            }],
+                                                        :foo=>"foo",
+                                                        :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
+                                                               :_version=>{:id=>v_id,
+                                                                           :_version=>0,
+                                                                           :_version_created_at=>a_baz._version._version_created_at,
+                                                                           :_locked_by=>nil, :_locked_at=>nil}
+                                                        }})
+
+
+
       tr.register_new(a_foo)
       tr.register_clean(a_baz)
       tr.commit
 
-      EntitySerializer.to_nested_hash(Foo.fetch_by_id(1)).should ==({:id=>1,
-                                                                     :active=>true,
-                                                                     :bars=>
-                                                                         [{:id=>1,
-                                                                           :active=>true,
-                                                                           :bar=>"bar",
-                                                                           :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}},
-                                                                          {:id=>2,
-                                                                           :active=>true,
-                                                                           :bar=>"bar2",
-                                                                           :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}}],
-                                                                     :foo=>"foo",
-                                                                     :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}})
+
+      persisted_foo = Foo.fetch_by_id(1)
+      EntitySerializer.to_nested_hash(persisted_foo).should==({:id=>1,
+                                                                    :active=>true,
+                                                                    :_version=>{:id=>4,
+                                                                                :_version=>0,
+                                                                                :_version_created_at=>a_foo._version._version_created_at,
+                                                                                :_locked_by=>nil, :_locked_at=>nil},
+                                                                    :bars=>
+                                                                        [{:id=>1,
+                                                                          :active=>true,
+                                                                          :_version=>{:id=>4,
+                                                                                      :_version=>0,
+                                                                                      :_version_created_at=>a_foo.bars[0]._version._version_created_at,
+                                                                                      :_locked_by=>nil, :_locked_at=>nil},
+                                                                          :bar=>"bar",
+                                                                          :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
+                                                                                 :_version=>{:id=>v_id,
+                                                                                             :_version=>0,
+                                                                                             :_version_created_at=>a_baz._version._version_created_at,
+                                                                                             :_locked_by=>nil, :_locked_at=>nil} }
+                                                                         },
+                                                                         {:id=>2,
+                                                                          :active=>true,
+                                                                          :_version=>{:id=>4,
+                                                                                      :_version=>0,
+                                                                                      :_version_created_at=>a_foo.bars[1]._version._version_created_at,
+                                                                                      :_locked_by=>nil, :_locked_at=>nil},
+                                                                          :bar=>"bar2",
+                                                                          :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
+                                                                                 :_version=>{:id=>v_id,
+                                                                                             :_version=>0,
+                                                                                             :_version_created_at=>a_baz._version._version_created_at,
+                                                                                             :_locked_by=>nil, :_locked_at=>nil} }
+                                                                         }],
+                                                                    :foo=>"foo",
+                                                                    :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
+                                                                           :_version=>{:id=>v_id,
+                                                                                       :_version=>0,
+                                                                                       :_version_created_at=>a_baz._version._version_created_at,
+                                                                                       :_locked_by=>nil, :_locked_at=>nil}
+                                                                    }})
 
   # children: delete with [] or nil
   # references: delete with nil
@@ -309,15 +370,27 @@ describe 'A Transaction handling an Aggregate Entity' do
                          :baz=>nil})
       tr.commit
 
-      EntitySerializer.to_nested_hash(Foo.fetch_by_id(1)).should ==({:id=>1,
+      updated_foo = Foo.fetch_by_id(1)
+      EntitySerializer.to_nested_hash(updated_foo).should ==( {:id=>1,
+                                                               :active=>true,
+                                                               :_version=>{:id=>4, :_version=>1,
+                                                                           :_version_created_at=>updated_foo._version._version_created_at,
+                                                                           :_locked_by=>nil, :_locked_at=>nil},
+                                                               :bars=>
+                                                                   [{:id=>1,
                                                                      :active=>true,
-                                                                     :bars=>
-                                                                         [{:id=>1,
-                                                                           :active=>true,
-                                                                           :bar=>"bar",
-                                                                           :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1"}}],
-                                                                     :foo=>"foo",
-                                                                     :baz=>nil})
+                                                                     :_version=>{:id=>4, :_version=>1,
+                                                                                 :_version_created_at=>updated_foo._version._version_created_at,
+                                                                                 :_locked_by=>nil, :_locked_at=>nil},
+                                                                     :bar=>"bar",
+                                                                     :baz=>{:id=>1, :active=>true,
+                                                                            :_version=>{:id=>v_id,
+                                                                                        :_version=>0,
+                                                                                        :_version_created_at=>a_baz._version._version_created_at,
+                                                                                        :_locked_by=>nil, :_locked_at=>nil},
+                                                                            :baz=>"baz ref 1"}}],
+                                                               :foo=>"foo",
+                                                               :baz=>nil})
 
       a_foo.full_update({:id=>1,
                          :active=>true,
@@ -326,11 +399,15 @@ describe 'A Transaction handling an Aggregate Entity' do
                          :baz=>nil})
       tr.commit
 
-      EntitySerializer.to_nested_hash(Foo.fetch_by_id(1)).should ==({:id=>1,
-                                                                     :active=>true,
-                                                                     :bars=>[],
-                                                                     :foo=>"foo",
-                                                                     :baz=>nil})
+      updated_foo = Foo.fetch_by_id(1)
+      EntitySerializer.to_nested_hash(updated_foo).should ==( {:id=>1,
+                                                               :active=>true,
+                                                               :_version=>{:id=>4, :_version=>2,
+                                                                           :_version_created_at=>updated_foo._version._version_created_at,
+                                                                           :_locked_by=>nil, :_locked_at=>nil},
+                                                               :bars=>[],
+                                                               :foo=>"foo",
+                                                               :baz=>nil})
 
       tr.finalize
     end
@@ -408,5 +485,12 @@ describe 'A Transaction handling an Aggregate Entity' do
     parent.should be_a Association::LazyEntityReference
     parent.type.should == Company
     parent.resolve.name.should == 'TARDIS Console Repair, Inc.'
+  end
+
+  after(:all) do
+    %i(contractors addresses local_offices companies bars bazs foos _versions).each do |t|
+      $database.drop_table t
+      $database << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{t}'"
+    end
   end
 end

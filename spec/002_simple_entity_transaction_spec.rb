@@ -2,6 +2,7 @@ require_relative 'spec_base'
 
 describe 'A transaction handling a Simple Entity' do
   before(:all) do
+    Mapper::Sequel.create_tables(Reference, User)
     insert_test_users
 
     class UnitOfWork::Transaction
@@ -204,6 +205,9 @@ describe 'A transaction handling a Simple Entity' do
   end
 
   after(:all) do
-    delete_test_users
+    %i(users references _versions).each do |t|
+      $database.drop_table t
+      $database << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{t}'"
+    end
   end
 end

@@ -7,108 +7,88 @@ module SpecFixtures
     tstamp = '2013-09-23T18:42:14+02:00'
     password = '$2a$10$hqlENYeHZYy9eYHnZ2ONH.5N9qnXV9uzXA/h27XCMq5HBytCLo6bm'  # 'secret'
 
-    items = $database[:users]
-    items.insert(:name => 'Alice', :email => 'alice@example.net', :tstamp=> tstamp, :password=>password, :active=>true)
-    items.insert(:name => 'Bob', :email => 'bob@example.net', :tstamp=> tstamp, :password=>password,  :active=>true)
-    items.insert(:name => 'Charly', :email => 'charly@example.net', :tstamp=> tstamp, :password=>password,  :active=>true)
-  end
+    versions = $database[:_versions]
+    versions.insert(:id => 1, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 2, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 3, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 4, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 5, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 6, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 7, :_version => 0, :_version_created_at => tstamp)
 
-  def delete_test_users
-    $database << "DELETE FROM users" << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = 'users'"
-  end
+    references = $database[:references]
+    references.insert(:name => 'Duke ref', :active=>true, :_version_id=>4)
+    references.insert(:name => 'Foo ref', :_version_id=>5)
 
-  def insert_test_companies
-    items = $database[:companies]
-    items.insert({:name => 'Company A', :vat_number => '1111',
-                 :local_offices => [
-                   {:description => 'Office A1',
-                     :addresses => [
-                       {:description => 'Address A11'},
-                       {:description => 'Address A12'}]},
-                    {:description => 'Office A2',
-                      :addresses => [
-                        {:description => 'Address A21'},
-                        {:description => 'Address A22'}]}]})
-    items.insert({:name => 'Company B', :vat_number => '2222',
-                 :local_offices => [
-                   {:description => 'Office B1',
-                     :addresses => [
-                       {:description => 'Address B11'},
-                       {:description => 'Address B12'}]},
-                    {:description => 'Office B2',
-                      :addresses => [
-                        {:description => 'Address B21'},
-                        {:description => 'Address B22'}]}]})
-    items.insert({:name => 'Company C', :vat_number => '3333',
-                 :local_offices => [
-                   {:description => 'Office C1',
-                     :addresses => [
-                       {:description => 'Address C11'},
-                       {:description => 'Address C12'}]},
-                    {:description => 'Office C2',
-                      :addresses => [
-                        {:description => 'Address C21'},
-                        {:description => 'Address C22'}]}]})
-    items.insert({:name => 'Company D', :vat_number => '4444',
-                 :local_offices => [
-                   {:description => 'Office D1',
-                     :addresses => [
-                       {:description => 'Address D11'},
-                       {:description => 'Address D12'}]},
-                    {:description => 'Office D2',
-                      :addresses => [
-                        {:description => 'Address D21'},
-                        {:description => 'Address D22'}]}]})
+    users = $database[:users]
+    users.insert(:name => 'Alice', :email => 'alice@example.net', :tstamp=> tstamp, :password=>password, :active=>true, :_version_id=>1)
+    users.insert(:name => 'Bob', :email => 'bob@example.net', :tstamp=> tstamp, :password=>password,  :active=>true, :_version_id=>2)
+    users.insert(:name => 'Charly', :email => 'charly@example.net', :tstamp=> tstamp, :password=>password,  :active=>true, :_version_id=>3)
+    users.insert(:name => 'Duke', :email => 'duke@example.net', :reference_id => 1, :refers_to_id => 2, :active=>true, :_version_id=>6)
+    users.insert(:name => 'Zaphod', :email => 'zaphod@example.net', :reference_id => 1, :refers_to_id => 2, :active=>true, :_version_id=>7)
   end
 
   def insert_test_refs
+    tstamp = '2013-09-23T18:42:14+02:00'
+
+    versions = $database[:_versions]
+    versions.insert(:id => 1, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 2, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 3, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 4, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 5, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 6, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 7, :_version => 0, :_version_created_at => tstamp)
+
     foo = $database[:foo_refs]
-    foo.insert(:description => 'foo ref')
+    foo.insert(:description => 'foo ref', :_version_id=>1)
 
     bar = $database[:bar_refs]
-    bar.insert(:description => 'bar ref', :foo_ref_id=>1)
-    bar.insert(:description => 'bar ref 2', :foo_ref_id=>1)
+    bar.insert(:description => 'bar ref', :foo_ref_id=>1, :_version_id=>2)
+    bar.insert(:description => 'bar ref 2', :foo_ref_id=>1, :_version_id=>3)
 
     baz = $database[:baz_refs]
-    baz.insert(:description => 'baz ref', :bar_ref_id=>1)
-    baz.insert(:description => 'baz ref 2', :bar_ref_id=>2)
+    baz.insert(:description => 'baz ref', :bar_ref_id=>1, :_version_id=>4)
+    baz.insert(:description => 'baz ref 2', :bar_ref_id=>2, :_version_id=>5)
 
     qux = $database[:quxes]
-    qux.insert(:name => 'qux 1')
+    qux.insert(:name => 'qux 1', :_version_id=>6)
 
     bat = $database[:bat_refs]
-    bat.insert(:name => 'bat ref', :qux_id=>1)
-
-  end
-
-  def delete_test_refs
-    %w(baz_refs bar_refs foo_refs).each do |table|
-      $database << "DELETE FROM #{table}" << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{table}'"
-    end
+    bat.insert(:name => 'bat ref', :qux_id=>1, :_version_id=>7)
   end
 
   def insert_test_employees_depts_and_buildings
+
+    tstamp = '2013-09-23T18:42:14+02:00'
+
+    versions = $database[:_versions]
+    versions.insert(:id => 1, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 2, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 3, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 4, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 5, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 6, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 7, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 8, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 9, :_version => 0, :_version_created_at => tstamp)
+    versions.insert(:id => 10, :_version => 0, :_version_created_at => tstamp)
+
     items = $database[:employees]
-    items.insert(:name => 'Alice', :active=>true)
-    items.insert(:name => 'Bob', :active=>true)
-    items.insert(:name => 'Charly', :active=>true)
+    items.insert(:name => 'Alice', :active=>true, :_version_id=>1)
+    items.insert(:name => 'Bob', :active=>true, :_version_id=>2)
+    items.insert(:name => 'Charly', :active=>true, :_version_id=>3)
 
     items = $database[:departments]
-    items.insert(:name => 'Accounting', :active=>true)
-    items.insert(:name => 'IT Ops', :active=>true)
-    items.insert(:name => 'Sales', :active=>true)
-    items.insert(:name => 'Marketing', :active=>true)
-    items.insert(:name => 'Administration', :active=>true)
+    items.insert(:name => 'Accounting', :active=>true, :_version_id=>4)
+    items.insert(:name => 'IT Ops', :active=>true, :_version_id=>5)
+    items.insert(:name => 'Sales', :active=>true, :_version_id=>6)
+    items.insert(:name => 'Marketing', :active=>true, :_version_id=>7)
+    items.insert(:name => 'Administration', :active=>true, :_version_id=>8)
 
     items = $database[:buildings]
-    items.insert(:name => 'Main', :active=>true)
-    items.insert(:name => 'Conference Center', :active=>true)
-  end
-
-  def delete_test_employees_depts_and_buildings
-    %w(employees_departments departments buildings employees ).each do |table|
-      $database << "DELETE FROM #{table}" << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{table}'"
-    end
+    items.insert(:name => 'Main', :active=>true, :_version_id=>9)
+    items.insert(:name => 'Conference Center', :active=>true, :_version_id=>10)
   end
 
 end

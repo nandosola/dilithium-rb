@@ -14,26 +14,29 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
     schema[0][1][:db_type].should eq('integer')
     schema[1][0].should eq(:active)
     schema[1][1][:db_type].should eq('boolean')
-    schema[2][0].should eq(:name)
-    schema[2][1][:db_type].should eq('varchar(255)')
+    schema[3][0].should eq(:name)
+    schema[3][1][:db_type].should eq('varchar(255)')
 
     schema = $database.schema(:registered_vehicles)
     schema[0][0].should eq(:id)
     schema[0][1][:db_type].should eq('integer')
     schema[1][0].should eq(:active)
     schema[1][1][:db_type].should eq('boolean')
-    schema[2][0].should eq(:name)
-    schema[2][1][:db_type].should eq('varchar(255)')
-    schema[3][0].should eq(:owner)
+    schema[3][0].should eq(:name)
     schema[3][1][:db_type].should eq('varchar(255)')
+    schema[4][0].should eq(:owner)
+    schema[4][1][:db_type].should eq('varchar(255)')
   end
 
   it 'should load data from the database' do
     vehicles = $database[:vehicles]
     registered_vehicles = $database[:registered_vehicles]
+    versions = $database[:_versions]
 
-    vehicles.insert(:active => true, :name => 'Heart of Gold')
-    registered_vehicles.insert(:active => true, :name => 'TARDIS', :owner => 'The Doctor')
+    versions.insert(:id => 1, :_version => 0, :_version_created_at => DateTime.now)
+    versions.insert(:id => 2, :_version => 0, :_version_created_at => DateTime.now)
+    vehicles.insert(:active => true, :name => 'Heart of Gold', :_version_id=>1)
+    registered_vehicles.insert(:active => true, :name => 'TARDIS', :owner => 'The Doctor', :_version_id=>2)
 
     hog = Vehicle.fetch_by_id(1)
     tardis = RegisteredVehicle.fetch_by_id(1)
@@ -83,13 +86,23 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
     fleet.ground_vehicles<< van
 
     fleet_h = EntitySerializer.to_nested_hash(fleet)
-    fleet_h.should eq({
-                        :active => true,
-                        :ground_vehicles => [
-                          {:id=>nil, :active=>true, :name=>nil, :wheels=>nil, :seats=>4},
-                          {:id=>nil, :active=>true, :name=>nil, :wheels=>nil, :capacity=>1000}],
-                        :id => nil,
-                        :name => "Test fleet"
+    fleet_h.should eq({:id => nil,
+                       :active => true,
+                       :_version=>{:id=>nil, :_version=>0,
+                                   :_version_created_at=>fleet._version._version_created_at,
+                                   :_locked_by=>nil, :_locked_at=>nil},
+                       :ground_vehicles => [
+                         {:id=>nil, :active=>true,
+                          :_version=>{:id=>nil, :_version=>0,
+                                      :_version_created_at=>fleet._version._version_created_at,
+                                      :_locked_by=>nil, :_locked_at=>nil},
+                          :name=>nil, :wheels=>nil, :seats=>4},
+                         {:id=>nil, :active=>true,
+                          :_version=>{:id=>nil, :_version=>0,
+                                      :_version_created_at=>fleet._version._version_created_at,
+                                      :_locked_by=>nil, :_locked_at=>nil},
+                          :name=>nil, :wheels=>nil, :capacity=>1000}],
+                       :name => "Test fleet"
                       })
   end
 
@@ -119,5 +132,12 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
   pending 'Implement deserialization with polymorphism in LTI'
   it 'should deserialize correctly into a Hash with polymorphism' do
 
+  end
+
+  after :all do
+    %i(registered_vehicles vehicles _versions).each do |t|
+      $database.drop_table t
+      $database << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{t}'"
+    end
   end
 end
