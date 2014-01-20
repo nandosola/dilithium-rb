@@ -1,6 +1,6 @@
 require 'basic_attributes'
 require 'domain_object'
-require 'base_methods'
+require 'version'
 
 
 class BaseEntity < DomainObject
@@ -8,43 +8,19 @@ class BaseEntity < DomainObject
   include Repository::Sequel::InstanceFinders
   extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
   include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
-  extend BaseMethods
 
   # Each BaseEntity subclass will have an internal class called Immutable that contains the immutable representation of
   # said BaseEntity. The Immutable classes are all subclasses of BaseEntity::Immutable
   class Immutable
   end
 
-  def self.attribute_descriptors
-    {}
-  end
-
   def self.inherited(base)
+    self.superclass.inherited(base)
 
     base.instance_eval do
-      def attributes
-        self.attribute_descriptors.values
-      end
-
-      def attribute_descriptors
-        self.superclass.attribute_descriptors.merge(@attributes)
-      end
-
-      def add_attribute(descriptor)
-        name = descriptor.name
-        raise ArgumentError, "Duplicate definition for #{name}" if @attributes.has_key?(name)
-
-        @attributes[name] = descriptor
-        attach_attribute_accessors(descriptor)
-      end
 
       # Create the internal Immutable class for this BaseEntity
       const_set(:Immutable, Class.new(superclass.const_get(:Immutable)))
-      @attributes = { }
-
-      # TODO :id should be a IdentityAttribute, with a setter that prevents null assignation (à la Super layer type)
-      add_attribute(BasicAttributes::GenericAttribute.new(PRIMARY_KEY[:identifier], PRIMARY_KEY[:type]))
-      add_attribute(BasicAttributes::GenericAttribute.new(:active,TrueClass, false, true))
     end
   end
 
@@ -98,10 +74,6 @@ class BaseEntity < DomainObject
     load_attributes(in_h)
   end
 
-  def type
-    self.class
-  end
-
   def full_update(in_h)
     raise ArgumentError, "Entity id must be defined and not changed" if id != in_h[PRIMARY_KEY[:identifier]]
     check_input_h(in_h)
@@ -124,6 +96,7 @@ class BaseEntity < DomainObject
       end
     end
   end
+
 
   def each_multi_reference(include_immutable = false)
     refs = self.class.multi_references
@@ -148,13 +121,6 @@ class BaseEntity < DomainObject
     end
   end
 
-  def find_child
-    each_child do |child|
-      return child if yield(child)
-    end
-    nil
-  end
-
   def find_multi_reference
     each_multi_reference do |ref, ref_attr|
       return ref if yield(ref, ref_attr)
@@ -165,6 +131,13 @@ class BaseEntity < DomainObject
   def find_entity_reference
     each_entity_reference do |ref, ref_attr|
       return ref if yield(ref, ref_attr)
+    end
+    nil
+  end
+
+  def find_child
+    each_child do |child|
+      return child if yield(child)
     end
     nil
   end
@@ -192,28 +165,24 @@ class BaseEntity < DomainObject
     parent.first
   end
 
-  def self.child_references
-    self.get_attributes_by_type(BasicAttributes::ChildReference)
-  end
-
   def self.multi_references
     self.get_attributes_by_type(BasicAttributes::MultiReference)
-  end
-
-  def self.immutable_multi_references
-    self.get_attributes_by_type(BasicAttributes::ImmutableMultiReference)
   end
 
   def self.entity_references
     self.get_attributes_by_type(BasicAttributes::EntityReference)
   end
 
+  def self.immutable_multi_references
+    self.get_attributes_by_type(BasicAttributes::ImmutableMultiReference)
+  end
+
   def self.immutable_references
     self.get_attributes_by_type(BasicAttributes::ImmutableReference)
   end
 
-  def self.extended_generic_attributes
-    self.get_attributes_by_type(BasicAttributes::ExtendedGenericAttribute)
+  def self.child_references
+    self.get_attributes_by_type(BasicAttributes::ChildReference)
   end
 
   def self.has_children?
@@ -224,16 +193,12 @@ class BaseEntity < DomainObject
     !self.multi_references.empty?
   end
 
-  def self.has_parent?
-    !self.parent_reference.nil?
-  end
-
   def self.has_entity_references?
     !self.entity_references.empty?
   end
 
-  def self.has_extended_generic_attributes?
-    !self.extended_generic_attributes.empty?
+  def self.has_parent?
+    !self.parent_reference.nil?
   end
 
   private
@@ -383,10 +348,32 @@ class BaseEntity < DomainObject
     end
   end
 
-  def self.get_attributes_by_type(type)
-    attrs = self.attributes
-    refs = attrs.reduce([]){|m,attr| attr.instance_of?(type) ? m<<attr.name : m }
-    refs
+  def self.define_aggregate_method(plural_child_name)
+    self.class_eval do
+
+      singular_name = plural_child_name.to_s.singularize
+      singular_make_method_name = "make_#{singular_name}".to_sym
+      plural_make_method_name = "make_#{plural_child_name}".to_sym
+      plural_add_method_name = "#{plural_child_name}<<".to_sym
+
+      # Single-entity methods:
+
+      define_method(singular_make_method_name) do |in_h|
+        child_class = self.class.attribute_descriptors[plural_child_name].inner_type
+        a_child = child_class.new(in_h, self)
+        send(plural_add_method_name, a_child)
+
+        a_child
+      end
+
+      # Collection methods:
+
+      define_method(plural_make_method_name) do |in_a|
+        children = []
+        in_a.each {|in_h| children<< send(singular_make_method_name, in_h)}
+        children
+      end
+    end
   end
 
   def self.attach_attribute_accessors(attribute_descriptor)
@@ -416,38 +403,7 @@ class BaseEntity < DomainObject
             instance_variable_set("@#{name}".to_sym, Association::ImmutableEntityReference.create(new_value))
           }
         else
-          define_method("#{name}="){ |new_value|
-            self.class.attribute_descriptors[name].check_constraints(new_value)
-            instance_variable_set("@#{name}".to_sym, new_value)
-          }
-      end
-    end
-  end
-
-  def self.define_aggregate_method(plural_child_name)
-    self.class_eval do
-
-      singular_name = plural_child_name.to_s.singularize
-      singular_make_method_name = "make_#{singular_name}".to_sym
-      plural_make_method_name = "make_#{plural_child_name}".to_sym
-      plural_add_method_name = "#{plural_child_name}<<".to_sym
-
-      # Single-entity methods:
-
-      define_method(singular_make_method_name) do |in_h|
-        child_class = self.class.attribute_descriptors[plural_child_name].inner_type
-        a_child = child_class.new(in_h, self)
-        send(plural_add_method_name, a_child)
-
-        a_child
-      end
-
-      # Collection methods:
-
-      define_method(plural_make_method_name) do |in_a|
-        children = []
-        in_a.each {|in_h| children<< send(singular_make_method_name, in_h)}
-        children
+          super
       end
     end
   end

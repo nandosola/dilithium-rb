@@ -10,7 +10,7 @@ GEM
     bcrypt-ruby (3.1.2)
     bcrypt-ruby (3.1.2-java)
     diff-lcs (1.2.5)
-    rake (10.1.0)
+    rake (10.1.1)
     rspec (2.14.1)
       rspec-core (~> 2.14.0)
       rspec-expectations (~> 2.14.0)
