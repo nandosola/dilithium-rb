@@ -86,11 +86,12 @@ class BaseEntity < DomainObject
   end
 
   def full_update(in_h)
-    raise ArgumentError, "Entity id must be defined and not changed" if id != in_h[PRIMARY_KEY[:identifier]]
-    check_input_h(in_h)
+    unversioned_h = EntitySerializer.strip_key_from_hash(in_h, :_version)
+    raise ArgumentError, "Entity id must be defined and not changed" if id != unversioned_h[PRIMARY_KEY[:identifier]]
+    check_input_h(unversioned_h)
     detach_children
     detach_multi_references
-    load_attributes(in_h)
+    load_attributes(unversioned_h)
   end
 
   def make(in_h)
