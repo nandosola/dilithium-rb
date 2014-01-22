@@ -86,13 +86,15 @@ module Mapper
           increment_version(modified_entity)
           already_versioned = true
         end
-
-        # no need to update :_version_id:
         DB[DatabaseUtils.to_table_name(modified_entity)].where(id: modified_entity.id).update(modified_data)
       end
 
       modified_entity.each_child do |child|
         if child.id.nil?
+          unless already_versioned
+            increment_version(modified_entity)
+            already_versioned = true
+          end
           insert(child, modified_entity.id, version_id)
         else
           update(child, (original_entity.find_child do |c|
@@ -115,11 +117,16 @@ module Mapper
      end
     end
 
-    private
     def self.increment_version(entity)
       version = entity._version
-      version_id = version.id
       version.increment!
+      update_version(version)
+    end
+
+    private
+
+    def self.update_version(version)
+      version_id = version.id
       version_data = EntitySerializer.to_row(version)
       DB[:_versions].for_update.where(id:version_id).update(version_data)
     end
