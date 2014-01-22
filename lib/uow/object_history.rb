@@ -10,6 +10,10 @@ module UnitOfWork
       oid = obj.object_id.to_s.to_sym
       @object_ids[oid] = Array(@object_ids[oid]) << Marshal.load(Marshal.dump(obj))  # deep-clones references too
     end
+    def delete(obj)
+      oid = obj.object_id.to_s.to_sym
+      @object_ids.delete(oid)
+    end
     def [](oid)
       # TODO return iterator
       @object_ids[oid.to_s.to_sym]
