@@ -46,6 +46,19 @@ describe 'A transaction handling a Simple Entity' do
     @b_user.transactions.should be_empty
   end
 
+  it "correctly unregisters an object with a Transaction" do
+    @transaction.unregister(@a_user)
+    found_objects = @transaction.fetch_all_objects
+    found_objects.size.should eq(0)
+
+    expect{@transaction.unregister(@a_user)}.to raise_error(NameError)
+
+    @transaction.register_clean(@a_user)
+    found_objects = @transaction.fetch_all_objects
+    found_objects.size.should eq(1)
+    found_objects.first.object.should eq(@a_user)
+  end
+
   it "fetches a specific tracked object from the tracked object's class and its id" do
     @transaction.fetch_object_by_id(@a_user.class, @a_user.id).object.should eq(@a_user)
     @transaction.fetch_object_by_id(@a_user.class, 42).should be_nil

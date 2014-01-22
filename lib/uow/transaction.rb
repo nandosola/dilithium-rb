@@ -57,6 +57,12 @@ module UnitOfWork
       register_entity(obj, STATE_NEW)
     end
 
+    def unregister(obj)
+      check_unregister_entity(obj)
+      @object_tracker.untrack(obj)
+      @history.delete(obj)
+    end
+
     # Methods to be overriden by subclasses (ie. concurrency control)
     def check_register_clean(obj)
       true
@@ -202,6 +208,13 @@ module UnitOfWork
 
     def check_valid_uow
       raise RuntimeError, "Invalid Transaction" unless @valid
+    end
+
+    def check_unregister_entity(obj)
+      found_res = fetch_object(obj)
+      if found_res.nil?
+        raise ArgumentError, "Cannot unregister #{obj.class} with identity (#{id}=#{obj.id}): non exists in the transaction"
+      end
     end
 
     def end_transaction
