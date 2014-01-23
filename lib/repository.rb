@@ -40,6 +40,11 @@ module Repository
             Association::LazyEntityReference.new(id, self)
           end
 
+          def fetch_version_for_id(id)
+            version_id = DB[DatabaseUtils.to_table_name(self)].where(id: id).get(:_version_id)
+            Version.new DB[:_versions].where(id: version_id).first
+          end
+
           def resolve_extended_generic_attributes(in_h)
             if self.has_extended_generic_attributes?
               self.extended_generic_attributes.each do |gen_attr|

@@ -16,7 +16,7 @@ module Association
     end
 
     def _version
-      resolve._version
+      @type.fetch_version_for_id(@id)
     end
   end
 
