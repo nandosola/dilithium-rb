@@ -214,6 +214,15 @@ module UnitOfWork
 
     # Implicit locking
 
+    def commit
+      @object_tracker.fetch_by_state(STATE_NEW).each do |res|
+        obj = res.object
+        obj._version._locked_by = @uuid
+        obj._version._locked_at = Version.utc_tstamp
+      end
+      super
+    end
+
     def load_as_dirty(entity_class, id)
       lock(entity_class, id)
       entity = entity_class.fetch_by_id(id)
