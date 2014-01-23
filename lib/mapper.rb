@@ -38,6 +38,7 @@ module Mapper
      # First insert version when persisting the root; no need to lock the row/table
      if parent_id.nil?
        version_data = EntitySerializer.to_row(entity._version)
+       version_data.delete(:id)
        version_id = DB[:_versions].insert(version_data)
        entity._version.id = version_id
      end

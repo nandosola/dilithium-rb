@@ -40,6 +40,7 @@ module Repository
             Association::LazyEntityReference.new(id, self)
           end
 
+          # TODO lock for update?
           def fetch_version_for_id(id)
             version_id = DB[DatabaseUtils.to_table_name(self)].where(id: id).get(:_version_id)
             Version.new DB[:_versions].where(id: version_id).first
