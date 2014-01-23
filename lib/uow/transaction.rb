@@ -58,28 +58,11 @@ module UnitOfWork
     end
 
     def unregister(obj)
+      # FIXME: check unregistering conditions in search od inconsistencies
       check_unregister_entity(obj)
       @object_tracker.untrack(obj)
       @history.delete(obj)
     end
-
-    # Methods to be overriden by subclasses (ie. concurrency control)
-    def check_register_clean(obj)
-      true
-    end
-
-    def check_register_dirty(obj)
-      true
-    end
-
-    def check_register_deleted(obj)
-      true
-    end
-
-    def check_register_new(obj)
-      true
-    end
-    # /end overridable methods
 
     def rollback
       check_valid_uow
@@ -227,21 +210,64 @@ module UnitOfWork
 
   end
 
-  # TODO: Check optimistic concurrency (in a subclass) - it has an additional :stale state
-=begin TODO
-    class ReadWriteLockingTransaction < Transaction
-      def check_register_clean(obj)
-        raise ConcurrencyException, 'object is not clean' unless \
-          obj.transaction.nil? || obj.unit_of_work[:state] == STATE_CLEAN
-      end
+  class PessimisticTransaction < Transaction
 
-      def check_register_dirty(obj)
-        raise ConcurrencyException, 'object is not clean' unless obj.transaction.nil?
-      end
+    # Implicit locking
 
-      def check_register_deleted(obj)
-        raise ConcurrencyException, 'object is not clean' unless obj.transaction.nil?
+    def load_as_dirty(entity_class, id)
+      lock(entity_class, id)
+      entity = entity_class.fetch_by_id(id)
+      register_dirty(entity)
+      entity
+    end
+
+    def load_as_deleted(entity_class, id)
+      lock(entity_class, id)
+      entity = entity_class.fetch_by_id(id)
+      register_deleted(entity)
+      entity
+    end
+
+    def unregister(obj)
+      res = fetch_object(obj)
+      unless res.nil?
+        unlock(res.object) if [STATE_DIRTY, STATE_DELETED].include?(res.state)
+      else
+        raise ObjectNotFoundInTransactionException
+      end
+      super
+    end
+
+    private
+
+    def end_transaction
+      [STATE_DELETED, STATE_DIRTY].each do |st|
+        @object_tracker.fetch_by_state(st).each do |res|
+          unlock(res.object)
+        end
+      end
+      super
+    end
+
+    def lock(entity_class, id)
+      begin
+        @mapper.rw_lock(entity_class, id, @uuid)
+      rescue VersionAlreadyLockedException
+        raise Concurrency::ReadWriteLockException
       end
     end
-=end
+
+    def unlock(entity)
+      begin
+        @mapper.unlock(entity, @uuid)
+      rescue VersionAlreadyLockedException
+        raise Concurrency::ReadWriteLockException
+      end
+    end
+
+  end
+
+  # TODO: Implement OptimisticTransaction < Transaction
+  # TODO: make sure an object is not registered into transaction of different types!!
+
 end

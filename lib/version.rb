@@ -5,6 +5,10 @@ String.inflections do |inflect|
   inflect.irregular '_version', '_versions'
 end
 
+class VersionAlreadyLockedException < Exception; end
+
+# TODO: rename to SharedVersion
+# FIXME this should really be an Active Record (pattern) object
 class Version < DomainObject
   extend Repository::Sequel::ClassFinders
 
@@ -13,7 +17,7 @@ class Version < DomainObject
 
   add_attribute BasicAttributes::GenericAttribute.new(:_version, Integer)
   add_attribute BasicAttributes::GenericAttribute.new(:_version_created_at, DateTime)
-  add_attribute BasicAttributes::GenericAttribute.new(:_locked_by, String)
+  add_attribute BasicAttributes::GenericAttribute.new(:_locked_by, String)   # FIXME: rename to _locked_by_transaction
   add_attribute BasicAttributes::GenericAttribute.new(:_locked_at, DateTime)
 
   def initialize(args)
@@ -36,21 +40,25 @@ class Version < DomainObject
     @_version == INITIAL_VERSION
   end
 
-  def lock!(session)
-    @_locked_by = session
+  def lock!(locked_by)
+    if @_locked_by.nil?
+      @_locked_by = locked_by
+      @_locked_at = Version.utc_tstamp
+    else
+      raise VersionAlreadyLockedException, "Cannot lock! - already locked by #{@_locked_by} at #{@_locked_at}" \
+        unless @_locked_by == locked_by
+    end
   end
 
   def unlock!
     @_locked_by = nil
+    @_locked_at = nil
   end
 
+  # FIXME check locks!
   def increment!
-    if @_locked_by.nil?
-      @_version += 1
-      @_version_created_at = Version.utc_tstamp
-    #else
-      #  raise ConcurrentModificationException
-    end
+    @_version += 1
+    @_version_created_at = Version.utc_tstamp
   end
 
 end

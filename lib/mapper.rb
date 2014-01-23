@@ -1,7 +1,7 @@
 require_relative 'basic_attributes'
 require_relative 'entity_serializer'
 require_relative 'database_utils'
-require 'version'
+require_relative 'version'
 
 module Mapper
 
@@ -115,6 +115,22 @@ module Mapper
        found_ref = modified_entity.find_multi_reference{|r, attr| ref_attr == attr && ref.id == r.id}
        delete_in_intermediate_table(original_entity, ref, ref_attr) if found_ref.nil?
      end
+    end
+
+    def self.rw_lock(entity_class, id, locker)
+      DB[DatabaseUtils.to_table_name(entity_class)].for_update.where(id: id).each do |e|
+        version_id = e[:_version_id]
+        updated_rows = DB[:_versions].for_update.where(id: version_id, _locked_by:nil).
+            update(_locked_by:locker, _locked_at:Version.utc_tstamp)
+        raise VersionAlreadyLockedException if 0 == updated_rows
+      end
+    end
+
+    def self.unlock(entity, unlocker)
+      version_id = entity._version.id
+      updated_rows = DB[:_versions].for_update.where(id: version_id, _locked_by:unlocker).
+          update(_locked_by:nil, _locked_at:nil)
+      raise VersionAlreadyLockedException if 0 == updated_rows
     end
 
     def self.increment_version(entity)
