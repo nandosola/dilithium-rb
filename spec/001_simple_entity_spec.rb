@@ -48,10 +48,15 @@ describe 'A Simple Entity' do
 
   it 'fetches references' do
     duke = User.fetch_by_email('duke@example.net').first
-    duke.reference.should be_a(Reference)
+    duke.reference.should be_a(Association::ImmutableEntityReference)
+    duke.reference.type.should eq(Reference)
     duke.reference.id.should eq(1)
-    duke.refers_to.should be_a(Reference)
-    duke.refers_to.id.should eq(2)
+    duke.reference.resolve
+    duke.reference.resolved_entity.email.should eq('duke@example.net')
+
+    duke.refers_to.should be_a(Association::ImmutableEntityReference)
+    duke.refers_to.type.should eq(Reference)
+    duke.refers_to.id.should eq(1)
   end
 
   it 'has not parent reference' do

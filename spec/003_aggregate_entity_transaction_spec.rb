@@ -242,12 +242,12 @@ describe 'A Transaction handling an Aggregate Entity' do
         class Foo < BaseEntity
           children :bars
           attribute :foo, String
-          attribute :baz, Baz
+          reference :baz, Baz
         end
         class Bar < BaseEntity
           parent :foo
           attribute :bar, String
-          attribute :baz, Baz
+          reference :baz, Baz
         end
       end
     end

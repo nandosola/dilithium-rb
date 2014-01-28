@@ -37,17 +37,21 @@ class EntitySerializer
             value.each do |ref|
               entity_h[attr] << to_nested_hash(ref, opts)
             end
-          when BasicAttributes::EntityReference, BasicAttributes::Version
+
+          when BasicAttributes::Version
             entity_h[attr] = to_nested_hash(value, opts) unless value.nil?
+
           when BasicAttributes::ImmutableMultiReference
             entity_h[attr] = Array.new
             value.each do |ref|
               ref.resolve
               entity_h[attr] << to_hash(ref.resolved_entity, opts)
             end
+
           when BasicAttributes::ImmutableReference
             value.resolve
             entity_h[attr] = to_hash(value.resolved_entity, opts) unless value.nil?
+
           when BasicAttributes::ParentReference
             entity_h.delete(attr)
         end
@@ -70,7 +74,7 @@ class EntitySerializer
       unless [BasicAttributes::Version, BasicAttributes::ChildReference, BasicAttributes::ParentReference,
               BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference].include?(attr_type.class)
         case attr_type
-          when BasicAttributes::EntityReference, BasicAttributes::ImmutableReference
+          when BasicAttributes::ImmutableReference
             row[DatabaseUtils.to_reference_name(attr_type)] = value.nil? ? attr_type.default : value.id
           else
             row[attr] = value

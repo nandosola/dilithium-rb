@@ -87,9 +87,6 @@ module BasicAttributes
     end
   end
 
-  class EntityReference < Reference
-  end
-
   class Version < Reference
   end
 

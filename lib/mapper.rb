@@ -193,8 +193,7 @@ module Mapper
         else
           case attr
             # TODO Refactor this behaviour to a class
-            when BasicAttributes::ParentReference, BasicAttributes::EntityReference,
-                BasicAttributes::ImmutableReference, BasicAttributes::Version
+            when BasicAttributes::ParentReference, BasicAttributes::ImmutableReference, BasicAttributes::Version
               name = if attr.type.nil? || Version == attr.type
                        attr.name.to_s.pluralize
                      else

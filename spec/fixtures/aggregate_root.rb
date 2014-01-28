@@ -59,7 +59,7 @@ end
 class Contractor < BaseEntity
   extend Repository::Sequel::ContractorCustomFinders
 
-  attribute :local_office, LocalOffice
+  reference :local_office, LocalOffice
   attribute :name, String
   attribute :email, String
 end

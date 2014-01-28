@@ -104,13 +104,13 @@ module UnitOfWork
       def tsort_each_node(&block)
         @results.each do |res|
           entity = res.object
-          entity.each_entity_reference(&block)
+          entity.each_reference(true, &block)
         end
       end
 
       def tsort_each_child(node, &block)
         check_valid_reference(node)
-        node.each_entity_reference(&block)
+        node.each_reference(true, &block)
       end
 
       def check_valid_reference(ref)

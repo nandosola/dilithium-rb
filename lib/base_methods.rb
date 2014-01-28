@@ -16,12 +16,11 @@ module BaseMethods
     self.add_attribute(BasicAttributes::MultiReference.new(name, self, type))
   end
 
-  # Creates an attribute or a reference to a single BasicEntity (many-to-one). The attribute must extend BaseEntity,
-  # any Ruby Generic type (except for Enumerable) or be a generic type itself.
+  # Creates an attribute. The attribute must extend Ruby Generic type (except for Enumerable) or be a generic type
+  # itself.
   #
   # Example:
   #   attribute :desc, String, mandatory:true, default:'foo'
-  #   attribute :country, CountryEntity
   #   attribute :password, BCrypt::Password
   #
   # Params:
@@ -32,9 +31,8 @@ module BaseMethods
   #     * default: default value
   #
   def attribute(name, type, opts = {})
-    descriptor = if self.is_a_base_entity?(type)
-                   BasicAttributes::EntityReference.new(name, type)
-                 elsif BasicAttributes::GENERIC_TYPES.include?(type.superclass)
+    raise ArgumentError, "Attribute #{name} is a BaseEntity. Use reference instead of attribute" if self.is_a_base_entity?(type)
+    descriptor = if BasicAttributes::GENERIC_TYPES.include?(type.superclass)
                    BasicAttributes::ExtendedGenericAttribute.new(name, type, opts[:mandatory], opts[:default])
                  elsif BasicAttributes::GENERIC_TYPES.include?(type)
                    BasicAttributes::GenericAttribute.new(name, type, opts[:mandatory], opts[:default])

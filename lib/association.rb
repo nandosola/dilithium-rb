@@ -22,7 +22,9 @@ module Association
 
   class ImmutableEntityReference < LazyEntityReference
     def self.create(entity)
-      if entity.is_a?(Association::ImmutableEntityReference)
+      if entity.nil?
+        nil
+      elsif entity.is_a?(Association::ImmutableEntityReference)
         entity
       else
         Association::ImmutableEntityReference.new(entity.id, entity.class)

@@ -12,11 +12,11 @@ class FooRef < BaseEntity
 end
 class BarRef < BaseEntity
   attribute :description, String
-  attribute :foo_ref, FooRef
+  reference :foo_ref, FooRef
 end
 class BazRef < BaseEntity
   attribute :description, String
-  attribute :bar_ref, BarRef
+  reference :bar_ref, BarRef
 end
 
 class Qux < BaseEntity
@@ -25,12 +25,12 @@ end
 
 class BatRef < BaseEntity
   attribute :name, String
-  attribute :qux, Qux
+  reference :qux, Qux
 end
 
 class MyEntity < BaseEntity
   attribute :description, String
-  attribute :qux, Qux
-  attribute :baz_ref, BazRef
-  attribute :bat_ref, BatRef
+  reference :qux, Qux
+  reference :baz_ref, BazRef
+  reference :bat_ref, BatRef
 end
