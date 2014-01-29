@@ -84,7 +84,7 @@ describe 'A Simple Entity' do
     new_user.respond_to?(:reference=).should be_true
     my_reference.name.should eq('test')
     new_user.reference.should be_nil
-    expect {new_user.reference = 'foo'}.to raise_error(RuntimeError)
+    expect {new_user.reference = 'foo'}.to raise_error(ArgumentError)
     new_user.reference = my_reference
 
     expect {another_user.email = 42}.to raise_error(RuntimeError)

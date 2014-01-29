@@ -101,16 +101,28 @@ module UnitOfWork
       end
 
       private
+      def process_reference(node)
+        ref = case node
+                when Association::ImmutableEntityReference
+                  node.instance_variable_get(:'@original_entity')
+                else
+                  node
+              end
+        yield ref
+      end
+
       def tsort_each_node(&block)
         @results.each do |res|
           entity = res.object
-          entity.each_reference(true, &block)
+          entity.each_reference(true) do |ref|
+            process_reference(ref, &block)
+          end
         end
       end
 
       def tsort_each_child(node, &block)
         check_valid_reference(node)
-        node.each_reference(true, &block)
+        process_reference(node, &block)
       end
 
       def check_valid_reference(ref)

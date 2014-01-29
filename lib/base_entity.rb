@@ -12,6 +12,10 @@ class BaseEntity < DomainObject
   # said BaseEntity. The Immutable classes are all subclasses of BaseEntity::Immutable
   class Immutable
     MUTABLE_CLASS = BaseEntity
+
+    def immutable
+      self
+    end
   end
 
   def self.inherited(base)
@@ -121,6 +125,15 @@ class BaseEntity < DomainObject
     end
   end
 
+  def each_immutable_reference
+    self.class.immutable_references.each do |ref_attr|
+      refs = Array(self.send(ref_attr)).clone
+      refs.each do |ref|
+        yield(ref)
+      end
+    end
+  end
+
   def each_multi_reference(include_immutable = false)
     refs = self.class.multi_references
     if include_immutable
@@ -149,9 +162,11 @@ class BaseEntity < DomainObject
     nil
   end
 
-  # Return an immutable copy of this object. The immutable copy will be disconnected from its parent and children and
-  # any references (i.e., it will contain only GenericAttributes and ExtendedGenericAttributes). If you need to get
-  # a reference you need to use a Finder in the entity's Root to get the Entity and from there get the reference.
+  # Return an immutable snapshot of this object. The snapshot will be disconnected from its parent and children and
+  # any references (i.e., it will contain only GenericAttributes, ExtendedGenericAttributes and its PK). If you need to
+  # get a reference to the actual, complete, object you need to use a Finder in the entity's Root to get the Entity.
+  # Note that the id of the snapshot may be nil (and will never be updated) if you call this method on an Entity that
+  # hasn't been persisted.
   def immutable
     obj = self.class.const_get(:Immutable).new
     attributes = self.class.attribute_descriptors
