@@ -409,14 +409,17 @@ class BaseEntity < DomainObject
           # No mutator should be defined for parent
         when BasicAttributes::ChildReference, BasicAttributes::MultiReference
           define_method("#{name}<<"){ |new_value|
+            attribute_descriptor.check_constraints(new_value)
             instance_variable_get("@#{name}".to_sym) << new_value
           }
         when BasicAttributes::ImmutableMultiReference
           define_method("#{name}<<"){ |new_value|
+            attribute_descriptor.check_constraints(new_value)
             instance_variable_get("@#{name}".to_sym) << Association::ImmutableEntityReference.create(new_value)
           }
         when BasicAttributes::ImmutableReference
           define_method("#{name}="){ |new_value|
+            attribute_descriptor.check_constraints(new_value)
             instance_variable_set("@#{name}".to_sym, Association::ImmutableEntityReference.create(new_value))
           }
         else

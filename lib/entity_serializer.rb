@@ -45,7 +45,7 @@ class EntitySerializer
                 entity_h[attr] << ref
               end
             end
-          when BasicAttributes::EntityReference, BasicAttributes::Version
+          when BasicAttributes::Version
             entity_h[attr] = to_nested_hash(value, opts) unless value.nil?
           when BasicAttributes::ImmutableReference
             entity_h[attr] = value

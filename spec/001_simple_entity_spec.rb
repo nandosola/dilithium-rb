@@ -52,11 +52,11 @@ describe 'A Simple Entity' do
     duke.reference.type.should eq(Reference)
     duke.reference.id.should eq(1)
     duke.reference.resolve
-    duke.reference.resolved_entity.email.should eq('duke@example.net')
+    duke.reference.resolved_entity.name.should eq('Duke ref')
 
     duke.refers_to.should be_a(Association::ImmutableEntityReference)
     duke.refers_to.type.should eq(Reference)
-    duke.refers_to.id.should eq(1)
+    duke.refers_to.id.should eq(2)
   end
 
   it 'has not parent reference' do
@@ -64,7 +64,7 @@ describe 'A Simple Entity' do
     user.class.parent_reference.should eq(nil)
   end
 
-  it "accepts empty or full-hash constructors and validates its attributes" do
+  it 'accepts empty or full-hash constructors and validates its attributes' do
 
     norbert = {:name => 'Norbert', :email => 'norb@example.net'}
     dilbert = {:name => 'Dilbert', :email => 'dilbert@example.net'}

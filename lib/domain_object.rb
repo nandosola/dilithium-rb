@@ -55,9 +55,9 @@ class DomainObject
     self.class_eval do
       define_method(name){instance_variable_get("@#{name}".to_sym)}
       define_method("#{name}="){ |new_value|
-            self.class.attribute_descriptors[name].check_constraints(new_value)
-            instance_variable_set("@#{name}".to_sym, new_value)
-          }
+        attribute_descriptor.check_constraints(new_value)
+        instance_variable_set("@#{name}".to_sym, new_value)
+      }
     end
   end
 
