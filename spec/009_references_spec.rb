@@ -166,29 +166,11 @@ describe 'An entity with references' do
 
     serialized = EntitySerializer.to_nested_hash(a_shipyard)
 
-    shipyard_h = {
-      :name => 'The shipyard',
-      :location => {
-        :id => a_location.id,
-        :name => a_location.name,
-        :active => a_location.active,
+    serialized[:name].should eq('The shipyard')
+    serialized[:location].should eq(Association::ImmutableEntityReference.new(a_location.id, Location))
 
-      },
-      :containers => [
-        {
-          :id => a_shipment.containers[0].id,
-          :active => a_shipment.containers[0].active,
-          :kind => a_shipment.containers[0].kind
-        },
-        {
-          :id => a_shipment.containers[1].id,
-          :active => a_shipment.containers[1].active,
-          :kind => a_shipment.containers[1].kind
-        }
-      ]
-    }
-    shipyard_h.each do |k, v|
-      serialized[k].should eq(v)
+    serialized[:containers].each_with_index do |c, i|
+      c.should eq(Association::ImmutableEntityReference.new(a_shipment.containers[i].id, Container))
     end
   end
 end

@@ -1,5 +1,6 @@
 require 'association'
 require_relative 'database_utils'
+require 'exceptions'
 
 module Repository
 
@@ -43,7 +44,12 @@ module Repository
           # TODO lock for update?
           def fetch_version_for_id(id)
             version_id = DB[DatabaseUtils.to_table_name(self)].where(id: id).get(:_version_id)
-            Version.new DB[:_versions].where(id: version_id).first
+            raise Repository::NotFound.new(id, self) if version_id.nil?
+
+            version = DB[:_versions].where(id: version_id).first
+            raise Repository::NotFound.new(version_id, Version) if version.nil?
+
+            Version.new(version)
           end
 
           def resolve_extended_generic_attributes(in_h)

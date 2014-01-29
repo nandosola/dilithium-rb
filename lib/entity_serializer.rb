@@ -10,14 +10,13 @@ class EntitySerializer
       when Association::LazyEntityReference
         h[:"#{entity.type.to_s.split('::').last.downcase.singularize}_id"] = entity.id
       else
-        entity.instance_variables.each do |attr|
-          attr_name = attr.to_s[1..-1].to_sym
-          attr_value = entity.instance_variable_get(attr)
+        entity.class.attribute_names.each do |attr|
+          attr_value = entity.send(attr.to_sym)
           next if !skip_class.nil? && attr_value.is_a?(skip_class)
           # TODO: uncomment when BasicEntityBuilder is ready
           # attr_type = entity.class.attribute_descriptor[attr_name]
           # attr_value = attr_type.to_generic_type(attr_value) if attr_type.instance_of?(BasicAttributes::ExtendedGenericAttribute)
-          h[attr_name] =  attr_value
+          h[attr] =  attr_value
         end
     end
     h
@@ -33,21 +32,23 @@ class EntitySerializer
 
         case attr_type
           when BasicAttributes::ChildReference, BasicAttributes::MultiReference
-            entity_h[attr] = Array.new
-            value.each do |ref|
-              entity_h[attr] << to_nested_hash(ref, opts)
+            unless value.nil?
+              entity_h[attr] = Array.new
+              value.each do |ref|
+                entity_h[attr] << to_nested_hash(ref, opts)
+              end
+            end
+          when BasicAttributes::ImmutableMultiReference
+            unless value.nil?
+              entity_h[attr] = Array.new
+              value.each do |ref|
+                entity_h[attr] << ref
+              end
             end
           when BasicAttributes::EntityReference, BasicAttributes::Version
             entity_h[attr] = to_nested_hash(value, opts) unless value.nil?
-          when BasicAttributes::ImmutableMultiReference
-            entity_h[attr] = Array.new
-            value.each do |ref|
-              ref.resolve
-              entity_h[attr] << to_hash(ref.resolved_entity, opts)
-            end
           when BasicAttributes::ImmutableReference
-            value.resolve
-            entity_h[attr] = to_hash(value.resolved_entity, opts) unless value.nil?
+            entity_h[attr] = value
           when BasicAttributes::ParentReference
             entity_h.delete(attr)
         end

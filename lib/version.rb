@@ -61,4 +61,11 @@ class Version < DomainObject
     @_version_created_at = Version.utc_tstamp
   end
 
+  def ==(other)
+    self.class == other.class &&
+      @_version == other._version &&
+      @_version_created_at == other._version_created_at &&
+      @_locked_by == other._locked_by &&
+      @_locked_at == other._locked_at
+  end
 end
