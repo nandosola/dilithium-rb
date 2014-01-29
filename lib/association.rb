@@ -4,15 +4,11 @@ module Association
   class LazyEntityReference
     attr_reader :id, :type, :resolved_entity, :_version
 
-    def initialize(id, referenced_class)
+    def initialize(id, referenced_class, version = nil)
       @id = id
       @type = referenced_class
       @resolved_entity = nil
-      @_version = if @id.nil?
-                    nil
-                  else
-                    @type.fetch_version_for_id(@id)
-                  end
+      @_version = version || ((@id.nil?) ? nil : @type.fetch_version_for_id(@id))
     end
 
     #TODO Do the fetch_by_id on the root
