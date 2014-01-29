@@ -132,7 +132,7 @@ describe 'A BasicEntity with a many to many relationship' do
     dept2 = Department.new({name:'Mad Science'})
 
     emp2 = Employee.new({name:'Mayer'})
-    ref_dept = Association::LazyEntityReference.new(42, Department)
+    ref_dept = Association::LazyEntityReference.new(2, Department)
 
     emp.departments<<dept
     EntitySerializer.to_hash(emp)[:departments].should eq([dept])

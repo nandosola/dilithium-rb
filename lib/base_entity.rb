@@ -11,6 +11,7 @@ class BaseEntity < DomainObject
   # Each BaseEntity subclass will have an internal class called Immutable that contains the immutable representation of
   # said BaseEntity. The Immutable classes are all subclasses of BaseEntity::Immutable
   class Immutable
+    MUTABLE_CLASS = BaseEntity
   end
 
   def self.inherited(base)
@@ -22,7 +23,9 @@ class BaseEntity < DomainObject
       add_attribute(BasicAttributes::Version.new(:_version, Version)) unless @attributes.has_key? :_version
 
       # Create the internal Immutable class for this BaseEntity
-      const_set(:Immutable, Class.new(superclass.const_get(:Immutable)))
+      immutable_class = Class.new(superclass.const_get(:Immutable))
+      immutable_class.const_set(:MUTABLE_CLASS, base)
+      const_set(:Immutable, immutable_class)
     end
   end
 

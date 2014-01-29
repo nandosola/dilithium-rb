@@ -25,6 +25,10 @@ class DomainObject
         self.attribute_descriptors.values
       end
 
+      def attribute_names
+        self.attribute_descriptors.keys
+      end
+
       def attribute_descriptors
         self.superclass.attribute_descriptors.merge(@attributes)
       end
