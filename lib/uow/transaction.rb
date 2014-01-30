@@ -247,7 +247,7 @@ module UnitOfWork
       unless res.nil?
         unlock(res.object) if [STATE_DIRTY, STATE_DELETED].include?(res.state)
       else
-        raise ObjectNotFoundInTransactionException
+        raise ObjectNotFoundInTransactionException.new(obj.class, obj.id)
       end
       super
     end

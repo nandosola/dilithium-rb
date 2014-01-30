@@ -2,18 +2,25 @@ module UnitOfWork
 
   module TransactionExceptions
 
+    class EntityException < Exception
+      attr_reader :entity_class, :id
+      def initialize(entity_class, id)
+        @entity_class = entity_class
+        @id = id
+        super()
+      end
+    end
+
     class IllegalOperationException < Exception; end
 
-    class ObjectNotFoundInTransactionException < Exception; end
+    class ObjectNotFoundInTransactionException < EntityException; end
 
     module Concurrency
-      class ReadWriteLockException < Exception
-        attr_reader :entity_class, :id, :operation
+      class ReadWriteLockException < EntityException
+        attr_reader :operation
         def initialize(entity_class, id, operation)
-          @entity_class = entity_class
-          @id = id
           @operation = operation
-          super()
+          super(entity_class, id)
         end
       end
     end
