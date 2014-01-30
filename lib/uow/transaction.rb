@@ -227,7 +227,9 @@ module UnitOfWork
     def load_as_dirty(entity_class, id)
       lock(entity_class, id)
       entity = entity_class.fetch_by_id(id)
-      register_dirty(entity)
+      # manual register_dirty
+      check_valid_entity(entity, STATE_DIRTY)
+      register_entity(entity, STATE_DIRTY)
       entity
     end
 
@@ -238,7 +240,9 @@ module UnitOfWork
     def load_as_deleted(entity_class, id)
       lock(entity_class, id)
       entity = entity_class.fetch_by_id(id)
-      register_deleted(entity)
+      # manual register_deleted
+      check_valid_entity(entity, STATE_DELETED)
+      register_entity(entity, STATE_DELETED)
       entity
     end
 
