@@ -220,7 +220,7 @@ module UnitOfWork
     end
 
     def register_dirty(obj)
-      raise Concurrency::IllegalOperationException, "Please use load_as_dirty()"
+      raise IllegalOperationException, "Please use load_as_dirty()"
     end
 
     # TODO pass QueryObject instead of "id"
@@ -232,7 +232,7 @@ module UnitOfWork
     end
 
     def register_deleted(obj)
-      raise Concurrency::IllegalOperationException, "Please use load_as_deleted()"
+      raise IllegalOperationException, "Please use load_as_deleted()"
     end
 
     def load_as_deleted(entity_class, id)
