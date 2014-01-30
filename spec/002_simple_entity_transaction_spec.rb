@@ -65,10 +65,9 @@ describe 'A transaction handling a Simple Entity' do
     @transaction.fetch_object_by_id(@a_user.class, 42).should be_nil
 
     User.fetch_from_transaction(@transaction.uuid, @a_user.id).object.should eq(@a_user)
-    User.fetch_from_transaction('c0ffeeb4b3', 42).should be_nil
+    User.fetch_from_transaction('c0ffeeb4b3', 42).should be_a_kind_of(UnitOfWork::TransactionRegistry::Registry::TransactionNotFound)
     reg = UnitOfWork::TransactionRegistry::Registry.instance
-    expect{reg['c0ffeeb4b3']}.
-        to raise_error(UnitOfWork::TransactionRegistryExceptions::TransactionNotFound)
+    reg['c0ffeeb4b3'].should be_a_kind_of(UnitOfWork::TransactionRegistry::Registry::TransactionNotFound)
   end
 
   it "correctly moves an object between states" do

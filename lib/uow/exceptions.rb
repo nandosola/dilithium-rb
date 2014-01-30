@@ -1,12 +1,10 @@
 module UnitOfWork
   module TransactionExceptions
+    class IllegalOperationException < Exception; end
     class ObjectNotFoundInTransactionException < Exception; end
     module Concurrency
       class ReadWriteLockException < Exception; end
     end
-  end
-  module TransactionRegistryExceptions
-    class TransactionNotFound < Exception; end
   end
   module ObjectTrackerExceptions
     class InvalidStateException < Exception; end
