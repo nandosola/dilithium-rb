@@ -214,20 +214,25 @@ module UnitOfWork
 
     # Implicit locking
 
-    def commit
-      @object_tracker.fetch_by_state(STATE_NEW).each do |res|
-        obj = res.object
-        obj._version._locked_by = @uuid
-        obj._version._locked_at = Version.utc_tstamp
-      end
+    def register_new(obj)
       super
+      obj._version.lock!(@uuid)
     end
 
+    def register_dirty(obj)
+      raise Concurrency::IllegalOperationException, "Please use load_as_dirty()"
+    end
+
+    # TODO pass QueryObject instead of "id"
     def load_as_dirty(entity_class, id)
       lock(entity_class, id)
       entity = entity_class.fetch_by_id(id)
       register_dirty(entity)
       entity
+    end
+
+    def register_deleted(obj)
+      raise Concurrency::IllegalOperationException, "Please use load_as_deleted()"
     end
 
     def load_as_deleted(entity_class, id)
@@ -262,15 +267,16 @@ module UnitOfWork
       begin
         @mapper.rw_lock(entity_class, id, @uuid)
       rescue VersionAlreadyLockedException
-        raise Concurrency::ReadWriteLockException
+        raise Concurrency::ReadWriteLockException.new(entity_class, id, :lock)
       end
     end
 
     def unlock(entity)
       begin
         @mapper.unlock(entity, @uuid)
+        entity._version.unlock!
       rescue VersionAlreadyLockedException
-        raise Concurrency::ReadWriteLockException
+        raise Concurrency::ReadWriteLockException.new(entity.class, entity.id, :unlock)
       end
     end
 
