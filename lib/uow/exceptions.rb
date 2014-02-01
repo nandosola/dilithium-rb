@@ -1,16 +1,37 @@
 module UnitOfWork
+
   module TransactionExceptions
-    class ObjectNotFoundInTransactionException < Exception; end
+
+    class EntityException < Exception
+      attr_reader :entity_class, :id
+      def initialize(entity_class, id)
+        @entity_class = entity_class
+        @id = id
+        super()
+      end
+    end
+
+    class IllegalOperationException < Exception; end
+
+    class ObjectNotFoundInTransactionException < EntityException; end
+
     module Concurrency
-      class ReadWriteLockException < Exception; end
+      class ReadWriteLockException < EntityException
+        attr_reader :operation
+        def initialize(entity_class, id, operation)
+          @operation = operation
+          super(entity_class, id)
+        end
+      end
     end
   end
-  module TransactionRegistryExceptions
-    class TransactionNotFound < Exception; end
-  end
+
   module ObjectTrackerExceptions
+
     class InvalidStateException < Exception; end
+
     class MultipleTrackedObjectsException < Exception; end
+
     class UntrackedObjectException < Exception; end
 
     class UntrackedReferenceException < UntrackedObjectException
