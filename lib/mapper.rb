@@ -32,25 +32,27 @@ module Mapper
       end
     end
 
-    def self.insert(entity, parent_id = nil, version_id=nil)
+    def self.insert(entity, parent_id = nil, _version=nil)
      check_uow_transaction(entity) unless parent_id  # It's the root
 
      # First insert version when persisting the root; no need to lock the row/table
      if parent_id.nil?
        version_data = EntitySerializer.to_row(entity._version)
        version_data.delete(:id)
-       version_id = DB[:_versions].insert(version_data)
-       entity._version.id = version_id
+       version_data[:id] = DB[:_versions].insert(version_data)
+       entity._version = Version.new(version_data)
+     else
+       entity._version = _version
      end
 
       # Then insert entity
       entity_data = EntitySerializer.to_row(entity, parent_id)
       entity_data.delete(:id)
-      entity.id = DB[DatabaseUtils.to_table_name(entity)].insert(entity_data.merge(_version_id:version_id))
+      entity.id = DB[DatabaseUtils.to_table_name(entity)].insert(entity_data.merge(_version_id:entity._version.id))
 
       # Then recurse children for inserting them
       entity.each_child do |child|
-        insert(child, entity.id, entity._version.id)
+        insert(child, entity.id, entity._version)
       end
 
       # Then recurse multi_ref for inserting the intermediate table
@@ -80,7 +82,6 @@ module Mapper
       modified_data = EntitySerializer.to_row(modified_entity)
       original_data = EntitySerializer.to_row(original_entity)
       version = modified_entity._version
-      version_id = version.id
 
       unless modified_data.eql?(original_data)
         unless already_versioned
@@ -96,7 +97,7 @@ module Mapper
             increment_version(modified_entity)
             already_versioned = true
           end
-          insert(child, modified_entity.id, version_id)
+          insert(child, modified_entity.id, version)
         else
           update(child, (original_entity.find_child do |c|
             child.class == c.class && child.id == c.id

@@ -6,7 +6,7 @@ class DomainObject
   extend BaseMethods
   include Observable
 
-  PRIMARY_KEY = {:identifier=>:id, :type=>Integer}
+  PRIMARY_KEY = {:identifier => :id, :type => Integer}
 
   def self.pk
     PRIMARY_KEY[:identifier]
@@ -43,15 +43,14 @@ class DomainObject
         self.attach_attribute_accessors(descriptor)
       end
 
-
       @attributes = { }
 
-      add_pk_attribute
+      base.add_pk_attribute
     end
   end
 
   def self.add_pk_attribute
-    @attributes[pk] = BasicAttributes::GenericAttribute.new(PRIMARY_KEY[:identifier], PRIMARY_KEY[:type])
+    @attributes[pk] = BasicAttributes::GenericAttribute.new(pk, PRIMARY_KEY[:type])
 
     self.class_eval do
 
@@ -65,7 +64,7 @@ class DomainObject
         #FIXME This should be removed once we clean up load_attributes/full_update
         return if old_value == new_value
 
-        raise ArgumentError, "Can't reset ID once it has been set. Old value = #{old_value}, new value = #{new_value}" unless old_value.nil?
+        raise ArgumentError, "Can't reset #{self.class} ID once it has been set. Old value = #{old_value}, new value = #{new_value}" unless old_value.nil?
         raise ArgumentError, "ID must be a #{PRIMARY_KEY[:type]}. It can't be a #{new_value.class}" unless new_value.is_a?(PRIMARY_KEY[:type])
 
         instance_variable_set(pk_name, new_value)

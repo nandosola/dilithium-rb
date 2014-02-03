@@ -30,8 +30,8 @@ describe 'A Simple Entity' do
 
   it "does not allow to be initialized with bogus attributes or values" do
     expect {User.new({funny:false})}.to raise_error(ArgumentError)
-    expect {User.new({name:1337})}.to raise_error(RuntimeError)
-    expect {User.new({reference:'not a reference'})}.to raise_error(RuntimeError)
+    expect {User.new({name:1337})}.to raise_error(ArgumentError)
+    expect {User.new({reference:'not a reference'})}.to raise_error(ArgumentError)
   end
 
   it "has repository finders" do
@@ -87,10 +87,10 @@ describe 'A Simple Entity' do
     expect {new_user.reference = 'foo'}.to raise_error(ArgumentError)
     new_user.reference = my_reference
 
-    expect {another_user.email = 42}.to raise_error(RuntimeError)
-    expect {another_user.name = 1337}.to raise_error(RuntimeError)
-    expect {User.new({:name => 'Catbert', :email => 1337})}.to raise_error(RuntimeError)
-    expect {User.new({:name => nil, :email => 'catbert@example.net'})}.to raise_error(RuntimeError)
+    expect {another_user.email = 42}.to raise_error(ArgumentError)
+    expect {another_user.name = 1337}.to raise_error(ArgumentError)
+    expect {User.new({:name => 'Catbert', :email => 1337})}.to raise_error(ArgumentError)
+    expect {User.new({:name => nil, :email => 'catbert@example.net'})}.to raise_error(ArgumentError)
 
     another_user.make(dilbert)
 

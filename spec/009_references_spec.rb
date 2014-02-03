@@ -11,22 +11,14 @@ describe 'An entity with references' do
                                   {
                                     :kind => 'Large',
                                     :packages => [
-                                      {
-                                        :contents => 'Widgets'
-                                      },
-                                      {
-                                        :contents => 'Doohickeys'
-                                      }
+                                      {:contents => 'Widgets'},
+                                      {:contents => 'Doohickeys'}
                                     ]
                                   },{
                                     :kind => 'Small',
                                     :packages => [
-                                      {
-                                        :contents => 'Thingamabobs'
-                                      },
-                                      {
-                                        :contents => 'Stuff'
-                                      }
+                                      {:contents => 'Thingamabobs'},
+                                      {:contents => 'Stuff'}
                                     ]
                                   }
                                 ]
@@ -82,13 +74,12 @@ describe 'An entity with references' do
     a_shipment = Shipment.fetch_by_id(1)
     a_location = Location.fetch_by_id(1)
 
-
     a_shipyard = Shipyard.new({
                                 :name => 'The shipyard',
                                 :location => a_location,
                                 :containers => [
-                                  a_shipment.containers[0],
-                                  a_shipment.containers[1]
+                                  { :id => a_shipment.containers[0].id },
+                                  { :id => a_shipment.containers[1].id }
                                 ]
                               })
 

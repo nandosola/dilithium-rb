@@ -6,10 +6,10 @@ end
 
 module Repository
   module Sequel
-    module LocalOfficeCustomFinders
-      def fetch_by_description description
-        result_list = DB[:local_offices].where(description: description).where(active: true).all
-        result_list.map {|office_h| create_object(office_h) }
+    module CompanyCustomFinders
+      def fetch_by_name name
+        result_list = DB[:companies].where(name: name).where(active: true).all
+        result_list.map {|company_h| create_object(company_h) }
       end
     end
 
@@ -23,6 +23,8 @@ module Repository
 end
 
 class Company < BaseEntity
+  extend Repository::Sequel::CompanyCustomFinders
+
   children :local_offices
 
   attribute :name, String
@@ -32,8 +34,6 @@ class Company < BaseEntity
 end
 
 class LocalOffice < BaseEntity
-  extend Repository::Sequel::LocalOfficeCustomFinders
-
   children  :addresses
   parent :company
 

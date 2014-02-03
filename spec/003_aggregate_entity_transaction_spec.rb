@@ -264,6 +264,7 @@ describe 'A Transaction handling an Aggregate Entity' do
 
       a_baz = Baz.fetch_by_id(1)
       a_foo = Foo.new({foo:'foo', bars:[{bar:'bar', baz:a_baz}, {bar:'bar2', baz:a_baz}], baz:a_baz})
+      baz_ref = Association::ImmutableEntityReference.create(a_baz)
 
       EntitySerializer.to_nested_hash(a_foo).should ==({:id=>nil,
                                                         :active=>true,
@@ -279,11 +280,7 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                          :_version_created_at=>a_foo.bars[0]._version._version_created_at,
                                                                          :_locked_by=>nil, :_locked_at=>nil},
                                                              :bar=>"bar",
-                                                             :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
-                                                                    :_version=>{:id=>v_id,
-                                                                                :_version=>0,
-                                                                                :_version_created_at=>a_baz._version._version_created_at,
-                                                                                :_locked_by=>nil, :_locked_at=>nil} }
+                                                             :baz=>baz_ref
                                                             },
                                                             {:id=>nil,
                                                              :active=>true,
@@ -292,19 +289,11 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                          :_version_created_at=>a_foo.bars[1]._version._version_created_at,
                                                                          :_locked_by=>nil, :_locked_at=>nil},
                                                              :bar=>"bar2",
-                                                             :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
-                                                             :_version=>{:id=>v_id,
-                                                                         :_version=>0,
-                                                                         :_version_created_at=>a_baz._version._version_created_at,
-                                                                         :_locked_by=>nil, :_locked_at=>nil} }
+                                                             :baz=>baz_ref
                                                             }],
                                                         :foo=>"foo",
-                                                        :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
-                                                               :_version=>{:id=>v_id,
-                                                                           :_version=>0,
-                                                                           :_version_created_at=>a_baz._version._version_created_at,
-                                                                           :_locked_by=>nil, :_locked_at=>nil}
-                                                        }})
+                                                        :baz=>baz_ref
+                                                        })
 
 
 
@@ -328,11 +317,7 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                                       :_version_created_at=>a_foo.bars[0]._version._version_created_at,
                                                                                       :_locked_by=>nil, :_locked_at=>nil},
                                                                           :bar=>"bar",
-                                                                          :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
-                                                                                 :_version=>{:id=>v_id,
-                                                                                             :_version=>0,
-                                                                                             :_version_created_at=>a_baz._version._version_created_at,
-                                                                                             :_locked_by=>nil, :_locked_at=>nil} }
+                                                                          :baz=>baz_ref
                                                                          },
                                                                          {:id=>2,
                                                                           :active=>true,
@@ -341,19 +326,10 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                                       :_version_created_at=>a_foo.bars[1]._version._version_created_at,
                                                                                       :_locked_by=>nil, :_locked_at=>nil},
                                                                           :bar=>"bar2",
-                                                                          :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
-                                                                                 :_version=>{:id=>v_id,
-                                                                                             :_version=>0,
-                                                                                             :_version_created_at=>a_baz._version._version_created_at,
-                                                                                             :_locked_by=>nil, :_locked_at=>nil} }
+                                                                          :baz=>baz_ref
                                                                          }],
                                                                     :foo=>"foo",
-                                                                    :baz=>{:id=>1, :active=>true, :baz=>"baz ref 1",
-                                                                           :_version=>{:id=>v_id,
-                                                                                       :_version=>0,
-                                                                                       :_version_created_at=>a_baz._version._version_created_at,
-                                                                                       :_locked_by=>nil, :_locked_at=>nil}
-                                                                    }})
+                                                                    :baz=>baz_ref})
 
   # children: delete with [] or nil
   # references: delete with nil
@@ -383,12 +359,7 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                                  :_version_created_at=>updated_foo._version._version_created_at,
                                                                                  :_locked_by=>nil, :_locked_at=>nil},
                                                                      :bar=>"bar",
-                                                                     :baz=>{:id=>1, :active=>true,
-                                                                            :_version=>{:id=>v_id,
-                                                                                        :_version=>0,
-                                                                                        :_version_created_at=>a_baz._version._version_created_at,
-                                                                                        :_locked_by=>nil, :_locked_at=>nil},
-                                                                            :baz=>"baz ref 1"}}],
+                                                                     :baz=>baz_ref}],
                                                                :foo=>"foo",
                                                                :baz=>nil})
 
@@ -428,7 +399,8 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.register_new(a_company)
     @transaction.commit
 
-    office = LocalOffice.fetch_by_description('Head Office').first
+    a_company = Company.fetch_by_id(a_company.id)
+    office = a_company.local_offices[0]
 
     contractor_h = {
       local_office: office,
@@ -440,19 +412,18 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.register_new(contractor)
     @transaction.commit
 
-    romana = Contractor.fetch_by_name('Romana I').first
+    romana = Contractor.fetch_by_id(contractor.id)
 
-    romana.local_office.id.should == office.id
+    romana.local_office.id.should eq(office.id)
     romana.name.should eq('Romana I')
-    parent = romana.local_office.company
-    parent.should be_a Association::LazyEntityReference
-    parent.type.should == Company
-    parent.resolve.name.should == 'Gallifreyan Sonic Widgets, Inc.'
+    romana.local_office.type.should eq(LocalOffice)
   end
 
   it 'Correctly persists an intermediate root' do
+    name = 'TARDIS Console Repair, Inc.'
+
     company_h = {
-      name: 'TARDIS Console Repair, Inc.',
+      name: name,
       local_offices: [
         {
           description: 'HQ',
@@ -466,25 +437,22 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.commit
     @transaction.register_clean(a_company)
 
-    office = LocalOffice.fetch_by_description("HQ").first
+    a_company = Company.fetch_by_name(name)[0]
+    office = a_company.local_offices[0]
     @transaction.register_dirty(office)
 
     office.description = 'Headquarters'
     office.addresses << Address.new({description: 'Timelord Palace'})
     @transaction.commit
 
-    LocalOffice.fetch_by_description("HQ").should be_empty
+    a_company = Company.fetch_by_name(name)[0]
+    office = a_company.local_offices.select{|o| o.description == "HQ"}
+    office.should be_empty
 
-    office = LocalOffice.fetch_by_description("Headquarters").first
-    office.description.should == 'Headquarters'
+    office = a_company.local_offices.select{|o| o.description == "Headquarters"}[0]
     office.addresses.length.should == 2
     office.addresses[0].description.should == 'Warehouse District'
     office.addresses[1].description.should == 'Timelord Palace'
-
-    parent = office.company
-    parent.should be_a Association::LazyEntityReference
-    parent.type.should == Company
-    parent.resolve.name.should == 'TARDIS Console Repair, Inc.'
   end
 
   after(:all) do

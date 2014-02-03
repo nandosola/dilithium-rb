@@ -101,28 +101,29 @@ module UnitOfWork
       end
 
       private
-      def process_reference(node)
-        ref = case node
-                when Association::ImmutableEntityReference
-                  node.instance_variable_get(:'@original_entity')
-                else
-                  node
-              end
-        yield ref
+      def process_node(node)
+        node.each_reference(true) do |ref|
+          actual_ref = case ref
+                         when Association::ImmutableEntityReference
+                           #TODO Do we really need to resolve this? Or should the TSort should any unresolved ImmutableEntityReferences?
+                           ref.resolve
+                           ref.instance_variable_get(:'@original_entity')
+                         else
+                           ref
+                       end
+          yield actual_ref
+        end
       end
 
       def tsort_each_node(&block)
         @results.each do |res|
-          entity = res.object
-          entity.each_reference(true) do |ref|
-            process_reference(ref, &block)
-          end
+          process_node(res.object, &block)
         end
       end
 
       def tsort_each_child(node, &block)
         check_valid_reference(node)
-        process_reference(node, &block)
+        process_node(node, &block)
       end
 
       def check_valid_reference(ref)

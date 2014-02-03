@@ -16,6 +16,24 @@ class BaseEntity < DomainObject
     def immutable
       self
     end
+
+    def self.inherited(base)
+
+      base.instance_eval do
+        def attribute_descriptors
+          mutable = self.const_get(:MUTABLE_CLASS)
+
+          attribute_names.inject({}) do |memo, name|
+            memo[name] = mutable.attribute_descriptors[name]
+            memo
+          end
+        end
+
+        def attribute_names
+          self.const_get(:MUTABLE_CLASS).generic_attributes
+        end
+      end
+    end
   end
 
   def self.inherited(base)
@@ -136,9 +154,7 @@ class BaseEntity < DomainObject
 
   def each_multi_reference(include_immutable = false)
     refs = self.class.multi_references
-    if include_immutable
-      refs += self.class.immutable_multi_references
-    end
+    refs += self.class.immutable_multi_references if include_immutable
 
     refs.each do |ref_attr|
       references = Array(self.send(ref_attr)).clone
@@ -188,13 +204,17 @@ class BaseEntity < DomainObject
   end
 
   def self.references(include_immutable = false)
-    ret = self.child_references + self.multi_references
+    ret = self.multi_references
 
     if include_immutable
       ret + self.immutable_references + self.immutable_multi_references
     else
       ret
     end
+  end
+
+  def self.generic_attributes
+    self.get_attributes_by_type(BasicAttributes::GenericAttribute) + self.get_attributes_by_type(BasicAttributes::ExtendedGenericAttribute)
   end
 
   def self.multi_references
@@ -306,6 +326,7 @@ class BaseEntity < DomainObject
                   attr.default
                 end
         send("#{attr.name}=".to_sym,value)
+        #TODO Should we actually destroy the Hash?
         in_h.delete(attr.name)
       end
     end
@@ -408,6 +429,14 @@ class BaseEntity < DomainObject
     end
   end
 
+  def self.add_pk_attribute
+    super
+
+    self.const_get(:Immutable).class_eval do
+      define_method(DomainObject.pk){instance_variable_get("@#{DomainObject.pk}".to_sym)}
+    end
+  end
+
   def self.attach_attribute_accessors(attribute_descriptor)
     name = attribute_descriptor.name
 
@@ -424,17 +453,17 @@ class BaseEntity < DomainObject
           # No mutator should be defined for parent
         when BasicAttributes::ChildReference, BasicAttributes::MultiReference
           define_method("#{name}<<"){ |new_value|
-            attribute_descriptor.check_constraints(new_value)
+            attribute_descriptor.check_assignment_constraints(new_value)
             instance_variable_get("@#{name}".to_sym) << new_value
           }
         when BasicAttributes::ImmutableMultiReference
           define_method("#{name}<<"){ |new_value|
-            attribute_descriptor.check_constraints(new_value)
+            attribute_descriptor.check_assignment_constraints(new_value)
             instance_variable_get("@#{name}".to_sym) << Association::ImmutableEntityReference.create(new_value)
           }
         when BasicAttributes::ImmutableReference
           define_method("#{name}="){ |new_value|
-            attribute_descriptor.check_constraints(new_value)
+            attribute_descriptor.check_assignment_constraints(new_value)
             instance_variable_set("@#{name}".to_sym, Association::ImmutableEntityReference.create(new_value))
           }
         else
