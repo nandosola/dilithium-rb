@@ -68,8 +68,8 @@ module Repository
             ::Version.new(version_h)
           end
 
-          def resolve_entity_references(in_h)
-            (self.entity_references + self.immutable_references).each do |ref|
+          def resolve_references(in_h)
+            self.immutable_references.each do |ref|
               attr = self.attribute_descriptors[ref]
               ref_name = DatabaseUtils.to_reference_name(attr)
               ref_id = in_h[ref_name]  #TODO change to "_id" here, not at the BasicAttribute
@@ -100,7 +100,7 @@ module Repository
           def create_object(in_h)
             unless in_h.nil?
               version = resolve_version(in_h) if in_h.has_key?(:_version_id)
-              resolve_entity_references(in_h)
+              resolve_references(in_h)
               resolve_extended_generic_attributes(in_h)
               parent = resolve_parent(in_h)
               root_obj = self.new(in_h, parent, version)
@@ -141,7 +141,7 @@ module Repository
 
           def attach_child(parent_obj, child_name, child_h)
             child_class = parent_obj.class.attribute_descriptors[child_name].inner_type
-            child_class.resolve_entity_references(child_h)
+            child_class.resolve_references(child_h)
             child_h.delete_if{|k,v| k.to_s.end_with?('_id')}
             method = "make_#{child_name.to_s.singularize}"
             child_obj = parent_obj.send(method.to_sym, child_h)

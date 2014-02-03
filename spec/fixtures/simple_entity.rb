@@ -28,6 +28,6 @@ class User < BaseEntity
   attribute :tstamp, DateTime
   attribute :password, BCrypt::Password, default:BCrypt::Password.create('secret')
 
-  attribute :reference, Reference
-  attribute :refers_to, Reference
+  reference :reference, Reference
+  reference :refers_to, Reference
 end

@@ -26,31 +26,18 @@ class EntitySerializer
     entity_h = to_hash(entity, opts)
 
     entity_h.each do |attr, value|
-
       unless entity.is_a?(Association::LazyEntityReference)
         attr_type = entity.class.attribute_descriptors[attr]
 
         case attr_type
-          when BasicAttributes::ChildReference, BasicAttributes::MultiReference
-            unless value.nil?
-              entity_h[attr] = Array.new
-              value.each do |ref|
-                entity_h[attr] << to_nested_hash(ref, opts)
-              end
-            end
-          when BasicAttributes::ImmutableMultiReference
-            unless value.nil?
-              entity_h[attr] = Array.new
-              value.each do |ref|
-                entity_h[attr] << ref
-              end
-            end
-          when BasicAttributes::EntityReference, BasicAttributes::Version
-            entity_h[attr] = to_nested_hash(value, opts) unless value.nil?
-          when BasicAttributes::ImmutableReference
-            entity_h[attr] = value
           when BasicAttributes::ParentReference
             entity_h.delete(attr)
+          when BasicAttributes::ImmutableReference, BasicAttributes::ImmutableMultiReference
+            entity_h[attr] = value
+          when BasicAttributes::ChildReference, BasicAttributes::MultiReference
+            entity_h[attr] = value.map { |ref| to_nested_hash(ref, opts) } unless value.nil?
+          when BasicAttributes::Version
+            entity_h[attr] = to_nested_hash(value, opts) unless value.nil?
         end
       end
 
@@ -71,7 +58,7 @@ class EntitySerializer
       unless [BasicAttributes::Version, BasicAttributes::ChildReference, BasicAttributes::ParentReference,
               BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference].include?(attr_type.class)
         case attr_type
-          when BasicAttributes::EntityReference, BasicAttributes::ImmutableReference
+          when BasicAttributes::ImmutableReference
             row[DatabaseUtils.to_reference_name(attr_type)] = value.nil? ? attr_type.default : value.id
           else
             row[attr] = value

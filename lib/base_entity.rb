@@ -12,6 +12,28 @@ class BaseEntity < DomainObject
   # said BaseEntity. The Immutable classes are all subclasses of BaseEntity::Immutable
   class Immutable
     MUTABLE_CLASS = BaseEntity
+
+    def immutable
+      self
+    end
+
+    def self.inherited(base)
+
+      base.instance_eval do
+        def attribute_descriptors
+          mutable = self.const_get(:MUTABLE_CLASS)
+
+          attribute_names.inject({}) do |memo, name|
+            memo[name] = mutable.attribute_descriptors[name]
+            memo
+          end
+        end
+
+        def attribute_names
+          self.const_get(:MUTABLE_CLASS).generic_attributes
+        end
+      end
+    end
   end
 
   def self.inherited(base)
@@ -112,23 +134,29 @@ class BaseEntity < DomainObject
     end
   end
 
-
-  def each_multi_reference(include_immutable = false)
-    refs = self.class.multi_references
-    if include_immutable
-      refs += self.class.immutable_multi_references
-    end
-
-    refs.each do |ref_attr|
-      references = Array(self.send(ref_attr)).clone
-      references.each do |ref|
-        yield(ref, ref_attr)
+  def each_reference(include_immutable = false)
+    self.class.references(include_immutable).each do |ref_attr|
+      refs = Array(self.send(ref_attr)).clone
+      refs.each do |ref|
+        yield(ref)
       end
     end
   end
 
-  def each_entity_reference
-    self.class.entity_references.each do |ref_attr|
+  def each_immutable_reference
+    self.class.immutable_references.each do |ref_attr|
+      refs = Array(self.send(ref_attr)).clone
+      refs.each do |ref|
+        yield(ref)
+      end
+    end
+  end
+
+  def each_multi_reference(include_immutable = false)
+    refs = self.class.multi_references
+    refs += self.class.immutable_multi_references if include_immutable
+
+    refs.each do |ref_attr|
       references = Array(self.send(ref_attr)).clone
       references.each do |ref|
         yield(ref, ref_attr)
@@ -143,13 +171,6 @@ class BaseEntity < DomainObject
     nil
   end
 
-  def find_entity_reference
-    each_entity_reference do |ref, ref_attr|
-      return ref if yield(ref, ref_attr)
-    end
-    nil
-  end
-
   def find_child
     each_child do |child|
       return child if yield(child)
@@ -157,9 +178,11 @@ class BaseEntity < DomainObject
     nil
   end
 
-  # Return an immutable copy of this object. The immutable copy will be disconnected from its parent and children and
-  # any references (i.e., it will contain only GenericAttributes and ExtendedGenericAttributes). If you need to get
-  # a reference you need to use a Finder in the entity's Root to get the Entity and from there get the reference.
+  # Return an immutable snapshot of this object. The snapshot will be disconnected from its parent and children and
+  # any references (i.e., it will contain only GenericAttributes, ExtendedGenericAttributes and its PK). If you need to
+  # get a reference to the actual, complete, object you need to use a Finder in the entity's Root to get the Entity.
+  # Note that the id of the snapshot may be nil (and will never be updated) if you call this method on an Entity that
+  # hasn't been persisted.
   def immutable
     obj = self.class.const_get(:Immutable).new
     attributes = self.class.attribute_descriptors
@@ -180,12 +203,22 @@ class BaseEntity < DomainObject
     parent.first
   end
 
-  def self.multi_references
-    self.get_attributes_by_type(BasicAttributes::MultiReference)
+  def self.references(include_immutable = false)
+    ret = self.multi_references
+
+    if include_immutable
+      ret + self.immutable_references + self.immutable_multi_references
+    else
+      ret
+    end
   end
 
-  def self.entity_references
-    self.get_attributes_by_type(BasicAttributes::EntityReference)
+  def self.generic_attributes
+    self.get_attributes_by_type(BasicAttributes::GenericAttribute) + self.get_attributes_by_type(BasicAttributes::ExtendedGenericAttribute)
+  end
+
+  def self.multi_references
+    self.get_attributes_by_type(BasicAttributes::MultiReference)
   end
 
   def self.immutable_multi_references
@@ -208,10 +241,6 @@ class BaseEntity < DomainObject
     !self.multi_references.empty?
   end
 
-  def self.has_entity_references?
-    !self.entity_references.empty?
-  end
-
   def self.has_parent?
     !self.parent_reference.nil?
   end
@@ -226,8 +255,17 @@ class BaseEntity < DomainObject
       attributes = self.class.attribute_descriptors
       attr_keys = attributes.keys
       in_h.each do |k,v|
-        raise ArgumentError, "Attribute #{k} is not allowed in #{self.class}" unless attr_keys.include?(k)
-        attributes[k].check_constraints(v)
+        base_name = k.to_s.chomp("_id").to_sym
+        if attributes.include?(k)
+          attribute_name = k
+        elsif [BasicAttributes::ImmutableReference, BasicAttributes::ImmutableMultiReference].include?(attributes[base_name].class)
+          attribute_name = base_name
+          v = {:id => v}
+        end
+
+        raise ArgumentError, "Attribute #{k} is not allowed in #{self.class}" unless attr_keys.include?(attribute_name)
+
+        attributes[base_name].check_constraints(v)
       end
     end
   end
@@ -281,14 +319,14 @@ class BaseEntity < DomainObject
 
   def load_self_attributes(in_h)
     self.class.attributes.each do |attr|
-      if [BasicAttributes::GenericAttribute, BasicAttributes::ExtendedGenericAttribute,
-          BasicAttributes::EntityReference].include?(attr.class)
+      if [BasicAttributes::GenericAttribute, BasicAttributes::ExtendedGenericAttribute].include?(attr.class)
         value = if in_h.include?(attr.name)
                   in_h[attr.name]
                 else
                   attr.default
                 end
         send("#{attr.name}=".to_sym,value)
+        #TODO Should we actually destroy the Hash?
         in_h.delete(attr.name)
       end
     end
@@ -305,7 +343,7 @@ class BaseEntity < DomainObject
                   when Hash
                     Association::ImmutableEntityReference.new(in_value[:id], attr.type)
                   when BaseEntity
-                    in_value.immutable
+                    in_value
                   when NilClass
                     nil
                   else
@@ -391,6 +429,14 @@ class BaseEntity < DomainObject
     end
   end
 
+  def self.add_pk_attribute
+    super
+
+    self.const_get(:Immutable).class_eval do
+      define_method(DomainObject.pk){instance_variable_get("@#{DomainObject.pk}".to_sym)}
+    end
+  end
+
   def self.attach_attribute_accessors(attribute_descriptor)
     name = attribute_descriptor.name
 
@@ -407,14 +453,17 @@ class BaseEntity < DomainObject
           # No mutator should be defined for parent
         when BasicAttributes::ChildReference, BasicAttributes::MultiReference
           define_method("#{name}<<"){ |new_value|
+            attribute_descriptor.check_assignment_constraints(new_value)
             instance_variable_get("@#{name}".to_sym) << new_value
           }
         when BasicAttributes::ImmutableMultiReference
           define_method("#{name}<<"){ |new_value|
+            attribute_descriptor.check_assignment_constraints(new_value)
             instance_variable_get("@#{name}".to_sym) << Association::ImmutableEntityReference.create(new_value)
           }
         when BasicAttributes::ImmutableReference
           define_method("#{name}="){ |new_value|
+            attribute_descriptor.check_assignment_constraints(new_value)
             instance_variable_set("@#{name}".to_sym, Association::ImmutableEntityReference.create(new_value))
           }
         else

@@ -13,19 +13,19 @@ describe 'The object tracker' do
       end
       class Bat < BaseEntity
         attribute :name, String
-        attribute :qux, Qux
+        reference :qux, Qux
       end
       class Baz < BaseEntity
         attribute :name, String
-        attribute :bat, Bat
+        reference :bat, Bat
       end
       class Bar < BaseEntity
         attribute :name, String
-        attribute :baz, Baz
+        reference :baz, Baz
       end
       class Foo < BaseEntity
         attribute :name, String
-        attribute :bar, Bar
+        reference :bar, Bar
       end
     end
 

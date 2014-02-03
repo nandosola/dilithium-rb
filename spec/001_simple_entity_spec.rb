@@ -30,8 +30,8 @@ describe 'A Simple Entity' do
 
   it "does not allow to be initialized with bogus attributes or values" do
     expect {User.new({funny:false})}.to raise_error(ArgumentError)
-    expect {User.new({name:1337})}.to raise_error(RuntimeError)
-    expect {User.new({reference:'not a reference'})}.to raise_error(RuntimeError)
+    expect {User.new({name:1337})}.to raise_error(ArgumentError)
+    expect {User.new({reference:'not a reference'})}.to raise_error(ArgumentError)
   end
 
   it "has repository finders" do
@@ -48,9 +48,14 @@ describe 'A Simple Entity' do
 
   it 'fetches references' do
     duke = User.fetch_by_email('duke@example.net').first
-    duke.reference.should be_a(Reference)
+    duke.reference.should be_a(Association::ImmutableEntityReference)
+    duke.reference.type.should eq(Reference)
     duke.reference.id.should eq(1)
-    duke.refers_to.should be_a(Reference)
+    duke.reference.resolve
+    duke.reference.resolved_entity.name.should eq('Duke ref')
+
+    duke.refers_to.should be_a(Association::ImmutableEntityReference)
+    duke.refers_to.type.should eq(Reference)
     duke.refers_to.id.should eq(2)
   end
 
@@ -59,7 +64,7 @@ describe 'A Simple Entity' do
     user.class.parent_reference.should eq(nil)
   end
 
-  it "accepts empty or full-hash constructors and validates its attributes" do
+  it 'accepts empty or full-hash constructors and validates its attributes' do
 
     norbert = {:name => 'Norbert', :email => 'norb@example.net'}
     dilbert = {:name => 'Dilbert', :email => 'dilbert@example.net'}
@@ -79,13 +84,13 @@ describe 'A Simple Entity' do
     new_user.respond_to?(:reference=).should be_true
     my_reference.name.should eq('test')
     new_user.reference.should be_nil
-    expect {new_user.reference = 'foo'}.to raise_error(RuntimeError)
+    expect {new_user.reference = 'foo'}.to raise_error(ArgumentError)
     new_user.reference = my_reference
 
-    expect {another_user.email = 42}.to raise_error(RuntimeError)
-    expect {another_user.name = 1337}.to raise_error(RuntimeError)
-    expect {User.new({:name => 'Catbert', :email => 1337})}.to raise_error(RuntimeError)
-    expect {User.new({:name => nil, :email => 'catbert@example.net'})}.to raise_error(RuntimeError)
+    expect {another_user.email = 42}.to raise_error(ArgumentError)
+    expect {another_user.name = 1337}.to raise_error(ArgumentError)
+    expect {User.new({:name => 'Catbert', :email => 1337})}.to raise_error(ArgumentError)
+    expect {User.new({:name => nil, :email => 'catbert@example.net'})}.to raise_error(ArgumentError)
 
     another_user.make(dilbert)
 
