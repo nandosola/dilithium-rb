@@ -8,7 +8,7 @@ class EntitySerializer
 
     case entity
       when Association::LazyEntityReference
-        h[:"#{entity.type.to_s.split('::').last.downcase.singularize}_id"] = entity.id
+        h[:"#{entity.type.to_s.split('::').last.underscore.downcase.singularize}_id"] = entity.id
       else
         entity.class.attribute_names.each do |attr|
           attr_value = entity.send(attr.to_sym)
