@@ -146,6 +146,7 @@ module Repository
             method = "make_#{child_name.to_s.singularize}"
             child_obj = parent_obj.send(method.to_sym, child_h)
             child_obj.attach_children
+            child_obj.attach_multi_references
           end
 
           def attach_multi_references
