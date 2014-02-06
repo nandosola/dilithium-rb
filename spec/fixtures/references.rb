@@ -1,4 +1,25 @@
+module Repository
+  module Sequel
+    module ShipmentCustomFinders
+      def fetch_by_name name
+        result_list = DB[:shipments].where(name:name).where(active: true).all
+        result_list.map {|shipment_h| create_object(shipment_h) }
+      end
+    end
+
+    module LocationCustomFinders
+      def fetch_by_name name
+        result_list = DB[:locations].where(name:name).where(active: true).all
+        result_list.map {|location_h| create_object(location_h) }
+      end
+    end
+  end
+end
+
+
 class Shipment < BaseEntity
+  extend Repository::Sequel::ShipmentCustomFinders
+
   attribute :name, String
   children :containers
 end
@@ -15,6 +36,8 @@ class Package < BaseEntity
 end
 
 class Location < BaseEntity
+  extend Repository::Sequel::LocationCustomFinders
+
   attribute :name, String
 end
 

@@ -33,10 +33,13 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
     registered_vehicles = $database[:registered_vehicles]
     versions = $database[:_versions]
 
-    versions.insert(:id => 1, :_version => 0, :_version_created_at => DateTime.now)
-    versions.insert(:id => 2, :_version => 0, :_version_created_at => DateTime.now)
-    vehicles.insert(:active => true, :name => 'Heart of Gold', :_version_id=>1)
-    registered_vehicles.insert(:active => true, :name => 'TARDIS', :owner => 'The Doctor', :_version_id=>2)
+    vehicle_version = versions.insert(:_version => 0, :_version_created_at => DateTime.now)
+    registered_version = versions.insert(:_version => 0, :_version_created_at => DateTime.now)
+    vehicles.insert(:active => true, :name => 'Heart of Gold', :_version_id=>vehicle_version)
+    registered_vehicles.insert(:active => true,
+                               :name => 'TARDIS',
+                               :owner => 'The Doctor',
+                               :_version_id => registered_version)
 
     hog = Vehicle.fetch_by_id(1)
     tardis = RegisteredVehicle.fetch_by_id(1)
