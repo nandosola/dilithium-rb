@@ -105,9 +105,12 @@ module UnitOfWork
         node.each_reference(true) do |ref|
           actual_ref = case ref
                          when Association::ImmutableEntityReference
-                           #TODO Do we really need to resolve this? Or should the TSort should any unresolved ImmutableEntityReferences?
+                           #TODO Do we really need to resolve this? Or should the TSort ignore any unresolved ImmutableEntityReferences?
                            ref.resolve
                            ref.instance_variable_get(:'@original_entity')
+                         when Association::LazyEntityReference
+                           #TODO Do we really need to resolve this? Or should the TSort ignore any unresolved LazyEntityReferences?
+                           ref.resolved_entity
                          else
                            ref
                        end

@@ -3,10 +3,8 @@ require_relative 'fixtures/references'
 
 describe 'An entity with references' do
   before(:all) do
-    Mapper::Sequel.create_tables(Shipment, Container, Package, Location, Shipyard)
-
     a_shipment = Shipment.new({
-                                :name => 'A shipment',
+                                :name => 'A referenced shipment',
                                 :containers => [
                                   {
                                     :kind => 'Large',
@@ -39,8 +37,8 @@ describe 'An entity with references' do
   end
 
   it 'should have the correct methods' do
-    a_shipment = Shipment.fetch_by_id(1)
-    a_location = Location.fetch_by_id(1)
+    a_shipment = Shipment.fetch_by_name('A referenced shipment').first
+    a_location = Location.fetch_by_name('tumbolia').first
 
     a_shipyard = Shipyard.new({
                                 :name => 'The shipyard',
@@ -71,8 +69,8 @@ describe 'An entity with references' do
   end
 
   it 'should save to and load from the database' do
-    a_shipment = Shipment.fetch_by_id(1)
-    a_location = Location.fetch_by_id(1)
+    a_shipment = Shipment.fetch_by_name('A referenced shipment').first
+    a_location = Location.fetch_by_name('tumbolia').first
 
     a_shipyard = Shipyard.new({
                                 :name => 'The shipyard',
@@ -107,8 +105,9 @@ describe 'An entity with references' do
   end
 
   it 'should deserialize correctly from a Hash' do
-    a_shipment = Shipment.fetch_by_id(1)
-    a_location = Location.fetch_by_id(1)
+    a_shipment = Shipment.fetch_by_name('A referenced shipment').first
+    a_location = Location.fetch_by_name('tumbolia').first
+
     shipyard_h = {
       :name => 'The shipyard',
       :location => { :id => a_location.id },
@@ -129,21 +128,20 @@ describe 'An entity with references' do
     containers = a_shipyard.containers
     containers.class.should eq(Array)
 
-    containers[0].class.should eq(Association::ImmutableEntityReference)
-    containers[0].resolve
-    containers[0].resolved_entity.class.should eq(Container::Immutable)
-    containers[0].resolved_entity.kind.should eq('Large')
+    containers.each_with_index do |container, i|
+      container.class.should eq(Association::ImmutableEntityReference)
+      container.resolve
+      container.resolved_entity.class.should eq(Container::Immutable)
+      container.resolved_entity.kind.should eq(a_shipment.containers[i].kind)
+    end
 
-    containers[1].class.should eq(Association::ImmutableEntityReference)
-    containers[1].resolve
-    containers[1].resolved_entity.class.should eq(Container::Immutable)
-    containers[1].resolved_entity.kind.should eq('Small')
     #TODO Add test for modifying the array (add/delete/update)
   end
 
   it 'should serialize correctly to a Hash' do
-    a_shipment = Shipment.fetch_by_id(1)
-    a_location = Location.fetch_by_id(1)
+    a_shipment = Shipment.fetch_by_name('A referenced shipment').first
+    a_location = Location.fetch_by_name('tumbolia').first
+
     shipyard_h = {
       :name => 'The shipyard',
       :location => { :id => a_location.id },
