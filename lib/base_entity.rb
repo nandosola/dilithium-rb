@@ -280,97 +280,89 @@ class BaseEntity < DomainObject
   end
 
   def load_child_attributes(in_h)
-    aggregates = {}
-    self.class.attributes.each do |attr|
-      if [BasicAttributes::ChildReference].include?(attr.class)
-        aggregates[attr.name] = unless in_h[attr.name].nil?
-                                  in_h[attr.name]
-                                else
-                                  attr.default
-                                end
-      end
-    end
+    self.class.each_attribute(BasicAttributes::ChildReference) do |attr|
+      name = attr.name
+      value = if in_h[name].nil?
+                attr.default
+              else
+                in_h[name]
+              end
 
-    (aggregates.each do |k,v|
-      send("make_#{k}".to_sym, v) unless v.empty?
-    end) unless aggregates.empty?
+      send("make_#{name}".to_sym, value) unless value.empty?
+    end
   end
 
   # TODO refactor the frak out of here: make generic for any ListReference
   def load_multi_reference_attributes(in_h)
-    references = {}
-    self.class.attributes.each do |attr|
-      if [BasicAttributes::MultiReference].include?(attr.class)
-        references[attr.name] = unless in_h[attr.name].nil?
-                                  in_h[attr.name]
-                                else
-                                  attr.default
-                                end
-      end
-    end
+    self.class.each_attribute(BasicAttributes::MultiReference) do |attr|
+      name = attr.name
+      value = if in_h[name].nil?
+                attr.default
+              else
+                in_h[name]
+              end
 
-    # TODO refactor to collection_accessor (add_{plural} -> add_{singular} -> <<)
-    (references.each do |k,v|
-      v.each do |ref|
-        send("#{k}<<".to_sym, ref)
-      end
-    end) unless references.empty?
+      value.each { |ref| send("#{name}<<".to_sym, ref) }
+    end
   end
 
   def load_self_attributes(in_h)
-    self.class.attributes.each do |attr|
-      if [BasicAttributes::GenericAttribute, BasicAttributes::ExtendedGenericAttribute].include?(attr.class)
-        value = if in_h.include?(attr.name)
-                  in_h[attr.name]
-                else
-                  attr.default
-                end
-        send("#{attr.name}=".to_sym,value)
-        #TODO Should we actually destroy the Hash?
-        in_h.delete(attr.name)
-      end
+    self.class.each_attribute(BasicAttributes::GenericAttribute,
+                              BasicAttributes::ExtendedGenericAttribute) do |attr|
+      name = attr.name
+      value = if in_h.include?(name)
+                in_h[name]
+              else
+                attr.default
+              end
+
+      send("#{name}=".to_sym,value)
+
+      #TODO Should we actually destroy the Hash?
+      in_h.delete(name)
     end
   end
 
   def load_immutable_references(in_h)
-    self.class.attributes.each do |attr|
-      if [BasicAttributes::ImmutableReference].include?(attr.class)
-        in_value = in_h[attr.name]
-        value = case in_value
-                  when Association::ImmutableEntityReference
-                    in_value
-                  #FIXME We should NEVER get a Hash at this level
-                  when Hash
-                    Association::ImmutableEntityReference.new(in_value[:id], attr.type)
-                  when BaseEntity
-                    in_value
-                  when NilClass
-                    nil
-                  else
-                    raise IllegalArgumentException("Invalid reference #{attr.name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}")
-                end
+    self.class.each_attribute(BasicAttributes::ImmutableReference) do |attr|
+      name = attr.name
+      in_value = in_h[name]
+      value = case in_value
+                #FIXME We should NEVER get a Hash at this level
+                when Hash
+                  Association::ImmutableEntityReference.new(in_value[:id], attr.type)
+                when Association::ImmutableEntityReference, BaseEntity, NilClass
+                  in_value
+                else
+                  raise IllegalArgumentException, "Invalid reference #{name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
+              end
 
-        send("#{attr.name}=".to_sym,value)
-      elsif [BasicAttributes::ImmutableMultiReference].include?(attr.class) && in_h.include?(attr.name)
-        in_h[attr.name].each do |in_value|
+      send("#{name}=".to_sym,value)
+    end
+
+    self.class.each_attribute(BasicAttributes::ImmutableMultiReference) do |attr|
+      name = attr.name
+      in_array = in_h[name]
+
+      unless in_array.nil?
+        in_array.each do |in_value|
           value = case in_value
-                    when Association::ImmutableEntityReference
-                      in_value
                     #FIXME We should NEVER get a Hash at this level
                     when Hash
                       Association::ImmutableEntityReference.new(in_value[:id], attr.inner_type)
+                    when Association::ImmutableEntityReference, NilClass
+                      in_value
                     when BaseEntity
                       in_value.immutable
-                    when NilClass
-                      nil
                     else
-                      raise IllegalArgumentException, "Invalid reference #{attr.name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
+                      raise IllegalArgumentException, "Invalid reference #{name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
                   end
-          send("#{attr.name}<<".to_sym,value)
-        end
 
-        in_h.delete(attr.name)
+          send("#{name}<<".to_sym,value)
+        end
       end
+
+      in_h.delete(name)
     end
   end
 

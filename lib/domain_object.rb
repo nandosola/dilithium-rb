@@ -35,6 +35,10 @@ class DomainObject
         self.superclass.attribute_descriptors.merge(@attributes)
       end
 
+      def each_attribute(*attr_classes)
+        self.attributes.each { |attr| yield attr if attr_classes.include?(attr.class) }
+      end
+
       def add_attribute(descriptor)
         name = descriptor.name
         raise ArgumentError, "Duplicate definition for #{name}" if @attributes.has_key?(name)
