@@ -13,7 +13,7 @@ module Association
 
         @id = id
         @type = referenced_class
-        @_version = version || @type.fetch_version_for_id(@id)
+        @_version = @type.fetch_version_for_id(@id)
       else
         raise ArgumentError 'Cannot initialize a LazyEntityReference with both id and resolved_entity' unless id.nil?
 
@@ -37,6 +37,7 @@ module Association
       resolve
       @resolved_entity
     end
+    alias_method :get, :resolved_entity
 
     def ==(other)
       other.class == self.class &&
