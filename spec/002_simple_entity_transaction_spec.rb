@@ -26,7 +26,7 @@ describe 'A transaction handling a Simple Entity' do
     UnitOfWork::TransactionRegistry::Registry.instance[@transaction.uuid.to_sym].should eq(@transaction)
   end
 
-  it "won't get registered if the entity is not a BasicEntity" do
+  it "won't get registered if the model is not a BasicEntity" do
     class NotABasicEntity
     end
     expect {@transaction.register_new(NotABasicEntity.new)}.to raise_error(ArgumentError)
@@ -189,7 +189,7 @@ describe 'A transaction handling a Simple Entity' do
     b[0].object.should eq(a[0].object)
   end
 
-  it "cannot register an entity that already exists in the transaction" do
+  it "cannot register an model that already exists in the transaction" do
     user = User.fetch_by_id(2)
     expect {@transaction.register_dirty(user)}.to raise_error(ArgumentError)
 

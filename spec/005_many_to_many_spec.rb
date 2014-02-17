@@ -103,7 +103,7 @@ describe 'A BasicEntity with a many to many relationship' do
     many_a.should eq([dept1, dept2, bld1, bld2, dept3, dept4])
   end
 
-  it 'is ignored when generating the immutable version of an entity' do
+  it 'is ignored when generating the immutable version of an model' do
     employee = Employee.new({name:'Beppe'})
     dept1 = Department.new({name:'Evil'})
     dept2 = Department.new({name:'Hell'})

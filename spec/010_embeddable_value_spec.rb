@@ -41,7 +41,7 @@ describe 'An embeddable value' do
   end
 end
 
-describe 'An entity which embeds a value' do
+describe 'An model which embeds a value' do
   it 'should contain the proper attribute descriptors' do
     resource_attr = Resource.instance_variable_get(:@attributes)
     audit_attr = AuditInfo.instance_variable_get(:@attributes)

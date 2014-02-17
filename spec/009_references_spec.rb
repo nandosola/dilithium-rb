@@ -2,7 +2,7 @@
 require_relative 'spec_base'
 require_relative 'fixtures/references'
 
-describe 'An entity with references' do
+describe 'An model with references' do
   before(:all) do
     a_shipment = Shipment.new({
                                 :name => 'A referenced shipment',

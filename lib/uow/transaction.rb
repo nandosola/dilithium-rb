@@ -90,7 +90,7 @@ module UnitOfWork
       check_valid_uow
 
       # TODO handle Repository::DatabaseError
-      # TODO: store entity's latest payload before commit() and restore it
+      # TODO: store model's latest payload before commit() and restore it
       begin
         @mapper.transaction do
 

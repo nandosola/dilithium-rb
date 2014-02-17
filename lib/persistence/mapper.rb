@@ -27,7 +27,7 @@ module Mapper
        entity._version = _version
      end
 
-      # Then insert entity
+      # Then insert model
       entity_data = DatabaseUtils.to_row(entity, parent_id)
       entity_data.delete(:id)
       entity.id = DB[DatabaseUtils.to_table_name(entity)].insert(entity_data.merge(_version_id:entity._version.id))

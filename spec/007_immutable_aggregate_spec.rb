@@ -1,7 +1,7 @@
 # -*- encoding : utf-8 -*-
 require_relative 'spec_base'
 
-describe 'An aggregate entity' do
+describe 'An aggregate model' do
   it 'should create an immutable copy of itself' do
     company1_h = {
       name: 'Abstra.cc S.A',

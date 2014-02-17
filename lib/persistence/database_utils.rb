@@ -3,13 +3,13 @@
 module Dilithium
 module DatabaseUtils
 
-  # Returns an entity associated DB table name
+  # Returns an model associated DB table name
   #
   # Example:
   #   Employee => :employees
   #
   # Params:
-  # - entity: entity for converting class to table name
+  # - model: model for converting class to table name
   # Returns:
   #   Symbol with table name
   def self.to_table_name(entity)

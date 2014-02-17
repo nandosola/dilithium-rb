@@ -50,7 +50,7 @@ class BaseEntity < DomainObject
     end
   end
 
-  # Adds children to the current entity acting as aggregate root.
+  # Adds children to the current model acting as aggregate root.
   #
   # Example:
   #   class Company < BaseEntity
@@ -179,7 +179,7 @@ class BaseEntity < DomainObject
 
   # Return an immutable snapshot of this object. The snapshot will be disconnected from its parent and children and
   # any references (i.e., it will contain only GenericAttributes, ExtendedGenericAttributes and its PK). If you need to
-  # get a reference to the actual, complete, object you need to use a Finder in the entity's Root to get the Entity.
+  # get a reference to the actual, complete, object you need to use a Finder in the model's Root to get the Entity.
   # Note that the id of the snapshot may be nil (and will never be updated) if you call this method on an Entity that
   # hasn't been persisted.
   def immutable
@@ -400,7 +400,7 @@ class BaseEntity < DomainObject
       plural_make_method_name = "make_#{plural_child_name}".to_sym
       plural_add_method_name = "#{plural_child_name}<<".to_sym
 
-      # Single-entity methods:
+      # Single-model methods:
 
       define_method(singular_make_method_name) do |in_h|
         child_class = self.class.attribute_descriptors[plural_child_name].inner_type
