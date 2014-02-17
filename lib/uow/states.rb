@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module UnitOfWork
   module States
     module Default

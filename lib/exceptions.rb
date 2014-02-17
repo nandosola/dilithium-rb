@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module Repository
   class NotFound < Exception
     attr_accessor :id, :type

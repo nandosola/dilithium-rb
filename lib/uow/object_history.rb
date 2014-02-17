@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module UnitOfWork
   # CAVEAT: this is not distribution-friendly. object_id should use 'nodename' as well
   class ObjectHistory

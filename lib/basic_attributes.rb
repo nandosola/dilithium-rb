@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module BasicAttributes
 
   GENERIC_TYPES = [String, Integer, Float, DateTime, TrueClass, FalseClass]

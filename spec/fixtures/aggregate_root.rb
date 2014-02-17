@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 String.inflections do |inflect|
   inflect.irregular 'company', 'companies'
   inflect.irregular 'local_office', 'local_offices'

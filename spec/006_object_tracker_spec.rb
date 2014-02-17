@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require_relative 'spec_base'
 require 'lib/uow/states'
 require 'lib/uow/object_tracker'

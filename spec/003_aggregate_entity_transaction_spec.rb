@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require_relative 'spec_base'
 
 describe 'A Transaction handling an Aggregate Entity' do

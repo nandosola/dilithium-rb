@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 String.inflections do |inflect|
   inflect.irregular 'foo_ref', 'foo_refs'
   inflect.irregular 'bar_ref', 'bar_refs'

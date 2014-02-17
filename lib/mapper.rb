@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require_relative 'basic_attributes'
 require_relative 'entity_serializer'
 require_relative 'database_utils'

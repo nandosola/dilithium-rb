@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 # Common methods for BaseEntity and EmbeddableValue
 module BaseMethods
   # Creates a reference to a list of BaseEntities (many-to-many).

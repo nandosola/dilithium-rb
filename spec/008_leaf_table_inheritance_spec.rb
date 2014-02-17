@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require 'fixtures/leaf_table_inheritance'
 
 describe 'A single-inheritance hierarchy of BaseEntities' do

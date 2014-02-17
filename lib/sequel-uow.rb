@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require 'uow/exceptions'
 require 'uow/uuid_generator'
 require 'uow/object_tracker'

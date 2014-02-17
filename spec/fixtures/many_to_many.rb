@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 # Create ad-hoc finder for fetching users by group
 # See: http://www.udidahan.com/2009/01/24/ddd-many-to-many-object-relational-mapping/
 

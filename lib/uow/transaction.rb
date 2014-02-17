@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require_relative 'object_history'
 require_relative 'states'
 

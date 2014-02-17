@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require 'basic_attributes'
 require 'domain_object'
 require 'version'

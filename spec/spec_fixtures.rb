@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require_relative 'fixtures/simple_entity'
 require_relative 'fixtures/aggregate_root'
 require_relative 'fixtures/chained_refs'
