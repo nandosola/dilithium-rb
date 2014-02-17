@@ -13,7 +13,7 @@ interesting patterns:
 
 ### Caveats
 This is a work-in-progress for an internal project, and the public documentation is missing. When milestone 0.1.0 is
-achieved, a complete README, plus wiki pages will be uploaded. In the meantime, don't hesitate to ping us. Sorry for the inconvenience!
+achieved, a complete README, plus wiki pages will be uploaded. In the meantime, don't hesitate to ping us or join #dilithium at FreeNode. Sorry for the inconvenience!
 
 ### See also
 
