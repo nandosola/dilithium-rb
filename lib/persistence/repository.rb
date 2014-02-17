@@ -1,6 +1,4 @@
 # -*- encoding : utf-8 -*-
-require 'association'
-require 'exceptions'
 
 module Repository
 

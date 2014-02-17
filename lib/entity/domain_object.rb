@@ -1,6 +1,4 @@
 # -*- encoding : utf-8 -*-
-require 'basic_attributes'
-require 'base_methods'
 require 'observer'
 
 # Layer Super-Type that handles only identifier and attributes. No references of any kind.

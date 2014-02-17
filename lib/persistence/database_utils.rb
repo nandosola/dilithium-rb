@@ -1,7 +1,4 @@
 # -*- encoding : utf-8 -*-
-require 'version'
-require 'basic_attributes'
-require 'entity_serializer'
 
 module DatabaseUtils
 

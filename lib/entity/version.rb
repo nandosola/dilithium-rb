@@ -1,6 +1,6 @@
 # -*- encoding : utf-8 -*-
-require 'domain_object'
-require 'repository'
+
+require_relative '../../lib/persistence/repository'
 
 String.inflections do |inflect|
   inflect.irregular '_version', '_versions'
