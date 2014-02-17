@@ -3,7 +3,7 @@ require_relative 'spec_base'
 
 describe 'A Transaction handling an Aggregate Entity' do
   before(:all) do
-    Mapper::Sequel.create_tables(Company, LocalOffice, Address, Contractor)
+    DatabaseUtils.create_tables(Company, LocalOffice, Address, Contractor)
     class UnitOfWork::Transaction
       # exposed ONLY for testing purposes
       def tracked_objects
@@ -254,7 +254,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     end
     module BarModule
       include FooModule::Models
-      Mapper::Sequel.create_tables(Foo, Bar, Baz)
+      DatabaseUtils.create_tables(Foo, Bar, Baz)
 
       versions = $database[:_versions]
       v_id = versions.insert(:_version => 0, :_version_created_at => DateTime.parse('2013-09-23T18:42:14+02:00'))

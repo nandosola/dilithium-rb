@@ -1,5 +1,4 @@
 # -*- encoding : utf-8 -*-
-require 'database_utils'
 
 module Association
   class LazyEntityReference

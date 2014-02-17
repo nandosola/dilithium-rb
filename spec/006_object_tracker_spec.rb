@@ -6,7 +6,7 @@ require 'lib/uow/object_tracker'
 describe 'The object tracker' do
 
   before :all do
-    Mapper::Sequel.create_tables(Shipment, Container, Shipyard, Package, Location)
+    DatabaseUtils.create_tables(Shipment, Container, Shipyard, Package, Location)
 
     module ObjectTrackerSpec
 

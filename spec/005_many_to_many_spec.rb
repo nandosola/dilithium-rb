@@ -6,7 +6,7 @@ require_relative '../spec/fixtures/many_to_many'
 describe 'A BasicEntity with a many to many relationship' do
 
   before(:all) do
-    Mapper::Sequel.create_tables(Employee, Department, Building)
+    DatabaseUtils.create_tables(Employee, Department, Building)
     insert_test_employees_depts_and_buildings
 
     module Mapper

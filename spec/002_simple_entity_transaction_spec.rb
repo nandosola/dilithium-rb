@@ -3,7 +3,7 @@ require_relative 'spec_base'
 
 describe 'A transaction handling a Simple Entity' do
   before(:all) do
-    Mapper::Sequel.create_tables(Reference, User)
+    DatabaseUtils.create_tables(Reference, User)
     insert_test_users
 
     class UnitOfWork::Transaction

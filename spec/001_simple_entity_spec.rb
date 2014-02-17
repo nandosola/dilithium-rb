@@ -4,7 +4,7 @@ require_relative 'spec_base'
 describe 'A Simple Entity' do
 
   before(:all) do
-    Mapper::Sequel.create_tables(Reference, User)
+    DatabaseUtils.create_tables(Reference, User)
     insert_test_users
   end
 

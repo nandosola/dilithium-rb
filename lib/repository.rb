@@ -1,6 +1,5 @@
 # -*- encoding : utf-8 -*-
 require 'association'
-require_relative 'database_utils'
 require 'exceptions'
 
 module Repository
