@@ -1,15 +1,12 @@
 # -*- encoding : utf-8 -*-
 
 module Dilithium
-
   module Repository
-
     # TODO
     #   Use inside a Repository class. Access it as QueryObject (Repository.query(class, criteria)
     #   or via SpecificationPattern (http://devlicio.us/blogs/casey/archive/2009/03/02/ddd-the-specification-pattern.aspx)
     # TODO caching layer
     # TODO get map inside Repository
-
 
     class NotFound < Exception
       attr_accessor :id, :type
@@ -121,7 +118,6 @@ module Dilithium
                 nil
               end
             end
-
           end
         end
       end
