@@ -46,28 +46,6 @@ class EntitySerializer
     entity_h
   end
 
-  def self.to_row(entity, parent_id=nil)
-    row = {}
-    entity_h = to_hash(entity)
-    if parent_id
-      parent_ref = "#{entity.class.parent_reference}_id".to_sym
-      entity_h[parent_ref] = parent_id if parent_id
-    end
-    entity_h.each do |attr,value|
-      attr_type = entity.class.attribute_descriptors[attr]
-      unless [BasicAttributes::Version, BasicAttributes::ChildReference, BasicAttributes::ParentReference,
-              BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference].include?(attr_type.class)
-        case attr_type
-          when BasicAttributes::ImmutableReference
-            row[DatabaseUtils.to_reference_name(attr_type)] = value.nil? ? attr_type.default : value.id
-          else
-            row[attr] = value
-        end
-      end
-    end
-    row
-  end
-
   def self.strip_key_from_hash(a_hash, key)
     if a_hash.is_a?(Hash)
       a_hash.inject({}) do |m, (k,v)|

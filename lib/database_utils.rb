@@ -1,6 +1,7 @@
 # -*- encoding : utf-8 -*-
 require 'version'
 require 'basic_attributes'
+require 'entity_serializer'
 
 module DatabaseUtils
 
@@ -39,20 +40,42 @@ module DatabaseUtils
     "#{attr.name.to_s.singularize}_id".to_sym
   end
 
+  def self.to_row(entity, parent_id=nil)
+    row = {}
+    entity_h = EntitySerializer.to_hash(entity)
+    if parent_id
+      parent_ref = "#{entity.class.parent_reference}_id".to_sym
+      entity_h[parent_ref] = parent_id if parent_id
+    end
+    entity_h.each do |attr,value|
+      attr_type = entity.class.attribute_descriptors[attr]
+      unless [BasicAttributes::Version, BasicAttributes::ChildReference, BasicAttributes::ParentReference,
+              BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference].include?(attr_type.class)
+        case attr_type
+          when BasicAttributes::ImmutableReference
+            row[DatabaseUtils.to_reference_name(attr_type)] = value.nil? ? attr_type.default : value.id
+          else
+            row[attr] = value
+        end
+      end
+    end
+    row
+  end
+
   def self.create_tables(*entity_classes)
     create_versions_table unless DB.table_exists?(:_versions)
     entity_classes.each do |entity_class|
       table_name = entity_class.to_s.split('::').last.underscore.downcase.pluralize
 
       DB.create_table(table_name) do
-        ::DatabaseUtils.schemify(entity_class){ |type,opts| eval("#{type} #{opts}") }
+        ::DatabaseUtils.to_schema(entity_class){ |type,opts| eval("#{type} #{opts}") }
       end
     end
   end
 
   def self.create_versions_table
     DB.create_table(:_versions) do
-      ::DatabaseUtils.schemify(Version){ |type,opts| eval("#{type} #{opts}") }
+      ::DatabaseUtils.to_schema(Version){ |type,opts| eval("#{type} #{opts}") }
     end
   end
 
@@ -66,7 +89,7 @@ module DatabaseUtils
     end
   end
 
-  def self.schemify(entity_class)
+  def self.to_schema(entity_class)
     entity_class.attributes.each do |attr|
       if entity_class.pk == attr.name
         yield 'primary_key', ":#{attr.name}"

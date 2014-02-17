@@ -138,17 +138,17 @@ describe 'A BasicEntity with a many to many relationship' do
     emp.departments<<dept
     EntitySerializer.to_hash(emp)[:departments].should eq([dept])
     EntitySerializer.to_nested_hash(emp)[:departments].should eq([EntitySerializer.to_nested_hash(dept)])
-    EntitySerializer.to_row(emp)[:departments].should be_nil
+    DatabaseUtils.to_row(emp)[:departments].should be_nil
 
     emp.managed_departments<<dept2
     EntitySerializer.to_hash(emp)[:managed_departments].should eq([dept2])
     EntitySerializer.to_nested_hash(emp)[:managed_departments].should eq([EntitySerializer.to_nested_hash(dept2)])
-    EntitySerializer.to_row(emp)[:managed_departments].should be_nil
+    DatabaseUtils.to_row(emp)[:managed_departments].should be_nil
 
     emp2.departments<<ref_dept
     EntitySerializer.to_hash(emp2)[:departments].should eq([ref_dept])
     EntitySerializer.to_nested_hash(emp2)[:departments].should eq([EntitySerializer.to_nested_hash(ref_dept)])
-    EntitySerializer.to_row(emp2)[:departments].should be_nil
+    DatabaseUtils.to_row(emp2)[:departments].should be_nil
 
     existing_ref_dept = Association::LazyEntityReference.new(1, Department)
     existing_ref_dept.resolve

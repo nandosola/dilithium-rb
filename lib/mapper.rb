@@ -20,7 +20,7 @@ module Mapper
 
      # First insert version when persisting the root; no need to lock the row/table
      if parent_id.nil?
-       version_data = EntitySerializer.to_row(entity._version)
+       version_data = DatabaseUtils.to_row(entity._version)
        version_data.delete(:id)
        version_data[:id] = DB[:_versions].insert(version_data)
        entity._version = Version.new(version_data)
@@ -29,7 +29,7 @@ module Mapper
      end
 
       # Then insert entity
-      entity_data = EntitySerializer.to_row(entity, parent_id)
+      entity_data = DatabaseUtils.to_row(entity, parent_id)
       entity_data.delete(:id)
       entity.id = DB[DatabaseUtils.to_table_name(entity)].insert(entity_data.merge(_version_id:entity._version.id))
 
@@ -62,8 +62,8 @@ module Mapper
     def self.update(modified_entity, original_entity, already_versioned=false)
      check_uow_transaction(modified_entity)
 
-      modified_data = EntitySerializer.to_row(modified_entity)
-      original_data = EntitySerializer.to_row(original_entity)
+      modified_data = DatabaseUtils.to_row(modified_entity)
+      original_data = DatabaseUtils.to_row(original_entity)
       version = modified_entity._version
 
       unless modified_data.eql?(original_data)
@@ -128,7 +128,7 @@ module Mapper
 
     def self.update_version(version)
       version_id = version.id
-      version_data = EntitySerializer.to_row(version)
+      version_data = DatabaseUtils.to_row(version)
       DB[:_versions].for_update.where(id:version_id).update(version_data)
     end
 
