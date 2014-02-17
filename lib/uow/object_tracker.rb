@@ -2,6 +2,7 @@
 require 'tsort'
 require 'set'
 
+module Dilithium
 module UnitOfWork
   class ObjectTracker
     include ObjectTrackerExceptions
@@ -212,4 +213,5 @@ module UnitOfWork
       end
     end
   end
+end
 end

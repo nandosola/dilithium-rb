@@ -1,4 +1,5 @@
 # -*- encoding : utf-8 -*-
+module Dilithium
 module UnitOfWork
 
   module TransactionExceptions
@@ -48,4 +49,5 @@ module UnitOfWork
     end
 
   end
+end
 end

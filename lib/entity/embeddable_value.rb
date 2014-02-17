@@ -1,5 +1,5 @@
 # -*- encoding : utf-8 -*-
-
+module Dilithium
 module EmbeddableValue
   include BaseMethods
 
@@ -21,4 +21,5 @@ module EmbeddableValue
       @attributes = { }
     end
   end
+end
 end

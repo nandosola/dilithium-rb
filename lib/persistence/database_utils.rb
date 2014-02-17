@@ -1,5 +1,6 @@
 # -*- encoding : utf-8 -*-
 
+module Dilithium
 module DatabaseUtils
 
   # Returns an entity associated DB table name
@@ -116,4 +117,5 @@ module DatabaseUtils
     end
   end
 
+end
 end

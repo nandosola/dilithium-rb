@@ -1,15 +1,15 @@
 Gem::Specification.new do |s|
-  s.name = 'sequel-uow'
-  s.version = '0.0.1'
+  s.name = 'dilithium'
+  s.version = '0.0.2'
   s.platform = 'ruby'
   s.required_ruby_version = '~> 1.9'
 
-  s.summary = 'A Unit of Work pattern on top of Sequel (experimental)'
-  s.description = 'This gem provides offline transaction management for Sequel::Model objects'
-  s.homepage = 'http://github.com/nandosola/sequel-uow'
+  s.summary = 'A tiny framework to power your enterprise-ish stuff in Ruby'
+  s.description = 'Manage persistence-agnostic domain models and decoupled transactions'
+  s.homepage = 'http://github.com/nandosola/dilithium-rb'
 
-  s.authors = ['Nando Sola']
-  s.email = ['nando@abstra.cc']
+  s.authors = ['Nando Sola', 'Mario Camou']
+  s.email = ['nando@robotchrist.com', 'mcamou@tecnoguru.com']
 
   s.licenses << 'New BSD License'
   s.files = Dir['./LICENSE']

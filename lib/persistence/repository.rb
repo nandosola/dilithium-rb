@@ -1,5 +1,7 @@
 # -*- encoding : utf-8 -*-
 
+module Dilithium
+
 module Repository
 
   # TODO
@@ -7,6 +9,16 @@ module Repository
   #   or via SpecificationPattern (http://devlicio.us/blogs/casey/archive/2009/03/02/ddd-the-specification-pattern.aspx)
   # TODO caching layer
   # TODO get map inside Repository
+
+
+  class NotFound < Exception
+    attr_accessor :id, :type
+    def initialize(id, type)
+      super("#{type} with ID #{id} not found")
+      @id = id
+      @type = type
+    end
+  end
 
   module Sequel
 
@@ -188,4 +200,5 @@ module Repository
       end
     end
   end
+end
 end

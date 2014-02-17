@@ -1,4 +1,5 @@
 # -*- encoding : utf-8 -*-
+module Dilithium
 module BasicAttributes
 
   GENERIC_TYPES = [String, Integer, Float, DateTime, TrueClass, FalseClass]
@@ -160,4 +161,5 @@ module BasicAttributes
           (value.is_a?(Association::LazyEntityReference) && value.type <= inner_type)
     end
   end
+end
 end

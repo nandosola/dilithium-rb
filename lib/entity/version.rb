@@ -6,6 +6,8 @@ String.inflections do |inflect|
   inflect.irregular '_version', '_versions'
 end
 
+module Dilithium
+
 class VersionAlreadyLockedException < Exception; end
 
 # TODO: rename to SharedVersion
@@ -69,4 +71,5 @@ class Version < DomainObject
       @_locked_by == other._locked_by &&
       @_locked_at == other._locked_at
   end
+end
 end

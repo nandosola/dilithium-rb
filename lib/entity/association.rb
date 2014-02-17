@@ -1,5 +1,6 @@
 # -*- encoding : utf-8 -*-
 
+module Dilithium
 module Association
   class LazyEntityReference
     attr_reader :type, :id, :_version
@@ -83,4 +84,5 @@ module Association
       @original_entity.nil? || @resolved_entity.nil?
     end
   end
+end
 end

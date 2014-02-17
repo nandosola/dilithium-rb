@@ -1,6 +1,7 @@
 # -*- encoding : utf-8 -*-
 require 'singleton'
 
+module Dilithium
 module UnitOfWork
   module TransactionRegistry
 
@@ -82,4 +83,5 @@ module UnitOfWork
     end
 
   end
+end
 end

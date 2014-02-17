@@ -2,7 +2,9 @@
 require 'pp'
 require 'sequel'
 require 'logger'
-require_relative '../lib/dilithium'
+
+require 'dilithium'
+include Dilithium
 
 $database = Sequel.sqlite
 PersistenceService::Sequel.db = $database

@@ -1,4 +1,5 @@
 # -*- encoding : utf-8 -*-
+module Dilithium
 module UnitOfWork
   module States
     module Default
@@ -9,4 +10,5 @@ module UnitOfWork
       ALL_STATES = [STATE_NEW, STATE_DIRTY, STATE_CLEAN, STATE_DELETED]
     end
   end
+end
 end

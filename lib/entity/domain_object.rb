@@ -1,6 +1,7 @@
 # -*- encoding : utf-8 -*-
 require 'observer'
 
+module Dilithium
 # Layer Super-Type that handles only identifier and attributes. No references of any kind.
 class DomainObject
   extend BaseMethods
@@ -105,4 +106,4 @@ class DomainObject
     !self.extended_generic_attributes.empty?
   end
 end
-
+end

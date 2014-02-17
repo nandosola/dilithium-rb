@@ -1,5 +1,6 @@
 # -*- encoding : utf-8 -*-
 
+module Dilithium
 class BaseEntity < DomainObject
   extend Repository::Sequel::ClassFinders
   include Repository::Sequel::InstanceFinders
@@ -461,4 +462,5 @@ class BaseEntity < DomainObject
       end
     end
   end
+end
 end

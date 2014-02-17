@@ -1,5 +1,6 @@
 # -*- encoding : utf-8 -*-
 
+module Dilithium
 module Mapper
 
   class NullMapper
@@ -169,4 +170,5 @@ module Mapper
     end
 
   end
+end
 end

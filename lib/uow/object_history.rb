@@ -1,4 +1,5 @@
 # -*- encoding : utf-8 -*-
+module Dilithium
 module UnitOfWork
   # CAVEAT: this is not distribution-friendly. object_id should use 'nodename' as well
   class ObjectHistory
@@ -20,4 +21,5 @@ module UnitOfWork
       @object_ids[oid.to_s.to_sym]
     end
   end
+end
 end

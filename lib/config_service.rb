@@ -5,6 +5,7 @@ require 'sequel'
 Sequel.extension :inflector
 Sequel.datetime_class = DateTime
 
+module Dilithium
   module DatabaseUtils
   end
   module Mapper
@@ -24,4 +25,5 @@ Sequel.datetime_class = DateTime
         Repository::Sequel.const_set(:DB, db)
       end
     end
+  end
 end

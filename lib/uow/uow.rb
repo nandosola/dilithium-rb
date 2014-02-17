@@ -1,4 +1,7 @@
 require_relative 'exceptions'
 require_relative 'uuid_generator'
 require_relative 'registry'
+require_relative 'object_tracker'
+require_relative 'object_history'
+require_relative 'states'
 require_relative 'transaction'

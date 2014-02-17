@@ -1,5 +1,6 @@
 # -*- encoding : utf-8 -*-
 # Common methods for BaseEntity and EmbeddableValue
+module Dilithium
 module BaseMethods
   # Creates a reference to a list of BaseEntities (many-to-many).
   #
@@ -74,5 +75,5 @@ module BaseMethods
       self.is_a_base_entity?(type.superclass)
     end
   end
-
+end
 end

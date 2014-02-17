@@ -1,8 +1,6 @@
 # -*- encoding : utf-8 -*-
-require_relative 'object_tracker'
-require_relative 'object_history'
-require_relative 'states'
 
+module Dilithium
 module UnitOfWork
 
   # CAVEAT: this is not threadsafe nor distribution-friendly
@@ -291,4 +289,5 @@ module UnitOfWork
   # TODO: Implement OptimisticTransaction < Transaction
   # TODO: make sure an object is not registered into transaction of different types!!
 
+end
 end

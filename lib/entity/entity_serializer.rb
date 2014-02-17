@@ -1,5 +1,5 @@
 # -*- encoding : utf-8 -*-
-
+module Dilithium
 class EntitySerializer
 
   def self.to_hash(entity, opts={})
@@ -61,4 +61,5 @@ class EntitySerializer
     end
   end
 
+end
 end
