@@ -14,7 +14,7 @@ module Association
 
         @id = id
         @type = referenced_class
-        @_version = @type.fetch_version_for_id(@id)
+        @_version = version || @type.fetch_version_for_id(@id)
       else
         raise ArgumentError 'Cannot initialize a LazyEntityReference with both id and resolved_entity' unless id.nil?
 
