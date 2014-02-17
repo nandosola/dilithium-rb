@@ -75,7 +75,7 @@ module Repository
             raise ArgumentError, "nil version found!" if in_h[:_version_id].nil?
             id = in_h.delete(:_version_id)
             version_h = DB[:_versions].where(id:id).all.first
-            ::Version.new(version_h)
+            Version.new(version_h)
           end
 
           def resolve_references(in_h)
