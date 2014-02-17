@@ -1,4 +1,10 @@
 # -*- encoding : utf-8 -*-
+require 'sequel'
+
+# Sequel config
+Sequel.extension :inflector
+Sequel.datetime_class = DateTime
+
 require 'mapper'
 require 'repository'
 require 'association'
