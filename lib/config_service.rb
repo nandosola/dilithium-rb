@@ -39,13 +39,13 @@ module Dilithium
       def inheritance_mappers(args)
         args.each do |k, v|
           raise ConfigurationError, "Invalid inheritance mapper type #{v}" unless [:class, :leaf].include?(v)
-          raise ConfigurationError, "Mapper for class #{k} has already been seet" if @mappers.has_key?(k)
+          raise ConfigurationError, "Mapper for class #{k} has already been set" if @mappers.has_key?(k)
 
           @mappers[k] = v
         end
       end
 
-      def find_in(map_sym, klazz)
+      def find_in(map_sym, klazz, allow_redefines)
         map = case map_sym
                 when :mappers
                   @mappers
@@ -61,11 +61,19 @@ module Dilithium
           sym = str.to_sym
 
           if map.has_key?(sym)
+            if ! allow_redefines &&
+              klazz.superclass != BaseEntity &&
+              klazz != BaseEntity &&
+              find_in(map, klazz.superclass, allow_redefines) != sym
+
+              raise PersistenceService::ConfigurationError
+            end
+
             map[klazz] = map.delete(sym)
           else
             path = str.split('::')
             cls = path.reduce(Object) { |m, c| m.const_get(c.to_sym) }
-            map[klazz] = find_in(map_sym, cls.superclass)
+            map[klazz] = find_in(map_sym, cls.superclass, allow_redefines)
           end
         end
 
@@ -82,7 +90,11 @@ module Dilithium
     end
 
     def self.mapper_for(klazz)
-      @configuration.find_in(:mappers, klazz)
+      begin
+      @configuration.find_in(:mappers, klazz, false)
+      rescue ConfigurationError
+        raise ConfigurationError, "Not allowed to redefine the mapper type for entities that are not direct subclasses of Dilithium::BaseEntity. Offending class: #{klazz}"
+      end
     end
   end
 end

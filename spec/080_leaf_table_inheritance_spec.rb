@@ -1,7 +1,7 @@
 # -*- encoding : utf-8 -*-
 require 'fixtures/leaf_table_inheritance'
 
-describe 'A single-inheritance hierarchy of BaseEntities' do
+describe 'A single-inheritance hierarchy of BaseEntities with Leaf Table Inheritance' do
   before(:all) do
     DatabaseUtils.create_tables(VehicleL, RegisteredVehicleL)
   end
@@ -10,23 +10,22 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
     $database.table_exists?(:vehicle_ls).should be_true
     $database.table_exists?(:registered_vehicle_ls).should be_true
 
-    schema = $database.schema(:vehicle_ls)
-    schema[0][0].should eq(:id)
-    schema[0][1][:db_type].should eq('integer')
-    schema[1][0].should eq(:active)
-    schema[1][1][:db_type].should eq('boolean')
-    schema[2][0].should eq(:name)
-    schema[2][1][:db_type].should eq('varchar(255)')
+    schema = $database.schema(:vehicle_ls).inject({}) { |memo, s| memo[s[0]] = s[1][:db_type]; memo }
+    expect(schema).to eq(
+                        :id => 'integer',
+                        :active => 'boolean',
+                        :_version_id => 'integer',
+                        :name => 'varchar(255)'
+                      )
 
-    schema = $database.schema(:registered_vehicle_ls)
-    schema[0][0].should eq(:id)
-    schema[0][1][:db_type].should eq('integer')
-    schema[1][0].should eq(:active)
-    schema[1][1][:db_type].should eq('boolean')
-    schema[2][0].should eq(:name)
-    schema[2][1][:db_type].should eq('varchar(255)')
-    schema[3][0].should eq(:owner)
-    schema[3][1][:db_type].should eq('varchar(255)')
+    schema = $database.schema(:registered_vehicle_ls).inject({}) { |memo, s| memo[s[0]] = s[1][:db_type]; memo }
+    expect(schema).to eq(
+                        :id => 'integer',
+                        :active => 'boolean',
+                        :_version_id => 'integer',
+                        :name => 'varchar(255)',
+                        :owner => 'varchar(255)'
+                      )
   end
 
   it 'should load data from the database' do

@@ -62,12 +62,19 @@ module Dilithium
 
     def self.create_tables(*entity_classes)
       SharedVersion.create_table
+
       entity_classes.each do |entity_class|
-        table_name = entity_class.to_s.split('::').last.underscore.downcase.pluralize
+        table_name = table_name_for(entity_class)
+
         DB.create_table(table_name) do
           ::DatabaseUtils.to_schema(entity_class){ |type,opts| eval("#{type} #{opts}") }
         end
-        SharedVersion.add_to_table(table_name)
+
+        if entity_class.superclass == Dilithium::BaseEntity ||
+          PersistenceService.mapper_for(entity_class) == :leaf
+
+          SharedVersion.add_to_table(table_name)
+        end
       end
     end
 
@@ -82,7 +89,23 @@ module Dilithium
     end
 
     def self.to_schema(entity_class)
-      entity_class.attributes.each do |attr|
+      attr = case PersistenceService.mapper_for(entity_class)
+               when :leaf
+                 entity_class.attributes
+               when :class
+                 yield 'primary_key', ":#{entity_class.pk}"
+
+                 if entity_class.superclass != BaseEntity
+                   super_table = DatabaseUtils.table_name_for(entity_class.superclass)
+
+                   yield 'foreign_key', ":#{entity_class.pk}, :#{super_table}"
+                 else
+                   yield 'String', ':_type'
+                 end
+                 entity_class.self_attributes
+             end
+
+      attr.each do |attr|
         if entity_class.pk == attr.name
           yield 'primary_key', ":#{attr.name}"
         else
@@ -110,6 +133,5 @@ module Dilithium
         end
       end
     end
-
   end
 end

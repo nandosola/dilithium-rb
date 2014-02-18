@@ -40,7 +40,7 @@ module Dilithium
 
       base.instance_eval do
         # Prevent adding multiple metaprogrammed attrs in the case of BaseEntity sub-subclasses
-        add_attribute(BasicAttributes::GenericAttribute.new(:active, TrueClass, false, true)) unless @attributes.has_key? :active
+        add_attribute(BasicAttributes::GenericAttribute.new(:active, TrueClass, false, true)) unless attribute_descriptors.has_key? :active
 
         # Create the internal Immutable class for this BaseEntity
         immutable_class = Class.new(superclass.const_get(:Immutable))

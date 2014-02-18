@@ -36,6 +36,18 @@ module Dilithium
           self.superclass.attribute_descriptors.merge(@attributes)
         end
 
+        def self_attributes
+          @attributes.values
+        end
+
+        def self_attribute_names
+          @attributes.keys
+        end
+
+        def self_attribute_descriptors
+          @attributes.clone
+        end
+
         def each_attribute(*attr_classes)
           self.attributes.each { |attr| yield attr if attr_classes.include?(attr.class) }
         end
@@ -55,7 +67,7 @@ module Dilithium
     end
 
     def self.add_pk_attribute
-      @attributes[pk] = BasicAttributes::GenericAttribute.new(pk, PRIMARY_KEY[:type])
+      @attributes[pk] = BasicAttributes::GenericAttribute.new(pk, PRIMARY_KEY[:type]) unless attribute_descriptors.has_key? pk
 
       self.class_eval do
 
