@@ -9,6 +9,13 @@ include Dilithium
 $database = Sequel.sqlite
 PersistenceService::Sequel.db = $database
 
+PersistenceService.configure do |config|
+  config.inheritance_mappers(
+    :'Dilithium::BaseEntity' => :leaf,
+    :'PersistenceConfigTest::Base' => :class
+  )
+end
+
 #$database.logger = Logger.new($stdout)
 
 $:<< File.join(File.dirname(__FILE__), '..')
