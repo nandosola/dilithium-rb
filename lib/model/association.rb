@@ -14,7 +14,7 @@ module Dilithium
 
           @id = id
           @type = referenced_class
-          @_version = version || @type.fetch_version_for_id(@id)
+          @_version = version || SharedVersion.resolve(@type, @id)
         else
           raise ArgumentError 'Cannot initialize a LazyEntityReference with both id and resolved_entity' unless id.nil?
 
@@ -27,10 +27,9 @@ module Dilithium
         end
       end
 
-      #TODO Do the fetch_by_id on the root
       #TODO Rename resolve to resolve!
       def resolve
-        @_version ||= @type.fetch_version_for_id(@id)
+        @_version ||= SharedVersion.resolve(@type, @id)
         @resolved_entity ||= @type.fetch_by_id(@id)
       end
 

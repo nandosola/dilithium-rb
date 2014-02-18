@@ -216,7 +216,7 @@ module Dilithium
 
       def register_new(obj)
         super
-        obj._version.lock!(@uuid)
+        obj._version.rw_lock(@uuid)
       end
 
       def register_dirty(obj)
@@ -269,16 +269,17 @@ module Dilithium
 
       def lock(entity_class, id)
         begin
-          @mapper.rw_lock(entity_class, id, @uuid)
+          SharedVersion.resolve(entity_class, id).rw_lock!(@uuid)
         rescue VersionAlreadyLockedException
           raise Concurrency::ReadWriteLockException.new(entity_class, id, :lock)
+        rescue VersionNotFoundException
+          raise Concurrency::ReadWriteLockException.new(entity_class, id, :resolve)
         end
       end
 
       def unlock(entity)
         begin
-          @mapper.unlock(entity, @uuid)
-          entity._version.unlock!
+          entity._version.unlock!(@uuid)
         rescue VersionAlreadyLockedException
           raise Concurrency::ReadWriteLockException.new(entity.class, entity.id, :unlock)
         end

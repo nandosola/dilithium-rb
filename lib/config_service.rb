@@ -18,6 +18,8 @@ module Dilithium
     module Sequel
     end
   end
+  class SharedVersion
+  end
 
   module PersistenceService
     class Sequel
@@ -25,6 +27,7 @@ module Dilithium
         DatabaseUtils.const_set(:DB, db)
         Mapper::Sequel.const_set(:DB, db)
         Repository::Sequel.const_set(:DB, db)
+        SharedVersion.const_set(:DB, db)
       end
     end
 

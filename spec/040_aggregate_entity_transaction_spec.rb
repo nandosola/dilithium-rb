@@ -110,6 +110,7 @@ describe 'A Transaction handling an Aggregate Entity' do
 
     smarty_pants.name.should eq('Smarty Pants, Inc.')
     smarty_pants.id.should eq(2)
+    smarty_pants._version._version.should eq(0)
 
     smarty_pants.local_offices.size.should eq(1)
 
@@ -134,6 +135,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     new_horizon.name.should eq('New Horizon Partners, Inc.')
     new_horizon.url.should eq('http://example.net')
     new_horizon.id.should eq(2)
+    new_horizon._version._version.should eq(1)
 
     new_horizon.local_offices.size.should eq(1)
 
@@ -154,6 +156,8 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.commit
 
     new_horizon = Company.fetch_by_id(2)
+    new_horizon._version._version.should eq(2)
+
     new_horizon.local_offices.size.should eq(1)
     new_horizon.local_offices[0].addresses.size.should eq(0)
 
@@ -165,6 +169,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.commit
 
     new_horizon = Company.fetch_by_id(2)
+    new_horizon._version._version.should eq(3)
     new_horizon.local_offices.size.should eq(0)
 
     b_company.full_update({id: 2,
@@ -179,6 +184,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.commit
 
     new_horizon = Company.fetch_by_id(2)
+    new_horizon._version._version.should eq(4)
     new_horizon.local_offices.size.should eq(1)
 
     b_company.full_update({id: 2,
@@ -189,6 +195,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.commit
 
     new_horizon = Company.fetch_by_id(2)
+    new_horizon._version._version.should eq(5)
     new_horizon.local_offices.size.should eq(0)
 
     b_company.full_update({id: 2,
@@ -201,6 +208,9 @@ describe 'A Transaction handling an Aggregate Entity' do
                                }
                            ]})
     @transaction.commit
+
+    new_horizon = Company.fetch_by_id(2)
+    new_horizon._version._version.should eq(6)
 
   end
 
@@ -305,32 +315,32 @@ describe 'A Transaction handling an Aggregate Entity' do
 
       persisted_foo = Foo.fetch_by_id(1)
       EntitySerializer.to_nested_hash(persisted_foo).should==({:id=>1,
-                                                                    :active=>true,
-                                                                    :_version=>{:id=>4,
-                                                                                :_version=>0,
-                                                                                :_version_created_at=>a_foo._version._version_created_at,
-                                                                                :_locked_by=>nil, :_locked_at=>nil},
-                                                                    :bars=>
-                                                                        [{:id=>1,
-                                                                          :active=>true,
-                                                                          :_version=>{:id=>4,
-                                                                                      :_version=>0,
-                                                                                      :_version_created_at=>a_foo.bars[0]._version._version_created_at,
-                                                                                      :_locked_by=>nil, :_locked_at=>nil},
-                                                                          :bar=>"bar",
-                                                                          :baz=>baz_ref
-                                                                         },
-                                                                         {:id=>2,
-                                                                          :active=>true,
-                                                                          :_version=>{:id=>4,
-                                                                                      :_version=>0,
-                                                                                      :_version_created_at=>a_foo.bars[1]._version._version_created_at,
-                                                                                      :_locked_by=>nil, :_locked_at=>nil},
-                                                                          :bar=>"bar2",
-                                                                          :baz=>baz_ref
-                                                                         }],
-                                                                    :foo=>"foo",
-                                                                    :baz=>baz_ref})
+                                                               :active=>true,
+                                                               :bars=>
+                                                                   [{:id=>1,
+                                                                     :active=>true,
+                                                                     :bar=>"bar",
+                                                                     :baz=>baz_ref,
+                                                                     :_version=>{:id=>4,
+                                                                                 :_version=>0,
+                                                                                 :_version_created_at=>a_foo.bars[0]._version._version_created_at,
+                                                                                 :_locked_by=>nil, :_locked_at=>nil}
+                                                                    },
+                                                                    {:id=>2,
+                                                                     :active=>true,
+                                                                     :bar=>"bar2",
+                                                                     :baz=>baz_ref,
+                                                                     :_version=>{:id=>4,
+                                                                                 :_version=>0,
+                                                                                 :_version_created_at=>a_foo.bars[1]._version._version_created_at,
+                                                                                 :_locked_by=>nil, :_locked_at=>nil}
+                                                                    }],
+                                                               :foo=>"foo",
+                                                               :baz=>baz_ref,
+                                                               :_version=>{:id=>4,
+                                                                           :_version=>0,
+                                                                           :_version_created_at=>a_foo._version._version_created_at,
+                                                                           :_locked_by=>nil, :_locked_at=>nil}})
 
   # children: delete with [] or nil
   # references: delete with nil
@@ -350,19 +360,19 @@ describe 'A Transaction handling an Aggregate Entity' do
       updated_foo = Foo.fetch_by_id(1)
       EntitySerializer.to_nested_hash(updated_foo).should ==( {:id=>1,
                                                                :active=>true,
-                                                               :_version=>{:id=>4, :_version=>1,
-                                                                           :_version_created_at=>updated_foo._version._version_created_at,
-                                                                           :_locked_by=>nil, :_locked_at=>nil},
                                                                :bars=>
                                                                    [{:id=>1,
                                                                      :active=>true,
+                                                                     :bar=>"bar",
+                                                                     :baz=>baz_ref,
                                                                      :_version=>{:id=>4, :_version=>1,
                                                                                  :_version_created_at=>updated_foo._version._version_created_at,
-                                                                                 :_locked_by=>nil, :_locked_at=>nil},
-                                                                     :bar=>"bar",
-                                                                     :baz=>baz_ref}],
+                                                                                 :_locked_by=>nil, :_locked_at=>nil}}],
                                                                :foo=>"foo",
-                                                               :baz=>nil})
+                                                               :baz=>nil,
+                                                               :_version=>{:id=>4, :_version=>1,
+                                                                           :_version_created_at=>updated_foo._version._version_created_at,
+                                                                           :_locked_by=>nil, :_locked_at=>nil}})
 
       a_foo.full_update({:id=>1,
                          :active=>true,
@@ -443,7 +453,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.register_dirty(office)
 
     office.description = 'Headquarters'
-    office.addresses << Address.new({description: 'Timelord Palace'})
+    office.add_address Address.new({description: 'Timelord Palace'})
     @transaction.commit
 
     a_company = Company.fetch_by_name(name)[0]

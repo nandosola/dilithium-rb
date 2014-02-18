@@ -15,18 +15,18 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
     schema[0][1][:db_type].should eq('integer')
     schema[1][0].should eq(:active)
     schema[1][1][:db_type].should eq('boolean')
-    schema[3][0].should eq(:name)
-    schema[3][1][:db_type].should eq('varchar(255)')
+    schema[2][0].should eq(:name)
+    schema[2][1][:db_type].should eq('varchar(255)')
 
     schema = $database.schema(:registered_vehicles)
     schema[0][0].should eq(:id)
     schema[0][1][:db_type].should eq('integer')
     schema[1][0].should eq(:active)
     schema[1][1][:db_type].should eq('boolean')
-    schema[3][0].should eq(:name)
+    schema[2][0].should eq(:name)
+    schema[2][1][:db_type].should eq('varchar(255)')
+    schema[3][0].should eq(:owner)
     schema[3][1][:db_type].should eq('varchar(255)')
-    schema[4][0].should eq(:owner)
-    schema[4][1][:db_type].should eq('varchar(255)')
   end
 
   it 'should load data from the database' do
@@ -71,8 +71,8 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
     #TODO This should change, the parent should have a factory for its children
     car = Car.new({:seats => 4}, fleet)
     van = DeliveryVan.new({:capacity => 1000}, fleet)
-    fleet.ground_vehicles<< car
-    fleet.ground_vehicles<< van
+    fleet.add_ground_vehicle car
+    fleet.add_ground_vehicle van
 
     car.fleet.should eq(fleet)
     van.fleet.should eq(fleet)
@@ -86,8 +86,8 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
     #TODO This should change, the parent should have a factory for its children
     car = Car.new({:seats => 4}, fleet)
     van = DeliveryVan.new({:capacity => 1000}, fleet)
-    fleet.ground_vehicles<< car
-    fleet.ground_vehicles<< van
+    fleet.add_ground_vehicle car
+    fleet.add_ground_vehicle van
 
     fleet_h = EntitySerializer.to_nested_hash(fleet)
     fleet_h.should eq({:id => nil,

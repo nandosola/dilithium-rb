@@ -113,9 +113,6 @@ module Dilithium
       end
     end
 
-    class Version < Reference
-    end
-
     class ParentReference < Reference
       def initialize(parent_name, child_klazz)
         reference_path = Reference.get_reference_path(child_klazz, parent_name)

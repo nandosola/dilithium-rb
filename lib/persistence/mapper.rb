@@ -14,17 +14,12 @@ module Dilithium
         DB.transaction &block
       end
 
-      def self.insert(entity, parent_id = nil, _version=nil)
+      def self.insert(entity, parent_id = nil)
         check_uow_transaction(entity) unless parent_id  # It's the root
 
         # First insert version when persisting the root; no need to lock the row/table
         if parent_id.nil?
-          version_data = DatabaseUtils.to_row(entity._version)
-          version_data.delete(:id)
-          version_data[:id] = DB[:_versions].insert(version_data)
-          entity._version = Version.new(version_data)
-        else
-          entity._version = _version
+          entity._version.insert!
         end
 
         # Then insert model
@@ -34,7 +29,7 @@ module Dilithium
 
         # Then recurse children for inserting them
         entity.each_child do |child|
-          insert(child, entity.id, entity._version)
+          insert(child, entity.id)
         end
 
         # Then recurse multi_ref for inserting the intermediate table
@@ -47,7 +42,7 @@ module Dilithium
         check_uow_transaction(entity)
 
         unless already_versioned
-          increment_version(entity)
+          entity._version.increment!
           already_versioned = true
         end
 
@@ -63,11 +58,10 @@ module Dilithium
 
         modified_data = DatabaseUtils.to_row(modified_entity)
         original_data = DatabaseUtils.to_row(original_entity)
-        version = modified_entity._version
 
         unless modified_data.eql?(original_data)
           unless already_versioned
-            increment_version(modified_entity)
+            modified_entity._version.increment!
             already_versioned = true
           end
           DB[DatabaseUtils.to_table_name(modified_entity)].where(id: modified_entity.id).update(modified_data)
@@ -76,10 +70,10 @@ module Dilithium
         modified_entity.each_child do |child|
           if child.id.nil?
             unless already_versioned
-              increment_version(modified_entity)
+              modified_entity._version.increment!
               already_versioned = true
             end
-            insert(child, modified_entity.id, version)
+            insert(child, modified_entity.id)
           else
             update(child, (original_entity.find_child do |c|
               child.class == c.class && child.id == c.id
@@ -88,7 +82,13 @@ module Dilithium
         end
 
         original_entity.each_child do |child|
-          delete(child, already_versioned) if modified_entity.find_child{|c| child.class == c.class && child.id == c.id}.nil?
+          if modified_entity.find_child{|c| child.class == c.class && child.id == c.id}.nil?
+            unless already_versioned
+              modified_entity._version.increment!
+              already_versioned = true
+            end
+            delete(child, already_versioned)
+          end
         end
 
         modified_entity.each_multi_reference do |ref, ref_attr|
@@ -101,35 +101,7 @@ module Dilithium
         end
       end
 
-      def self.rw_lock(entity_class, id, locker)
-        DB[DatabaseUtils.to_table_name(entity_class)].for_update.where(id: id).each do |e|
-          version_id = e[:_version_id]
-          updated_rows = DB[:_versions].for_update.where(id: version_id, _locked_by:nil).
-            update(_locked_by:locker, _locked_at:Version.utc_tstamp)
-          raise VersionAlreadyLockedException if 0 == updated_rows
-        end
-      end
-
-      def self.unlock(entity, unlocker)
-        version_id = entity._version.id
-        updated_rows = DB[:_versions].for_update.where(id: version_id, _locked_by:unlocker).
-          update(_locked_by:nil, _locked_at:nil)
-        raise VersionAlreadyLockedException if 0 == updated_rows
-      end
-
-      def self.increment_version(entity)
-        version = entity._version
-        version.increment!
-        update_version(version)
-      end
-
       private
-
-      def self.update_version(version)
-        version_id = version.id
-        version_data = DatabaseUtils.to_row(version)
-        DB[:_versions].for_update.where(id:version_id).update(version_data)
-      end
 
       def self.insert_in_intermediate_table(dependee, dependent, ref_attr, from=:insert)
         table_dependee = DatabaseUtils.to_table_name(dependee)
@@ -151,7 +123,6 @@ module Dilithium
         end
       end
 
-      # TODO refactor this
       def self.delete_in_intermediate_table(dependee, dependent, ref_attr)
         table_dependee = DatabaseUtils.to_table_name(dependee)
         table_dependent = DatabaseUtils.to_table_name(dependent)

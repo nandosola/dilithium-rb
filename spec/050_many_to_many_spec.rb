@@ -41,16 +41,16 @@ describe 'A BasicEntity with a many to many relationship' do
   end
 
   it 'must have the correct class attributes' do
-    attr = Employee.attributes[3]
+    attr = Employee.attributes[2]
     attr.is_a?(BasicAttributes::MultiReference).should be_true
     attr.name.should eq(:departments)
     attr.inner_type.should eq(Department)
 
-    attr = Employee.attributes[4]
+    attr = Employee.attributes[3]
     attr.is_a?(BasicAttributes::MultiReference).should be_true
     attr.name.should eq(:buildings)
 
-    attr = Employee.attributes[5]
+    attr = Employee.attributes[4]
     attr.is_a?(BasicAttributes::MultiReference).should be_true
     attr.name.should eq(:managed_departments)
     attr.inner_type.should eq(Department)
@@ -66,12 +66,12 @@ describe 'A BasicEntity with a many to many relationship' do
     bld1 = Building.new({name:'Marquee'})
     bld2 = Building.new({name:'Fawlty Towers'})
 
-    employee.departments<<(dept1)
-    employee.departments<<(dept2)
-    employee.managed_departments<<(dept3)
-    employee.managed_departments<<(dept4)
-    employee.buildings<<(bld1)
-    employee.buildings<<(bld2)
+    employee.reference_department(dept1)
+    employee.reference_department(dept2)
+    employee.reference_managed_department(dept3)
+    employee.reference_managed_department(dept4)
+    employee.reference_building(bld1)
+    employee.reference_building(bld2)
 
     employee.departments.should eq([dept1, dept2])
     employee.managed_departments.should eq([dept3, dept4])
@@ -88,12 +88,12 @@ describe 'A BasicEntity with a many to many relationship' do
     bld1 = Building.new({name:'Marquee'})
     bld2 = Building.new({name:'Fawlty Towers'})
 
-    employee.departments<<(dept1)
-    employee.departments<<(dept2)
-    employee.managed_departments<<(dept3)
-    employee.managed_departments<<(dept4)
-    employee.buildings<<(bld1)
-    employee.buildings<<(bld2)
+    employee.reference_department(dept1)
+    employee.reference_department(dept2)
+    employee.reference_managed_department(dept3)
+    employee.reference_managed_department(dept4)
+    employee.reference_building(bld1)
+    employee.reference_building(bld2)
 
     many_a = []
     employee.each_multi_reference do |many|
@@ -113,12 +113,12 @@ describe 'A BasicEntity with a many to many relationship' do
     bld1 = Building.new({name:'Marquee'})
     bld2 = Building.new({name:'Fawlty Towers'})
 
-    employee.departments<<(dept1)
-    employee.departments<<(dept2)
-    employee.managed_departments<<(dept3)
-    employee.managed_departments<<(dept4)
-    employee.buildings<<(bld1)
-    employee.buildings<<(bld2)
+    employee.reference_department(dept1)
+    employee.reference_department(dept2)
+    employee.reference_managed_department(dept3)
+    employee.reference_managed_department(dept4)
+    employee.reference_building(bld1)
+    employee.reference_building(bld2)
 
     immutable = employee.immutable
 
@@ -135,17 +135,17 @@ describe 'A BasicEntity with a many to many relationship' do
     emp2 = Employee.new({name:'Mayer'})
     ref_dept = Association::LazyEntityReference.new(2, Department)
 
-    emp.departments<<dept
+    emp.reference_department dept
     EntitySerializer.to_hash(emp)[:departments].should eq([dept])
     EntitySerializer.to_nested_hash(emp)[:departments].should eq([EntitySerializer.to_nested_hash(dept)])
     DatabaseUtils.to_row(emp)[:departments].should be_nil
 
-    emp.managed_departments<<dept2
+    emp.reference_managed_department dept2
     EntitySerializer.to_hash(emp)[:managed_departments].should eq([dept2])
     EntitySerializer.to_nested_hash(emp)[:managed_departments].should eq([EntitySerializer.to_nested_hash(dept2)])
     DatabaseUtils.to_row(emp)[:managed_departments].should be_nil
 
-    emp2.departments<<ref_dept
+    emp2.reference_department ref_dept
     EntitySerializer.to_hash(emp2)[:departments].should eq([ref_dept])
     EntitySerializer.to_nested_hash(emp2)[:departments].should eq([EntitySerializer.to_nested_hash(ref_dept)])
     DatabaseUtils.to_row(emp2)[:departments].should be_nil
@@ -167,10 +167,10 @@ describe 'A BasicEntity with a many to many relationship' do
     dept3 = Department.fetch_by_id(3)
     dept4 = Department.fetch_by_id(4)
 
-    emp.departments<<dept
-    emp.departments<<dept2
-    emp.managed_departments<<dept3
-    emp.managed_departments<<dept4
+    emp.reference_department dept
+    emp.reference_department dept2
+    emp.reference_managed_department dept3
+    emp.reference_managed_department dept4
 
     Mapper::Sequel.insert(emp)
 
@@ -242,7 +242,7 @@ describe 'A BasicEntity with a many to many relationship' do
     pending 'Corner case: soft deletes should be handled by the application'
     emp = Employee.new({name:'Avi'})
     dept = Department.fetch_by_id(1)
-    emp.departments<<dept
+    emp.reference_departmentdept
 
     Mapper::Sequel.delete(dept)
 
@@ -259,11 +259,11 @@ describe 'A BasicEntity with a many to many relationship' do
 
     bld = Building.fetch_by_id(1)
 
-    emp.departments<<dept
-    emp.departments<<dept2
-    emp.managed_departments<<dept3
-    emp.managed_departments<<dept4
-    emp.buildings<<bld
+    emp.reference_department dept
+    emp.reference_department dept2
+    emp.reference_managed_department dept3
+    emp.reference_managed_department dept4
+    emp.reference_building bld
 
     Mapper::Sequel.insert(emp)
 
@@ -288,12 +288,11 @@ describe 'A BasicEntity with a many to many relationship' do
     katrina.managed_departments.first.resolve
     katrina.managed_departments.first.resolved_entity.name.should eq('Sales')
     katrina.managed_departments.first.resolved_entity.id.should eq(3)
-
-    @@kati_id = katrina.id
   end
 
   it 'correctly updates its intermediate table when deleting a reference' do
-    katrina = Employee.fetch_by_id(@@kati_id)
+    kati_id = 7
+    katrina = Employee.fetch_by_id(kati_id)
     orig_katrina = Marshal.load(Marshal.dump(katrina))
 
     dept1 = katrina.departments[1]
@@ -309,15 +308,15 @@ describe 'A BasicEntity with a many to many relationship' do
 
     Mapper::Sequel.update(katrina, orig_katrina)
 
-    found_depts = $database[:employees_departments].where(employee_id:@@kati_id).all
+    found_depts = $database[:employees_departments].where(employee_id:kati_id).all
     found_depts.size.should eq(1)
-    found_depts[0].should include({:employee_id=>@@kati_id, :department_id=>dept1_id})
+    found_depts[0].should include({:employee_id=>kati_id, :department_id=>dept1_id})
 
-    found_managed_depts = $database[:employees_managed_departments].where(employee_id:@@kati_id).all
+    found_managed_depts = $database[:employees_managed_departments].where(employee_id:kati_id).all
     found_managed_depts.size.should eq(1)
-    found_managed_depts[0].should include({:employee_id=>@@kati_id, :department_id=>dept2_id})
+    found_managed_depts[0].should include({:employee_id=>kati_id, :department_id=>dept2_id})
 
-    $database[:employees_buildings].where(employee_id:@@kati_id).all.should eq([])
+    $database[:employees_buildings].where(employee_id:kati_id).all.should eq([])
   end
 
   after(:all) do

@@ -66,18 +66,24 @@ describe 'The object tracker' do
 
     new_shipment = Shipment.new
     new_shipment.name = "Test shipment"
-    container_1 = Container.new
-    container_2 = Container.new
-    new_shipment.containers << container_1
-    new_shipment.containers << container_2
+    container_1 = Container.new(kind:'20ft')
+    container_2 = Container.new(kind:'40fthc')
+    new_shipment.add_container container_1
+    new_shipment.add_container container_2
+
+    new_shipment._version.object_id.should eq(new_shipment.containers[0]._version.object_id)
+    new_shipment._version.object_id.should eq(new_shipment.containers[1]._version.object_id)
 
     transaction.register_new(new_shipment)
     transaction.commit
 
+    new_shipment._version.object_id.should eq(new_shipment.containers[0]._version.object_id)
+    new_shipment._version.object_id.should eq(new_shipment.containers[1]._version.object_id)
+
     a_shipyard = Shipyard.new
     a_shipyard.name = "Test shipyard"
-    a_shipyard.containers << Association::LazyEntityReference.new(container_1.id, Container)
-    a_shipyard.containers << Association::LazyEntityReference.new(container_1.id, Container)
+    a_shipyard.reference_container Association::LazyEntityReference.new(container_1.id, Container, container_1._version)
+    a_shipyard.reference_container Association::LazyEntityReference.new(container_2.id, Container, container_2._version)
 
     object_tracker = UnitOfWork::ObjectTracker.new(UnitOfWork::States::Default::ALL_STATES)
     object_tracker.track(new_shipment, st_new)

@@ -47,7 +47,7 @@ module Dilithium
       end
       entity_h.each do |attr,value|
         attr_type = entity.class.attribute_descriptors[attr]
-        unless [BasicAttributes::Version, BasicAttributes::ChildReference, BasicAttributes::ParentReference,
+        unless [BasicAttributes::ChildReference, BasicAttributes::ParentReference,
                 BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference].include?(attr_type.class)
           case attr_type
             when BasicAttributes::ImmutableReference
@@ -61,19 +61,13 @@ module Dilithium
     end
 
     def self.create_tables(*entity_classes)
-      create_versions_table unless DB.table_exists?(:_versions)
+      SharedVersion.create_table
       entity_classes.each do |entity_class|
         table_name = entity_class.to_s.split('::').last.underscore.downcase.pluralize
-
         DB.create_table(table_name) do
           ::DatabaseUtils.to_schema(entity_class){ |type,opts| eval("#{type} #{opts}") }
         end
-      end
-    end
-
-    def self.create_versions_table
-      DB.create_table(:_versions) do
-        ::DatabaseUtils.to_schema(Version){ |type,opts| eval("#{type} #{opts}") }
+        SharedVersion.add_to_table(table_name)
       end
     end
 
@@ -94,8 +88,8 @@ module Dilithium
         else
           case attr
             # TODO Refactor this behaviour to a class
-            when BasicAttributes::ParentReference, BasicAttributes::ImmutableReference, BasicAttributes::Version
-              name = if attr.type.nil? || Version == attr.type
+            when BasicAttributes::ParentReference, BasicAttributes::ImmutableReference
+              name = if attr.type.nil?
                        attr.name.to_s.pluralize
                      else
                        attr.type.to_s.split('::').last.underscore.pluralize

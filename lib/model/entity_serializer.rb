@@ -36,13 +36,11 @@ module Dilithium
               entity_h[attr] = value
             when BasicAttributes::ChildReference, BasicAttributes::MultiReference
               entity_h[attr] = value.map { |ref| to_nested_hash(ref, opts) } unless value.nil?
-            when BasicAttributes::Version
-              entity_h[attr] = to_nested_hash(value, opts) unless value.nil?
           end
         end
 
       end
-
+      entity_h[:_version] = entity._version.to_h if entity._version.is_a?(SharedVersion)
       entity_h
     end
 

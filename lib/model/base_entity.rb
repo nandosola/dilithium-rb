@@ -7,6 +7,8 @@ module Dilithium
     extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
     include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
 
+    attr_accessor :_version
+
     # Each BaseEntity subclass will have an internal class called Immutable that contains the immutable representation of
     # said BaseEntity. The Immutable classes are all subclasses of BaseEntity::Immutable
     class Immutable
@@ -41,7 +43,6 @@ module Dilithium
       base.instance_eval do
         # Prevent adding multiple metaprogrammed attrs in the case of BaseEntity sub-subclasses
         add_attribute(BasicAttributes::GenericAttribute.new(:active, TrueClass, false, true)) unless @attributes.has_key? :active
-        add_attribute(BasicAttributes::Version.new(:_version, Version)) unless @attributes.has_key? :_version
 
         # Create the internal Immutable class for this BaseEntity
         immutable_class = Class.new(superclass.const_get(:Immutable))
@@ -94,10 +95,10 @@ module Dilithium
       end
       if parent.nil?
         if aggregate_version.nil?
-          @_version =  Version.create  # Shared version among all the members of the aggregate
+          @_version =  SharedVersion.create(self)  # Shared version among all the members of the aggregate
         else
           raise ArgumentError,
-                "Version is a #{aggregate_version.class} -- Must be a Version object" unless aggregate_version.is_a?(Version)
+                "Version is a #{aggregate_version.class} -- Must be a Version object" unless aggregate_version.is_a?(SharedVersion)
           @_version = aggregate_version
         end
       else
@@ -301,7 +302,7 @@ module Dilithium
                   in_h[name]
                 end
 
-        value.each { |ref| send("#{name}<<".to_sym, ref) }
+        value.each { |ref| instance_variable_get("@#{name.to_s.pluralize}".to_sym) << ref }
       end
     end
 
@@ -357,7 +358,7 @@ module Dilithium
                         raise IllegalArgumentException, "Invalid reference #{name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
                     end
 
-            send("#{name}<<".to_sym,value)
+            instance_variable_get("@#{name.to_s.pluralize}".to_sym) << value
           end
         end
 
@@ -398,15 +399,13 @@ module Dilithium
         singular_name = plural_child_name.to_s.singularize
         singular_make_method_name = "make_#{singular_name}".to_sym
         plural_make_method_name = "make_#{plural_child_name}".to_sym
-        plural_add_method_name = "#{plural_child_name}<<".to_sym
 
         # Single-model methods:
 
         define_method(singular_make_method_name) do |in_h|
           child_class = self.class.attribute_descriptors[plural_child_name].inner_type
           a_child = child_class.new(in_h, self)
-          send(plural_add_method_name, a_child)
-
+          send("add_#{singular_name}".to_sym, a_child)
           a_child
         end
 
@@ -439,16 +438,22 @@ module Dilithium
 
       self.class_eval do
         define_method(name){instance_variable_get("@#{name}".to_sym)}
+        singular_ref_name = name.to_s.singularize
         case attribute_descriptor
-          when BasicAttributes::ParentReference
-            # No mutator should be defined for parent
-          when BasicAttributes::ChildReference, BasicAttributes::MultiReference
-            define_method("#{name}<<"){ |new_value|
+          # ParentReferences have no setters
+          when BasicAttributes::ChildReference
+            define_method("add_#{singular_ref_name}") { |new_value|
+              attribute_descriptor.check_assignment_constraints(new_value)
+              new_value._version = self._version
+              instance_variable_get("@#{name}".to_sym) << new_value
+            }
+          when BasicAttributes::MultiReference
+            define_method("reference_#{singular_ref_name}"){ |new_value|
               attribute_descriptor.check_assignment_constraints(new_value)
               instance_variable_get("@#{name}".to_sym) << new_value
             }
           when BasicAttributes::ImmutableMultiReference
-            define_method("#{name}<<"){ |new_value|
+            define_method("reference_#{singular_ref_name}"){ |new_value|
               attribute_descriptor.check_assignment_constraints(new_value)
               instance_variable_get("@#{name}".to_sym) << Association::ImmutableEntityReference.create(new_value)
             }

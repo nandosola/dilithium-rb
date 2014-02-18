@@ -48,17 +48,6 @@ module Dilithium
               Association::LazyEntityReference.new(id, self)
             end
 
-            # TODO lock for update?
-            def fetch_version_for_id(id)
-              version_id = DB[DatabaseUtils.to_table_name(self)].where(id: id).get(:_version_id)
-              raise Repository::NotFound.new(id, self) if version_id.nil?
-
-              version = DB[:_versions].where(id: version_id).first
-              raise Repository::NotFound.new(version_id, Version) if version.nil?
-
-              Version.new(version)
-            end
-
             def resolve_extended_generic_attributes(in_h)
               if self.has_extended_generic_attributes?
                 self.extended_generic_attributes.each do |gen_attr|
@@ -66,13 +55,6 @@ module Dilithium
                   in_h[gen_attr] = attr.type.new(in_h[attr.name])
                 end
               end
-            end
-
-            def resolve_version(in_h)
-              raise ArgumentError, "nil version found!" if in_h[:_version_id].nil?
-              id = in_h.delete(:_version_id)
-              version_h = DB[:_versions].where(id:id).all.first
-              Version.new(version_h)
             end
 
             def resolve_references(in_h)
@@ -106,7 +88,8 @@ module Dilithium
 
             def create_object(in_h)
               unless in_h.nil?
-                version = resolve_version(in_h) if in_h.has_key?(:_version_id)
+                version = SharedVersion.resolve(self, in_h[:id])
+                in_h.delete(:_version_id)
                 resolve_references(in_h)
                 resolve_extended_generic_attributes(in_h)
                 parent = resolve_parent(in_h)
@@ -187,8 +170,7 @@ module Dilithium
               ref_attr = "#{name.underscore.downcase}_id".to_sym
               found_ref = ref_class.fetch_reference_by_id(ref_h[ref_attr])
 
-              #For ImmutableMultiReferences, the << method takes care of converting them to ImmutableReferences
-              method = "#{ref_name}<<"
+              method = "reference_#{ref_name.to_s.singularize}"
               dependent_obj.send(method.to_sym, found_ref)
             end
 
