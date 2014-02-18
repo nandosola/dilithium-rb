@@ -23,6 +23,7 @@ module Dilithium
     end
 
     def self.to_nested_hash(entity, opts={})
+      skip_class = opts[:without]
       entity_h = to_hash(entity, opts)
 
       entity_h.each do |attr, value|
@@ -40,7 +41,7 @@ module Dilithium
         end
 
       end
-      entity_h[:_version] = entity._version.to_h if entity._version.is_a?(SharedVersion)
+      entity_h[:_version] = entity._version.to_h unless skip_class.is_a?(SharedVersion)
       entity_h
     end
 
