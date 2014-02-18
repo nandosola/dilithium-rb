@@ -4,6 +4,7 @@ require 'sequel'
 require 'logger'
 
 require 'dilithium'
+
 include Dilithium
 
 $database = Sequel.sqlite
