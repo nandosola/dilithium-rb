@@ -19,6 +19,7 @@ achieved, a complete README, plus wiki pages will be uploaded. In the meantime, 
 
 * [datamappify](https://github.com/fredwu/datamappify)
 * [Ruby Object Mapper](https://github.com/rom-rb/rom)
+* [Perpetuity](https://github.com/jgaskins/perpetuity)
 * [DataMapper](http://datamapper.org/articles/the_great_refactoring.html) as a real data mapper pattern
 
 ### License
