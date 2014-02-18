@@ -6,8 +6,6 @@ Sequel.extension :inflector
 Sequel.datetime_class = DateTime
 
 module Dilithium
-  class ConfigurationError < Exception; end
-
   module DatabaseUtils
   end
   module Mapper
@@ -22,6 +20,8 @@ module Dilithium
   end
 
   module PersistenceService
+    class ConfigurationError < Exception; end
+
     class Sequel
       def self.db=(db)
         DatabaseUtils.const_set(:DB, db)
@@ -47,31 +47,29 @@ module Dilithium
 
       def find_in(map_sym, klazz)
         map = case map_sym
-                when :dbs
-                  @dbs
                 when :mappers
                   @mappers
                 else
-                  raise ConfigurationError("Unknown configuration map type #{map_sym}")
+                  raise PersistenceService::ConfigurationError, "Unknown configuration map type #{map_sym}"
               end
 
-        raise ConfigurationError, 'The PersistenceService can only be configured for BaseEntities' unless klazz <= BaseEntity
-        if map.dbs.has_key(klazz)
-          map.dbs[klazz]
+        raise PersistenceService::ConfigurationError, 'The PersistenceService can only be configured for BaseEntities' unless klazz <= BaseEntity
+        if map.has_key?(klazz)
+          map[klazz]
         else
           str = klazz.to_s
           sym = str.to_sym
 
-          if map.dbs.has_key?(sym)
-            map.dbs[klazz] = map.dbs.delete!(sym)
+          if map.has_key?(sym)
+            map[klazz] = map.delete(sym)
           else
             path = str.split('::')
             cls = path.reduce(Object) { |m, c| m.const_get(c.to_sym) }
-            map.dbs[klazz] = find_in(map, cls.superclass)
+            map[klazz] = find_in(map_sym, cls.superclass)
           end
         end
 
-        map.dbs[klazz]
+        map[klazz]
       end
     end
 
