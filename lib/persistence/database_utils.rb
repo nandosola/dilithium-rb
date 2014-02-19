@@ -41,6 +41,12 @@ module Dilithium
     def self.to_row(entity, parent_id=nil)
       row = {}
       entity_h = EntitySerializer.to_hash(entity)
+
+      if entity_h[:_version]
+        entity_h[:_version_id] = entity_h[:_version][:id]
+        entity_h.delete(:_version)
+      end
+
       if parent_id
         parent_ref = "#{entity.class.parent_reference}_id".to_sym
         entity_h[parent_ref] = parent_id if parent_id

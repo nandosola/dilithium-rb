@@ -19,11 +19,15 @@ module Dilithium
             h[attr] =  attr_value
           end
       end
+
+      unless ::Dilithium::SharedVersion == skip_class
+        h[:_version] = entity._version.to_h
+      end
+
       h
     end
 
     def self.to_nested_hash(entity, opts={})
-      skip_class = opts[:without]
       entity_h = to_hash(entity, opts)
 
       entity_h.each do |attr, value|
@@ -39,9 +43,8 @@ module Dilithium
               entity_h[attr] = value.map { |ref| to_nested_hash(ref, opts) } unless value.nil?
           end
         end
-
       end
-      entity_h[:_version] = entity._version.to_h unless skip_class.is_a?(SharedVersion)
+
       entity_h
     end
 
