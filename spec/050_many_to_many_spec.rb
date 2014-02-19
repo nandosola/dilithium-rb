@@ -66,12 +66,12 @@ describe 'A BasicEntity with a many to many relationship' do
     bld1 = Building.new({name:'Marquee'})
     bld2 = Building.new({name:'Fawlty Towers'})
 
-    employee.reference_department(dept1)
-    employee.reference_department(dept2)
-    employee.reference_managed_department(dept3)
-    employee.reference_managed_department(dept4)
-    employee.reference_building(bld1)
-    employee.reference_building(bld2)
+    employee.add_department(dept1)
+    employee.add_department(dept2)
+    employee.add_managed_department(dept3)
+    employee.add_managed_department(dept4)
+    employee.add_building(bld1)
+    employee.add_building(bld2)
 
     employee.departments.should eq([dept1, dept2])
     employee.managed_departments.should eq([dept3, dept4])
@@ -88,12 +88,12 @@ describe 'A BasicEntity with a many to many relationship' do
     bld1 = Building.new({name:'Marquee'})
     bld2 = Building.new({name:'Fawlty Towers'})
 
-    employee.reference_department(dept1)
-    employee.reference_department(dept2)
-    employee.reference_managed_department(dept3)
-    employee.reference_managed_department(dept4)
-    employee.reference_building(bld1)
-    employee.reference_building(bld2)
+    employee.add_department(dept1)
+    employee.add_department(dept2)
+    employee.add_managed_department(dept3)
+    employee.add_managed_department(dept4)
+    employee.add_building(bld1)
+    employee.add_building(bld2)
 
     many_a = []
     employee.each_multi_reference do |many|
@@ -113,12 +113,12 @@ describe 'A BasicEntity with a many to many relationship' do
     bld1 = Building.new({name:'Marquee'})
     bld2 = Building.new({name:'Fawlty Towers'})
 
-    employee.reference_department(dept1)
-    employee.reference_department(dept2)
-    employee.reference_managed_department(dept3)
-    employee.reference_managed_department(dept4)
-    employee.reference_building(bld1)
-    employee.reference_building(bld2)
+    employee.add_department(dept1)
+    employee.add_department(dept2)
+    employee.add_managed_department(dept3)
+    employee.add_managed_department(dept4)
+    employee.add_building(bld1)
+    employee.add_building(bld2)
 
     immutable = employee.immutable
 
@@ -135,17 +135,17 @@ describe 'A BasicEntity with a many to many relationship' do
     emp2 = Employee.new({name:'Mayer'})
     ref_dept = Association::LazyEntityReference.new(2, Department)
 
-    emp.reference_department dept
+    emp.add_department dept
     EntitySerializer.to_hash(emp)[:departments].should eq([dept])
     EntitySerializer.to_nested_hash(emp)[:departments].should eq([EntitySerializer.to_nested_hash(dept)])
     DatabaseUtils.to_row(emp)[:departments].should be_nil
 
-    emp.reference_managed_department dept2
+    emp.add_managed_department dept2
     EntitySerializer.to_hash(emp)[:managed_departments].should eq([dept2])
     EntitySerializer.to_nested_hash(emp)[:managed_departments].should eq([EntitySerializer.to_nested_hash(dept2)])
     DatabaseUtils.to_row(emp)[:managed_departments].should be_nil
 
-    emp2.reference_department ref_dept
+    emp2.add_department ref_dept
     EntitySerializer.to_hash(emp2)[:departments].should eq([ref_dept])
     EntitySerializer.to_nested_hash(emp2)[:departments].should eq([EntitySerializer.to_nested_hash(ref_dept)])
     DatabaseUtils.to_row(emp2)[:departments].should be_nil
@@ -167,10 +167,10 @@ describe 'A BasicEntity with a many to many relationship' do
     dept3 = Department.fetch_by_id(3)
     dept4 = Department.fetch_by_id(4)
 
-    emp.reference_department dept
-    emp.reference_department dept2
-    emp.reference_managed_department dept3
-    emp.reference_managed_department dept4
+    emp.add_department dept
+    emp.add_department dept2
+    emp.add_managed_department dept3
+    emp.add_managed_department dept4
 
     Mapper::Sequel.insert(emp)
 
@@ -242,7 +242,7 @@ describe 'A BasicEntity with a many to many relationship' do
     pending 'Corner case: soft deletes should be handled by the application'
     emp = Employee.new({name:'Avi'})
     dept = Department.fetch_by_id(1)
-    emp.reference_departmentdept
+    emp.add_departmentdept
 
     Mapper::Sequel.delete(dept)
 
@@ -259,11 +259,11 @@ describe 'A BasicEntity with a many to many relationship' do
 
     bld = Building.fetch_by_id(1)
 
-    emp.reference_department dept
-    emp.reference_department dept2
-    emp.reference_managed_department dept3
-    emp.reference_managed_department dept4
-    emp.reference_building bld
+    emp.add_department dept
+    emp.add_department dept2
+    emp.add_managed_department dept3
+    emp.add_managed_department dept4
+    emp.add_building bld
 
     Mapper::Sequel.insert(emp)
 
