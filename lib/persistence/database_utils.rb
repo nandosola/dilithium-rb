@@ -17,21 +17,10 @@ module Dilithium
       case entity
         # TODO refactor to a single class method in IdPk
         when BaseEntity, Association::LazyEntityReference, Association::ImmutableEntityReference  #TODO make this inherit from IdPK
-          table_name_for(entity.type)
+          PersistenceService.table_for(entity.type)
         when Class
-          table_name_for(entity)
+          PersistenceService.table_for(entity)
       end
-    end
-
-    def self.table_name_for(klazz)
-      path = klazz.to_s.split('::')
-      last = if path.last == 'Immutable'
-               path[-2]
-             else
-               path.last
-             end
-
-      last.underscore.downcase.pluralize.to_sym
     end
 
     def self.to_reference_name(attr)
@@ -64,17 +53,13 @@ module Dilithium
       SharedVersion.create_table
 
       entity_classes.each do |entity_class|
-        table_name = table_name_for(entity_class)
+        table_name = PersistenceService.table_for(entity_class)
 
         DB.create_table(table_name) do
           ::DatabaseUtils.to_schema(entity_class){ |type,opts| eval("#{type} #{opts}") }
         end
 
-        if entity_class.superclass == Dilithium::BaseEntity ||
-          PersistenceService.mapper_for(entity_class) == :leaf
-
-          SharedVersion.add_to_table(table_name)
-        end
+        SharedVersion.add_to_table(table_name) if PersistenceService.is_inheritance_root?(entity_class)
       end
     end
 
@@ -95,12 +80,11 @@ module Dilithium
                when :class
                  yield 'primary_key', ":#{entity_class.pk}"
 
-                 if entity_class.superclass != BaseEntity
-                   super_table = DatabaseUtils.table_name_for(entity_class.superclass)
-
-                   yield 'foreign_key', ":#{entity_class.pk}, :#{super_table}"
-                 else
+                 if PersistenceService.is_inheritance_root?(entity_class)
                    yield 'String', ':_type'
+                 else
+                   super_table = PersistenceService.table_for(entity_class.superclass)
+                   yield 'foreign_key', ":#{entity_class.pk}, :#{super_table}"
                  end
                  entity_class.self_attributes
              end
@@ -115,7 +99,7 @@ module Dilithium
               name = if attr.type.nil?
                        attr.name.to_s.pluralize
                      else
-                       attr.type.to_s.split('::').last.underscore.pluralize
+                       PersistenceService.table_for(attr.type)
                      end
               yield 'foreign_key', ":#{DatabaseUtils.to_reference_name(attr)}, :#{name}"
             when BasicAttributes::ExtendedGenericAttribute

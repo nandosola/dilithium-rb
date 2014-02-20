@@ -8,39 +8,35 @@ describe 'The object tracker' do
   before :all do
     DatabaseUtils.create_tables(Shipment, Container, Shipyard, Package, Location)
 
-    module ObjectTrackerSpec
-
-      class Qux < BaseEntity
-        attribute :name, String
-      end
-      class Bat < BaseEntity
-        attribute :name, String
-        reference :qux, Qux
-      end
-      class Baz < BaseEntity
-        attribute :name, String
-        reference :bat, Bat
-      end
-      class Bar < BaseEntity
-        attribute :name, String
-        reference :baz, Baz
-      end
-      class Foo < BaseEntity
-        attribute :name, String
-        reference :bar, Bar
-      end
+    class OtQux < BaseEntity
+      attribute :name, String
     end
-
+    class OtBat < BaseEntity
+      attribute :name, String
+      reference :ot_qux, Qux
+    end
+    class OtBaz < BaseEntity
+      attribute :name, String
+      reference :ot_bat, OtBat
+    end
+    class OtBar < BaseEntity
+      attribute :name, String
+      reference :ot_baz, OtBaz
+    end
+    class OtFoo < BaseEntity
+      attribute :name, String
+      reference :ot_bar, OtBar
+    end
   end
 
   it 'method #fetch_in_dependency_order(STATE_NEW) should fetch entities in STATE_NEW in order of dependency' do
 
     st_new = UnitOfWork::States::Default::STATE_NEW
 
-    a_bat = ObjectTrackerSpec::Bat.new(name:'Bat')
-    a_baz = ObjectTrackerSpec::Baz.new(name:'Baz', bat:a_bat)
-    a_bar = ObjectTrackerSpec::Bar.new(name:'Bar', baz:a_baz)
-    a_foo = ObjectTrackerSpec::Foo.new(name:'Foo', bar:a_bar)
+    a_bat = OtBat.new(name:'Bat')
+    a_baz = OtBaz.new(name:'Baz', ot_bat:a_bat)
+    a_bar = OtBar.new(name:'Bar', ot_baz:a_baz)
+    a_foo = OtFoo.new(name:'Foo', ot_bar:a_bar)
 
     object_tracker = UnitOfWork::ObjectTracker.new(UnitOfWork::States::Default::ALL_STATES)
     # Do not track in order:
@@ -53,8 +49,8 @@ describe 'The object tracker' do
     results = object_tracker.fetch_in_dependency_order(st_new).map { |sr| sr.object }
     results.should eq(insertion_order)
 
-    a_qux = ObjectTrackerSpec::Qux.new(name:'Qux')
-    a_bat.qux = a_qux
+    a_qux = OtQux.new(name:'Qux')
+    a_bat.ot_qux = a_qux
     expect {object_tracker.fetch_in_dependency_order(st_new)}.
       to raise_error(UnitOfWork::ObjectTrackerExceptions::UntrackedObjectException)
   end

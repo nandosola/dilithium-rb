@@ -19,7 +19,6 @@ module Dilithium
       end
 
       def self.inherited(base)
-
         base.instance_eval do
           def attribute_descriptors
             attribute_names.inject({}) do |memo, name|
@@ -37,6 +36,7 @@ module Dilithium
 
     def self.inherited(base)
       DomainObject.inherited(base)
+      PersistenceService.add_table(base)
 
       base.instance_eval do
         # Prevent adding multiple metaprogrammed attrs in the case of BaseEntity sub-subclasses

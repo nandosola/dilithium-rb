@@ -35,7 +35,10 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     registered_version = versions.insert(:_version => 0, :_version_created_at => DateTime.now)
 
     v_id = vehicles.insert(:active => true, :name => 'Heart of Gold', :_version_id => vehicle_version)
-    reg_id = vehicles.insert(:active => true, :name => 'TARDIS', :_version_id => registered_version)
+    reg_id = vehicles.insert(:active => true,
+                             :name => 'TARDIS',
+                             :_type => 'registered_vehicle_cs',
+                             :_version_id => registered_version)
     registered_vehicles.insert(:id => reg_id, :owner => 'The Doctor')
 
     hog = VehicleC.fetch_by_id(v_id)
@@ -49,7 +52,10 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     expect(tardis.name).to eq('TARDIS')
     expect(tardis.owner).to eq('The Doctor')
 
-    expect(VehicleC.fetch_by_id(reg_id)).to eq(tardis)
+    reg_fetched = VehicleC.fetch_by_id(reg_id)
+    expect(reg_fetched.id).to eq(tardis.id)
+    expect(reg_fetched.name).to eq(tardis.name)
+    expect(reg_fetched.owner).to eq(tardis.owner)
   end
 
   it 'should save data to the database' do
@@ -59,11 +65,26 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     transaction.commit
 
     v_result = $database[:vehicle_cs].where(name: 'Bistromath').first
-    expect(v_result[:name]).to eq('Bistromath')
+    expect(v_result[:_type]).to eq('registered_vehicle_cs')
 
-    r_result = $database[:registered_vehicle_cs].where(name: 'Bistromath').first
-    expect(r_result[:id].to eq(v_result[:id]))
+    r_result = $database[:registered_vehicle_cs].where(id: v_result[:id]).first
     expect(r_result[:owner]).to eq('Slartibartfast')
+  end
+
+  it 'should update data in the database' do
+    fail
+  end
+
+  it 'should manage reference between inheritance trees correctly' do
+    fail
+  end
+
+  it 'should update data correctly' do
+    fail
+  end
+
+  it 'should delete an entity across all its tables' do
+    fail
   end
 
   it 'should manage the parent and child references correctly' do
@@ -111,10 +132,13 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
   end
 
   it 'should deserialize correctly from a Hash without polymorphism' do
+    v_1 = VehicleC.fetch_by_id(1)
+    v_2 = VehicleC.fetch_by_id(2)
+
     hash = {
       :name => 'HHGTTG',
-      :company_car => { :id => 1 },
-      :company_van => { :id => 2 }
+      :company_car => { :id => v_1.id },
+      :company_van => { :id => v_2.id }
     }
 
     company = SmallCompanyC.new(hash)
@@ -123,14 +147,12 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     expect(company.company_car.class).to eq(Association::ImmutableEntityReference)
     company.company_car.resolve
     company.company_car.resolved_entity.class.should eq(RegisteredVehicleC::Immutable)
-    company.company_car.resolved_entity.name.should eq('TARDIS')
-    company.company_car.resolved_entity.owner.should eq('The Doctor')
+    company.company_car.resolved_entity.name.should eq(v_1.name)
 
     expect(company.company_van.class).to eq(Association::ImmutableEntityReference)
     company.company_van.resolve
     expect(company.company_van.resolved_entity.class).to eq(RegisteredVehicleC::Immutable)
-    expect(company.company_van.resolved_entity.name).to eq('Bistromath')
-    expect(company.company_van.resolved_entity.owner).to eq('Slartibartfast')
+    expect(company.company_van.resolved_entity.name).to eq(v_2.name)
   end
 
   pending 'Implement deserialization from polymorphism in CTI'
