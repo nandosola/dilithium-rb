@@ -26,29 +26,28 @@ module Dilithium
 
             def fetch_by_id(id)
               superclasses = PersistenceService.superclass_list(self)
-              i_root = superclasses[-1]
-              root_h = DB[PersistenceService.table_for(i_root)].where(id:id).all.first
-              if root_h.nil?
-                merged_h = nil
-              else
-                type = if root_h[:_type].nil?
-                         self
-                       else
-                         PersistenceService.class_for(root_h[:_type])
-                       end
-                merged_h = PersistenceService.superclass_list(type)[0..-2].inject(root_h) do |memo, klazz|
-                  found_h = DB[PersistenceService.table_for(klazz)].where(id:id).all.first
-                  memo.merge!(found_h) unless found_h.nil?
-                  break memo if PersistenceService.is_inheritance_root?(klazz)
-                  memo
-                end
-              end
+              i_root = superclasses.last
+              root_table = PersistenceService.table_for(i_root)
+              root_db = DB[root_table]
+              root_h = root_db.where(id:id).all.first
 
-              if merged_h.empty? || ! merged_h[:active] || merged_h.nil?
-                merged_h = nil
-              else
-                merged_h.delete(:_type)
-              end
+              merged_h = if root_h.nil?
+                           nil
+                         else
+                           type = if root_h[:_type].nil?
+                                    self
+                                  else
+                                    PersistenceService.class_for(root_h[:_type])
+                                  end
+
+                           query = PersistenceService.superclass_list(type)[0..-2].inject(root_db) do |memo, klazz|
+                             memo.join(PersistenceService.table_for(klazz))
+                           end
+
+                           query.where("#{root_table}__id".to_sym => id).where(active:true).all.first
+                         end
+
+              merged_h.delete(:_type) unless merged_h.nil?
 
               type.create_object(merged_h)
             end
