@@ -19,30 +19,28 @@ module Dilithium
       end
 
       def self.inherited(base)
-
         base.instance_eval do
           def attribute_descriptors
-            mutable = self.const_get(:MUTABLE_CLASS)
-
             attribute_names.inject({}) do |memo, name|
-              memo[name] = mutable.attribute_descriptors[name]
+              memo[name] = MUTABLE_CLASS.attribute_descriptors[name]
               memo
             end
           end
 
           def attribute_names
-            self.const_get(:MUTABLE_CLASS).generic_attributes
+            MUTABLE_CLASS.generic_attributes
           end
         end
       end
     end
 
     def self.inherited(base)
-      self.superclass.inherited(base)
+      DomainObject.inherited(base)
+      PersistenceService.add_table(base)
 
       base.instance_eval do
         # Prevent adding multiple metaprogrammed attrs in the case of BaseEntity sub-subclasses
-        add_attribute(BasicAttributes::GenericAttribute.new(:active, TrueClass, false, true)) unless @attributes.has_key? :active
+        add_attribute(BasicAttributes::GenericAttribute.new(:active, TrueClass, false, true)) unless attribute_descriptors.has_key? :active
 
         # Create the internal Immutable class for this BaseEntity
         immutable_class = Class.new(superclass.const_get(:Immutable))

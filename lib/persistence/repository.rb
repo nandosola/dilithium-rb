@@ -25,15 +25,36 @@ module Dilithium
           base.instance_eval do
 
             def fetch_by_id(id)
-              root_name = self.to_s.split('::').last.underscore.downcase
-              root_table = root_name.pluralize
-              found_h = DB[root_table.to_sym].where(id:id).where(active: true).all.first
-              create_object(found_h)
+              superclasses = PersistenceService.superclass_list(self)
+              i_root = superclasses.last
+              root_table = PersistenceService.table_for(i_root)
+              root_db = DB[root_table]
+              root_h = root_db.where(id:id).first
+
+              merged_h = if root_h.nil?
+                           nil
+                         else
+                           type = if root_h[:_type].nil?
+                                    self
+                                  else
+                                    PersistenceService.class_for(root_h[:_type])
+                                  end
+
+                           query = PersistenceService.superclass_list(type)[0..-2].inject(root_db) do |memo, klazz|
+                             memo.join(PersistenceService.table_for(klazz), :id => :id)
+                           end
+
+                           query.where("#{root_table}__id".to_sym => id).where(active:true).first
+                         end
+
+              merged_h.delete(:_type) unless merged_h.nil?
+
+              type.create_object(merged_h)
             end
 
             def fetch_all
-              table = self.to_s.split('::').last.downcase.pluralize
-              found_h = DB[table.to_sym]
+              table = PersistenceService.table_for(self)
+              found_h = DB[table]
               unless found_h.empty?
                 found_h.map do |reg|
                   fetch_by_id(reg[:id])

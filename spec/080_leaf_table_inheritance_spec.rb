@@ -1,37 +1,36 @@
 # -*- encoding : utf-8 -*-
 require 'fixtures/leaf_table_inheritance'
 
-describe 'A single-inheritance hierarchy of BaseEntities' do
+describe 'A single-inheritance hierarchy of BaseEntities with Leaf Table Inheritance' do
   before(:all) do
-    DatabaseUtils.create_tables(Vehicle, RegisteredVehicle)
+    DatabaseUtils.create_tables(VehicleL, RegisteredVehicleL)
   end
 
   it 'should create a table per subclass with the correct columns' do
-    $database.table_exists?(:vehicles).should be_true
-    $database.table_exists?(:registered_vehicles).should be_true
+    $database.table_exists?(:vehicle_ls).should be_true
+    $database.table_exists?(:registered_vehicle_ls).should be_true
 
-    schema = $database.schema(:vehicles)
-    schema[0][0].should eq(:id)
-    schema[0][1][:db_type].should eq('integer')
-    schema[1][0].should eq(:active)
-    schema[1][1][:db_type].should eq('boolean')
-    schema[2][0].should eq(:name)
-    schema[2][1][:db_type].should eq('varchar(255)')
+    schema = $database.schema(:vehicle_ls).inject({}) { |memo, s| memo[s[0]] = s[1][:db_type]; memo }
+    expect(schema).to eq(
+                        :id => 'integer',
+                        :active => 'boolean',
+                        :_version_id => 'integer',
+                        :name => 'varchar(255)'
+                      )
 
-    schema = $database.schema(:registered_vehicles)
-    schema[0][0].should eq(:id)
-    schema[0][1][:db_type].should eq('integer')
-    schema[1][0].should eq(:active)
-    schema[1][1][:db_type].should eq('boolean')
-    schema[2][0].should eq(:name)
-    schema[2][1][:db_type].should eq('varchar(255)')
-    schema[3][0].should eq(:owner)
-    schema[3][1][:db_type].should eq('varchar(255)')
+    schema = $database.schema(:registered_vehicle_ls).inject({}) { |memo, s| memo[s[0]] = s[1][:db_type]; memo }
+    expect(schema).to eq(
+                        :id => 'integer',
+                        :active => 'boolean',
+                        :_version_id => 'integer',
+                        :name => 'varchar(255)',
+                        :owner => 'varchar(255)'
+                      )
   end
 
   it 'should load data from the database' do
-    vehicles = $database[:vehicles]
-    registered_vehicles = $database[:registered_vehicles]
+    vehicles = $database[:vehicle_ls]
+    registered_vehicles = $database[:registered_vehicle_ls]
     versions = $database[:_versions]
 
     vehicle_version = versions.insert(:_version => 0, :_version_created_at => DateTime.now)
@@ -42,8 +41,8 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
                                :owner => 'The Doctor',
                                :_version_id => registered_version)
 
-    hog = Vehicle.fetch_by_id(1)
-    tardis = RegisteredVehicle.fetch_by_id(1)
+    hog = VehicleL.fetch_by_id(1)
+    tardis = RegisteredVehicleL.fetch_by_id(1)
 
     hog.name.should eq('Heart of Gold')
     hog.respond_to?(:owner).should be_false
@@ -57,37 +56,37 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
   end
 
   it 'should save data to the database' do
-    bistromath = RegisteredVehicle.new({:active => true, :name => 'Bistromath', :owner => 'Slartibartfast'})
+    bistromath = RegisteredVehicleL.new({:active => true, :name => 'Bistromath', :owner => 'Slartibartfast'})
     transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
     transaction.register_new(bistromath)
     transaction.commit
 
-    result = $database[:registered_vehicles].where(name: 'Bistromath').first
+    result = $database[:registered_vehicle_ls].where(name: 'Bistromath').first
     result[:name].should eq('Bistromath')
   end
 
   it 'should manage the parent and child references correctly' do
-    fleet = Fleet.new(:name => 'Test fleet')
+    fleet = FleetL.new(:name => 'Test fleet')
     #TODO This should change, the parent should have a factory for its children
-    car = Car.new({:seats => 4}, fleet)
-    van = DeliveryVan.new({:capacity => 1000}, fleet)
-    fleet.add_ground_vehicle car
-    fleet.add_ground_vehicle van
+    car = CarL.new({:seats => 4}, fleet)
+    van = DeliveryVanL.new({:capacity => 1000}, fleet)
+    fleet.add_ground_vehicle_l car
+    fleet.add_ground_vehicle_l van
 
-    car.fleet.should eq(fleet)
-    van.fleet.should eq(fleet)
+    car.fleet_l.should eq(fleet)
+    van.fleet_l.should eq(fleet)
 
-    fleet.ground_vehicles.should include(car)
-    fleet.ground_vehicles.should include(van)
+    fleet.ground_vehicle_ls.should include(car)
+    fleet.ground_vehicle_ls.should include(van)
   end
 
   it 'should serialize correctly into Hashes' do
-    fleet = Fleet.new(:name => 'Test fleet')
+    fleet = FleetL.new(:name => 'Test fleet')
     #TODO This should change, the parent should have a factory for its children
-    car = Car.new({:seats => 4}, fleet)
-    van = DeliveryVan.new({:capacity => 1000}, fleet)
-    fleet.add_ground_vehicle car
-    fleet.add_ground_vehicle van
+    car = CarL.new({:seats => 4}, fleet)
+    van = DeliveryVanL.new({:capacity => 1000}, fleet)
+    fleet.add_ground_vehicle_l car
+    fleet.add_ground_vehicle_l van
 
     fleet_h = EntitySerializer.to_nested_hash(fleet)
     fleet_h.should eq({:id => nil,
@@ -95,7 +94,7 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
                        :_version=>{:id=>nil, :_version=>0,
                                    :_version_created_at=>fleet._version._version_created_at,
                                    :_locked_by=>nil, :_locked_at=>nil},
-                       :ground_vehicles => [
+                       :ground_vehicle_ls => [
                          {:id=>nil, :active=>true,
                           :_version=>{:id=>nil, :_version=>0,
                                       :_version_created_at=>fleet._version._version_created_at,
@@ -117,18 +116,18 @@ describe 'A single-inheritance hierarchy of BaseEntities' do
       :company_van => { :id => 2 }
     }
 
-    company = SmallCompany.new(hash)
+    company = SmallCompanyL.new(hash)
     company.name.should eq('HHGTTG')
 
     company.company_car.class.should eq(Association::ImmutableEntityReference)
     company.company_car.resolve
-    company.company_car.resolved_entity.class.should eq(RegisteredVehicle::Immutable)
+    company.company_car.resolved_entity.class.should eq(RegisteredVehicleL::Immutable)
     company.company_car.resolved_entity.name.should eq('TARDIS')
     company.company_car.resolved_entity.owner.should eq('The Doctor')
 
     company.company_van.class.should eq(Association::ImmutableEntityReference)
     company.company_van.resolve
-    company.company_van.resolved_entity.class.should eq(RegisteredVehicle::Immutable)
+    company.company_van.resolved_entity.class.should eq(RegisteredVehicleL::Immutable)
     company.company_van.resolved_entity.name.should eq('Bistromath')
     company.company_van.resolved_entity.owner.should eq('Slartibartfast')
   end

@@ -3,35 +3,17 @@
 module Dilithium
   module DatabaseUtils
 
-    # Returns an model associated DB table name
+    # Returns the table name for an entity or reference
     #
     # Example:
     #   Employee => :employees
     #
     # Params:
-    # - model: model for converting class to table name
+    # - reference: entity or reference for which you want to get the table name
     # Returns:
     #   Symbol with table name
-    def self.to_table_name(entity)
-      #TODO : extract this to an utilities class/module
-      case entity
-        # TODO refactor to a single class method in IdPk
-        when BaseEntity, Association::LazyEntityReference, Association::ImmutableEntityReference  #TODO make this inherit from IdPK
-          table_name_for(entity.type)
-        when Class
-          table_name_for(entity)
-      end
-    end
-
-    def self.table_name_for(klazz)
-      path = klazz.to_s.split('::')
-      last = if path.last == 'Immutable'
-               path[-2]
-             else
-               path.last
-             end
-
-      last.underscore.downcase.pluralize.to_sym
+    def self.to_table_name(reference)
+      PersistenceService.table_for(reference.type)
     end
 
     def self.to_reference_name(attr)
@@ -68,12 +50,15 @@ module Dilithium
 
     def self.create_tables(*entity_classes)
       SharedVersion.create_table
+
       entity_classes.each do |entity_class|
-        table_name = entity_class.to_s.split('::').last.underscore.downcase.pluralize
+        table_name = PersistenceService.table_for(entity_class)
+
         DB.create_table(table_name) do
           ::DatabaseUtils.to_schema(entity_class){ |type,opts| eval("#{type} #{opts}") }
         end
-        SharedVersion.add_to_table(table_name)
+
+        SharedVersion.add_to_table(table_name) if PersistenceService.is_inheritance_root?(entity_class)
       end
     end
 
@@ -88,7 +73,22 @@ module Dilithium
     end
 
     def self.to_schema(entity_class)
-      entity_class.attributes.each do |attr|
+      attr = case PersistenceService.mapper_for(entity_class)
+               when :leaf
+                 entity_class.attributes
+               when :class
+                 yield 'primary_key', ":#{entity_class.pk}"
+
+                 if PersistenceService.is_inheritance_root?(entity_class)
+                   yield 'String', ':_type'
+                 else
+                   super_table = PersistenceService.table_for(entity_class.superclass)
+                   yield 'foreign_key', ":#{entity_class.pk}, :#{super_table}, :key => :#{entity_class.pk}"
+                 end
+                 entity_class.self_attributes
+             end
+
+      attr.each do |attr|
         if entity_class.pk == attr.name
           yield 'primary_key', ":#{attr.name}"
         else
@@ -98,7 +98,7 @@ module Dilithium
               name = if attr.type.nil?
                        attr.name.to_s.pluralize
                      else
-                       attr.type.to_s.split('::').last.underscore.pluralize
+                       PersistenceService.table_for(attr.type)
                      end
               yield 'foreign_key', ":#{DatabaseUtils.to_reference_name(attr)}, :#{name}"
             when BasicAttributes::ExtendedGenericAttribute
@@ -110,12 +110,11 @@ module Dilithium
               default = "'#{default}'" if default.is_a?(String) && attr.default
               yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
             when BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference
-              dependent = DatabaseUtils.to_table_name(entity_class)
-              create_intermediate_table(dependent, attr.name, attr.reference_path.last.downcase)
+              dependent = PersistenceService.table_for(entity_class)
+              create_intermediate_table(dependent, attr.name, attr.reference_path.last.underscore)
           end
         end
       end
     end
-
   end
 end

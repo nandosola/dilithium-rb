@@ -1,32 +1,32 @@
 # -*- encoding : utf-8 -*-
-class Vehicle < BaseEntity
+class VehicleL < BaseEntity
   attribute :name, String
 end
 
-class RegisteredVehicle < Vehicle
+class RegisteredVehicleL < VehicleL
   attribute :owner, String
 end
 
-class Fleet < BaseEntity
-  children :ground_vehicles
+class FleetL < BaseEntity
+  children :ground_vehicle_ls
   attribute :name, String
 end
 
-class GroundVehicle < Vehicle
-  parent :fleet
+class GroundVehicleL < VehicleL
+  parent :fleet_l
   attribute :wheels, Integer
 end
 
-class Car < GroundVehicle
+class CarL < GroundVehicleL
   attribute :seats, Integer
 end
 
-class DeliveryVan < GroundVehicle
+class DeliveryVanL < GroundVehicleL
   attribute :capacity, Integer
 end
 
-class SmallCompany < BaseEntity
+class SmallCompanyL < BaseEntity
   attribute :name, String
-  reference :company_car, RegisteredVehicle
-  reference :company_van, RegisteredVehicle
+  reference :company_car, RegisteredVehicleL
+  reference :company_van, RegisteredVehicleL
 end
