@@ -22,7 +22,7 @@ module Dilithium
         end
 
         # Then insert model
-        mapper_for(entity).insert(entity, parent_id)
+        entity.id = mapper_for(entity.class).insert(entity, parent_id)
 
         # Then recurse children for inserting them
         entity.each_child do |child|
@@ -43,7 +43,7 @@ module Dilithium
           already_versioned = true
         end
 
-        mapper_for(entity).delete(entity)
+        mapper_for(entity.class).delete(entity)
 
         entity.each_child do |child|
           delete(child, already_versioned)
@@ -53,7 +53,7 @@ module Dilithium
       def self.update(modified_entity, original_entity, already_versioned=false)
         Sequel.check_uow_transaction(modified_entity)
 
-        already_versioned = mapper_for(modified_entity).update(modified_entity, original_entity, already_versioned)
+        already_versioned = mapper_for(modified_entity.class).update(modified_entity, original_entity, already_versioned)
 
         modified_entity.each_child do |child|
           if child.id.nil?
@@ -93,11 +93,11 @@ module Dilithium
 
       def self.check_uow_transaction(base_entity)
         #TODO In the case where base_entity is not a root, should we also check that its root HAS a transaction?
-        raise RuntimeError, "Invalid Transaction" if !base_entity.class.has_parent? && base_entity.transactions.empty?
+        raise RuntimeError, 'Invalid Transaction' if !base_entity.class.has_parent? && base_entity.transactions.empty?
       end
 
-      def self.mapper_for(entity)
-        case PersistenceService.mapper_for(entity.class)
+      def self.mapper_for(entity_class)
+        case PersistenceService.mapper_for(entity_class)
           when :leaf
             LeafTableInheritance
           when :class
@@ -114,7 +114,8 @@ module Dilithium
                  column_dependent => dependent.id }
 
         # TODO refactor so that this op below is not always performed (only in :update)
-        if Sequel::DB[intermediate_table_name].where(column_dependent => dependent.id).
+        if Sequel::DB[intermediate_table_name].
+          where(column_dependent => dependent.id).
           where(column_dependee => dependee.id).all.empty?
 
           Sequel.transaction(:rollback=>:nop) do
@@ -133,8 +134,8 @@ module Dilithium
       end
 
       def self.intermediate_table_descriptor(dependee, dependent, ref_attr)
-        table_dependee = mapper_for(dependee).table(dependee)
-        table_dependent = mapper_for(dependent).table(dependent)
+        table_dependee = mapper_for(dependee.class).table_name_for_intermediate(dependee.class)
+        table_dependent = mapper_for(dependent.type).table_name_for_intermediate(dependent.type)
 
         intermediate_table_name = :"#{table_dependee}_#{ref_attr}"
 
@@ -144,14 +145,77 @@ module Dilithium
       end
 
       class ClassTableInheritance
+        def self.insert(entity, parent_id = nil)
+          entity_data = DatabaseUtils.to_row(entity, parent_id)
+          entity_data.delete(:id)
 
+          superclass_list = PersistenceService.superclass_list(entity.class)
+          root_class = superclass_list.last
+
+          rows = split_row(superclass_list, entity_data)
+          rows[root_class][:_type] = PersistenceService.table_for(entity.class).to_s
+          rows[root_class][:_version_id] = entity._version.id
+
+          id = Sequel::DB[PersistenceService.table_for(root_class)].insert(rows[root_class])
+
+          superclass_list[0..-2].each do |klazz|
+            rows[klazz][:id] = id
+            Sequel::DB[PersistenceService.table_for(klazz)].where(id: entity.id).insert(rows[klazz])
+          end
+
+          id
+        end
+
+        def self.delete(entity)
+          Sequel::DB[PersistenceService.table_for(PersistenceService.inheritance_root_for(entity.class))].where(id: entity.id).update(active: false)
+        end
+
+        def self.update(modified_entity, original_entity, already_versioned = false)
+          modified_data = DatabaseUtils.to_row(modified_entity)
+          original_data = DatabaseUtils.to_row(original_entity)
+
+          unless modified_data.eql?(original_data)
+            unless already_versioned
+              modified_entity._version.increment!
+              already_versioned = true
+            end
+
+            superclass_list = PersistenceService.superclass_list(modified_entity.class)
+            rows = split_row(superclass_list, modified_data)
+            rows[superclass_list.last][:_type] = PersistenceService.table_for(modified_entity.class).to_s
+
+            rows.each do |klazz, row|
+              Sequel::DB[PersistenceService.table_for(klazz)].where(id: modified_entity.id).update(row)
+            end
+
+            already_versioned
+          end
+        end
+
+        def self.table_name_for_intermediate(entity)
+          PersistenceService.table_for(PersistenceService.inheritance_root_for(entity))
+        end
+
+        private
+
+        def self.split_row(superclass_list, row_h)
+          superclass_list.inject({}) do |memo, klazz|
+            memo[klazz] = {}
+
+            klazz.self_attribute_names.each do |attr|
+              memo[klazz][attr] = row_h[attr]
+            end
+
+            memo
+          end
+        end
       end
 
       class LeafTableInheritance
         def self.insert(entity, parent_id = nil)
           entity_data = DatabaseUtils.to_row(entity, parent_id)
           entity_data.delete(:id)
-          entity.id = Sequel::DB[DatabaseUtils.to_table_name(entity)].insert(entity_data.merge(_version_id:entity._version.id))
+          Sequel::DB[DatabaseUtils.to_table_name(entity)].insert(entity_data.merge(_version_id:entity._version.id))
         end
 
         def self.delete(entity)
@@ -174,8 +238,8 @@ module Dilithium
           end
         end
 
-        def self.table(entity)
-          PersistenceService.table_for(entity.class)
+        def self.table_name_for_intermediate(entity)
+          PersistenceService.table_for(entity)
         end
       end
     end

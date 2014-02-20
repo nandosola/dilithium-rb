@@ -29,7 +29,7 @@ module Dilithium
               i_root = superclasses.last
               root_table = PersistenceService.table_for(i_root)
               root_db = DB[root_table]
-              root_h = root_db.where(id:id).all.first
+              root_h = root_db.where(id:id).first
 
               merged_h = if root_h.nil?
                            nil
@@ -41,10 +41,10 @@ module Dilithium
                                   end
 
                            query = PersistenceService.superclass_list(type)[0..-2].inject(root_db) do |memo, klazz|
-                             memo.join(PersistenceService.table_for(klazz))
+                             memo.join(PersistenceService.table_for(klazz), :id => :id)
                            end
 
-                           query.where("#{root_table}__id".to_sym => id).where(active:true).all.first
+                           query.where("#{root_table}__id".to_sym => id).where(active:true).first
                          end
 
               merged_h.delete(:_type) unless merged_h.nil?

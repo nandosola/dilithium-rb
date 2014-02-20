@@ -29,13 +29,13 @@ module Dilithium
 
       #TODO Rename resolve to resolve!
       def resolve
-        @_version ||= SharedVersion.resolve(@type, @id)
         @resolved_entity ||= @type.fetch_by_id(@id)
+        @_version = @resolved_entity._version
+        @resolved_entity
       end
 
       def resolved_entity
         resolve
-        @resolved_entity
       end
       alias_method :get, :resolved_entity
 

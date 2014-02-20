@@ -83,7 +83,7 @@ module Dilithium
                    yield 'String', ':_type'
                  else
                    super_table = PersistenceService.table_for(entity_class.superclass)
-                   yield 'foreign_key', ":#{entity_class.pk}, :#{super_table}"
+                   yield 'foreign_key', ":#{entity_class.pk}, :#{super_table}, :key => :#{entity_class.pk}"
                  end
                  entity_class.self_attributes
              end
@@ -111,7 +111,7 @@ module Dilithium
               yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
             when BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference
               dependent = PersistenceService.table_for(entity_class)
-              create_intermediate_table(dependent, attr.name, attr.reference_path.last.downcase)
+              create_intermediate_table(dependent, attr.name, attr.reference_path.last.underscore)
           end
         end
       end

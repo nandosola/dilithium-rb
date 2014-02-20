@@ -47,7 +47,7 @@ module Dilithium
         end
       end
 
-      def find_in(map_sym, klazz, allow_redefines, inherited = true)
+      def find_in(map_sym, klazz, allow_redefines, include_inherited = true)
         map = case map_sym
                 when :mappers
                   @mappers
@@ -57,7 +57,7 @@ module Dilithium
                   raise PersistenceService::ConfigurationError, "Unknown configuration map type #{map_sym}"
               end
 
-        raise PersistenceService::ConfigurationError, 'The PersistenceService can only be configured for BaseEntities' unless klazz <= BaseEntity
+        raise PersistenceService::ConfigurationError, "#{klazz} is not a BaseEntity. The PersistenceService can only be configured for BaseEntities." unless klazz <= BaseEntity
         if map.has_key?(klazz)
           map[klazz]
         else
@@ -74,7 +74,7 @@ module Dilithium
             end
 
             map[klazz] = map.delete(sym)
-          elsif inherited
+          elsif include_inherited
             path = str.split('::')
             cls = path.reduce(Object) { |m, c| m.const_get(c.to_sym) }
             map[klazz] = find_in(map_sym, cls.superclass, allow_redefines)

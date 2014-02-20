@@ -3,7 +3,9 @@ require 'fixtures/class_table_inheritance'
 
 describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheritance' do
   before(:all) do
-    DatabaseUtils.create_tables(VehicleC, RegisteredVehicleC)
+    DatabaseUtils.create_tables(VehicleC, RegisteredVehicleC, SmallCompanyC)
+
+
   end
 
   it 'should create a table per subclass with the correct columns' do
@@ -34,7 +36,9 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     vehicle_version = versions.insert(:_version => 0, :_version_created_at => DateTime.now)
     registered_version = versions.insert(:_version => 0, :_version_created_at => DateTime.now)
 
-    v_id = vehicles.insert(:active => true, :name => 'Heart of Gold', :_version_id => vehicle_version)
+    v_id = vehicles.insert(:active => true, :name => 'Heart of Gold',
+                           :_type => 'vehicle_cs',
+                           :_version_id => vehicle_version)
     reg_id = vehicles.insert(:active => true,
                              :name => 'TARDIS',
                              :_type => 'registered_vehicle_cs',
@@ -64,28 +68,69 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     transaction.register_new(bistromath)
     transaction.commit
 
-    v_result = $database[:vehicle_cs].where(name: 'Bistromath').first
+    v_result = $database[:vehicle_cs].where(id: bistromath.id).first
     expect(v_result[:_type]).to eq('registered_vehicle_cs')
+    expect(v_result[:name]).to eq(bistromath.name)
 
     r_result = $database[:registered_vehicle_cs].where(id: v_result[:id]).first
-    expect(r_result[:owner]).to eq('Slartibartfast')
+    expect(r_result[:owner]).to eq(bistromath.owner)
   end
 
   it 'should update data in the database' do
-    fail
+    id = $database[:vehicle_cs].where(name:'Bistromath').first[:id]
+    bistromath = VehicleC.fetch_by_id(id)
+    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction.register_dirty(bistromath)
+    bistromath.name = 'Krikkit One'
+    bistromath.owner = 'Hactar'
+    transaction.commit
+
+    v_result = $database[:vehicle_cs].where(id: bistromath.id).first
+    expect(v_result[:_type]).to eq('registered_vehicle_cs')
+    expect(v_result[:name]).to eq(bistromath.name)
+
+    r_result = $database[:registered_vehicle_cs].where(id: bistromath.id).first
+    expect(r_result[:owner]).to eq(bistromath.owner)
   end
 
-  it 'should manage references between inheritance trees correctly' do
-    fail
-    # Check that the intermediate table and its attributes are correctly named
+  it 'should store references between inheritance trees correctly' do
+    v_1 = VehicleC.fetch_by_id(1)
+    v_2 = VehicleC.fetch_by_id(2)
+
+    company = SmallCompanyC.new
+    company.name = 'HHGTTG'
+    company.company_car = v_1
+    company.company_van = v_2
+    company.add_company_car(v_1)
+    company.add_company_car(v_2)
+
+    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction.register_new(company)
+    transaction.commit
+
+    company_h = $database[:small_company_cs].where(:id => company.id).first
+    expect(company_h[:company_car_id]).to eq(v_1.id)
+    expect(company_h[:company_van_id]).to eq(v_2.id)
+
+    intermediate_table = $database[:small_company_cs_company_cars].where(:small_company_c_id => company.id)
+    expect(intermediate_table.count).to eq(2)
+
+    count = intermediate_table.where(:vehicle_c_id => v_1.id).count
+    expect(count).to eq(1)
+
+    count = intermediate_table.where(:vehicle_c_id => v_2.id).count
+    expect(count).to eq(1)
   end
 
-  it 'should update data correctly' do
-    fail
-  end
+  it 'should mark a deleted entity as inactive' do
+    id = $database[:vehicle_cs].where(name:'Krikkit One').first[:id]
+    bistromath = VehicleC.fetch_by_id(id)
+    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction.register_deleted(bistromath)
+    transaction.commit
 
-  it 'should delete an entity across all its tables' do
-    fail
+    v_result = $database[:vehicle_cs].where(id: bistromath.id).first
+    expect(v_result[:active]).to be_false
   end
 
   it 'should manage the parent and child references correctly' do
@@ -132,7 +177,7 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
                       })
   end
 
-  it 'should deserialize correctly from a Hash without polymorphism' do
+  it 'should deserialize correctly from a Hash' do
     v_1 = VehicleC.fetch_by_id(1)
     v_2 = VehicleC.fetch_by_id(2)
 
@@ -146,19 +191,12 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     expect(company.name).to eq('HHGTTG')
 
     expect(company.company_car.class).to eq(Association::ImmutableEntityReference)
-    company.company_car.resolve
-    company.company_car.resolved_entity.class.should eq(RegisteredVehicleC::Immutable)
-    company.company_car.resolved_entity.name.should eq(v_1.name)
+    expect(company.company_car.resolved_entity.class).to eq(v_1.class.const_get(:Immutable))
+    expect(company.company_car.resolved_entity.name).to eq(v_1.name)
 
     expect(company.company_van.class).to eq(Association::ImmutableEntityReference)
-    company.company_van.resolve
-    expect(company.company_van.resolved_entity.class).to eq(RegisteredVehicleC::Immutable)
+    expect(company.company_van.resolved_entity.class).to eq(v_2.class.const_get(:Immutable))
     expect(company.company_van.resolved_entity.name).to eq(v_2.name)
-  end
-
-  pending 'Implement deserialization from polymorphism in CTI'
-  it 'should deserialize correctly into a Hash with polymorphism' do
-
   end
 
   after :all do

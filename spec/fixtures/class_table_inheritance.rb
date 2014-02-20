@@ -27,6 +27,7 @@ end
 
 class SmallCompanyC < BaseEntity
   attribute :name, String
-  reference :company_car, RegisteredVehicleC
-  reference :company_van, RegisteredVehicleC
+  reference :company_car, VehicleC
+  reference :company_van, VehicleC
+  reference :company_cars, VehicleC, :multi => true
 end
