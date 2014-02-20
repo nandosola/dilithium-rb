@@ -302,7 +302,7 @@ module Dilithium
                   in_h[name]
                 end
 
-        value.each { |ref| instance_variable_get("@#{name.to_s.pluralize}".to_sym) << ref }
+        value.each { |ref| send("add_#{name.to_s.singularize}".to_sym, ref) }
       end
     end
 
