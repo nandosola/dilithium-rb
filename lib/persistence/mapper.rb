@@ -51,7 +51,7 @@ module Dilithium
           # Then insert model
           entity_data = DatabaseUtils.to_row(entity, parent_id)
           entity_data.delete(:id)
-          entity.id = Sequel::DB[DatabaseUtils.to_table_name(entity)].insert(entity_data.merge(_version_id:entity._version.id))
+          entity.id = DB[DatabaseUtils.to_table_name(entity)].insert(entity_data)
 
           # Then recurse children for inserting them
           entity.each_child do |child|

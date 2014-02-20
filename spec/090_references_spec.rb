@@ -53,7 +53,7 @@ describe 'An model with references' do
     a_shipyard.respond_to?(:location).should be_true
     a_shipyard.respond_to?(:containers).should be_true
     a_shipyard.respond_to?(:location=).should be_true
-    a_shipyard.respond_to?(:'reference_container').should be_true
+    a_shipyard.respond_to?(:'add_container').should be_true
   end
 
   it 'should create the correct tables' do

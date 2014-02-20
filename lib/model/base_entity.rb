@@ -356,7 +356,7 @@ module Dilithium
                         raise IllegalArgumentException, "Invalid reference #{name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
                     end
 
-            instance_variable_get("@#{name.to_s.pluralize}".to_sym) << value
+            send("add_#{name.to_s.singularize}".to_sym, value)
           end
         end
 
@@ -437,21 +437,24 @@ module Dilithium
       self.class_eval do
         define_method(name){instance_variable_get("@#{name}".to_sym)}
         singular_ref_name = name.to_s.singularize
+        add_to_collection = "add_#{singular_ref_name}"
+
         case attribute_descriptor
-          # ParentReferences have no setters
+          when BasicAttributes::ParentReference  # no setters here
           when BasicAttributes::ChildReference
-            define_method("add_#{singular_ref_name}") { |new_value|
+            define_method(add_to_collection) { |new_value|
+              # TODO children shouldn't have a public constructor
               attribute_descriptor.check_assignment_constraints(new_value)
               new_value._version = self._version
               instance_variable_get("@#{name}".to_sym) << new_value
             }
           when BasicAttributes::MultiReference
-            define_method("reference_#{singular_ref_name}"){ |new_value|
+            define_method(add_to_collection){ |new_value|
               attribute_descriptor.check_assignment_constraints(new_value)
               instance_variable_get("@#{name}".to_sym) << new_value
             }
           when BasicAttributes::ImmutableMultiReference
-            define_method("reference_#{singular_ref_name}"){ |new_value|
+            define_method(add_to_collection){ |new_value|
               attribute_descriptor.check_assignment_constraints(new_value)
               instance_variable_get("@#{name}".to_sym) << Association::ImmutableEntityReference.create(new_value)
             }

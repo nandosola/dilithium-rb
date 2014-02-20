@@ -192,7 +192,7 @@ module Dilithium
               ref_attr = "#{name.underscore.downcase}_id".to_sym
               found_ref = ref_class.fetch_reference_by_id(ref_h[ref_attr])
 
-              method = "reference_#{ref_name.to_s.singularize}"
+              method = "add_#{ref_name.to_s.singularize}"
               dependent_obj.send(method.to_sym, found_ref)
             end
 

@@ -73,7 +73,7 @@ describe 'An model which embeds a value' do
     attr.keys.each do |k|
       expect(resource).to respond_to(:"#{k}")
       if attr[k].is_a? BasicAttributes::ImmutableMultiReference
-        expect(resource).to respond_to(:"reference_#{k.to_s.singularize}")
+        expect(resource).to respond_to(:"add_#{k.to_s.singularize}")
       else
         expect(resource).to respond_to(:"#{k}=")
       end

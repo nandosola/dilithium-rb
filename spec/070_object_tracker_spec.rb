@@ -78,8 +78,8 @@ describe 'The object tracker' do
 
     a_shipyard = Shipyard.new
     a_shipyard.name = "Test shipyard"
-    a_shipyard.reference_container Association::LazyEntityReference.new(container_1.id, Container, container_1._version)
-    a_shipyard.reference_container Association::LazyEntityReference.new(container_2.id, Container, container_2._version)
+    a_shipyard.add_container Association::LazyEntityReference.new(container_1.id, Container, container_1._version)
+    a_shipyard.add_container Association::LazyEntityReference.new(container_2.id, Container, container_2._version)
 
     object_tracker = UnitOfWork::ObjectTracker.new(UnitOfWork::States::Default::ALL_STATES)
     object_tracker.track(new_shipment, st_new)
