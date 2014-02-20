@@ -75,8 +75,9 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     fail
   end
 
-  it 'should manage reference between inheritance trees correctly' do
+  it 'should manage references between inheritance trees correctly' do
     fail
+    # Check that the intermediate table and its attributes are correctly named
   end
 
   it 'should update data correctly' do

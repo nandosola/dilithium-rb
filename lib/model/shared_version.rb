@@ -82,7 +82,7 @@ module Dilithium
 
     def self.resolve(klazz, obj_id)
       # TODO: file a bug report: Sequel's natural_join returns the previous value in SQLite
-      table = DatabaseUtils.to_table_name(PersistenceService.inheritance_root_for(klazz))
+      table = PersistenceService.table_for(PersistenceService.inheritance_root_for(klazz))
       obj_h = DB[table].where(:"#{table}__id" => obj_id).join(:_versions, :id=>:_version_id).first
       raise VersionNotFoundException, "#{klazz} with id #{obj_id} has no version associated with it" if obj_h.nil?
       SharedVersion.new(_version:obj_h[:_version], _version_created_at:obj_h[:_version_created_at],

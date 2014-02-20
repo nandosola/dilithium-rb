@@ -3,24 +3,17 @@
 module Dilithium
   module DatabaseUtils
 
-    # Returns an model associated DB table name
+    # Returns the table name for an entity or reference
     #
     # Example:
     #   Employee => :employees
     #
     # Params:
-    # - model: model for converting class to table name
+    # - reference: entity or reference for which you want to get the table name
     # Returns:
     #   Symbol with table name
-    def self.to_table_name(entity)
-      #TODO : extract this to an utilities class/module
-      case entity
-        # TODO refactor to a single class method in IdPk
-        when BaseEntity, Association::LazyEntityReference, Association::ImmutableEntityReference  #TODO make this inherit from IdPK
-          PersistenceService.table_for(entity.type)
-        when Class
-          PersistenceService.table_for(entity)
-      end
+    def self.to_table_name(reference)
+      PersistenceService.table_for(reference.type)
     end
 
     def self.to_reference_name(attr)
@@ -117,7 +110,7 @@ module Dilithium
               default = "'#{default}'" if default.is_a?(String) && attr.default
               yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
             when BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference
-              dependent = DatabaseUtils.to_table_name(entity_class)
+              dependent = PersistenceService.table_for(entity_class)
               create_intermediate_table(dependent, attr.name, attr.reference_path.last.downcase)
           end
         end
