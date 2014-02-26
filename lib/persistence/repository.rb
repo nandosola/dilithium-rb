@@ -31,15 +31,15 @@ module Dilithium
               root_db = DB[root_table]
               root_h = root_db.where(id:id).first
 
+              type = if root_h.nil? || root_h[:_type].nil?
+                       self
+                     else
+                       PersistenceService.class_for(root_h[:_type])
+                     end
+
               merged_h = if root_h.nil?
                            nil
                          else
-                           type = if root_h[:_type].nil?
-                                    self
-                                  else
-                                    PersistenceService.class_for(root_h[:_type])
-                                  end
-
                            query = PersistenceService.superclass_list(type)[0..-2].inject(root_db) do |memo, klazz|
                              memo.join(PersistenceService.table_for(klazz), :id => :id)
                            end
