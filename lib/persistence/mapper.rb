@@ -202,8 +202,15 @@ module Dilithium
           superclass_list.inject({}) do |memo, klazz|
             memo[klazz] = {}
 
-            klazz.self_attribute_names.each do |attr|
-              memo[klazz][attr] = row_h[attr]
+            klazz.self_attributes.each do |attr|
+              name = case attr
+                       when BasicAttributes::ImmutableReference
+                         DatabaseUtils.to_reference_name(attr)
+                       else
+                         attr.name
+                     end
+
+              memo[klazz][name] = row_h[name]
             end
 
             memo
