@@ -158,9 +158,9 @@ module Dilithium
 
           id = Sequel::DB[PersistenceService.table_for(root_class)].insert(rows[root_class])
 
-          superclass_list[0..-2].each do |klazz|
+          superclass_list[0..-2].reverse.each do |klazz|
             rows[klazz][:id] = id
-            Sequel::DB[PersistenceService.table_for(klazz)].where(id: entity.id).insert(rows[klazz])
+            Sequel::DB[PersistenceService.table_for(klazz)].insert(rows[klazz])
           end
 
           id
@@ -204,7 +204,10 @@ module Dilithium
 
             klazz.self_attributes.each do |attr|
               name = case attr
-                       when BasicAttributes::ImmutableReference
+                       when BasicAttributes::ImmutableReference,
+                         BasicAttributes::ChildReference,
+                         BasicAttributes::ParentReference
+
                          DatabaseUtils.to_reference_name(attr)
                        else
                          attr.name

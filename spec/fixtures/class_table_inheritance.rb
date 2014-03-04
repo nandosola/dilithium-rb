@@ -14,6 +14,7 @@ end
 
 class GroundVehicleC < VehicleC
   parent :fleet_c
+  children :assigned_owner_cs
   attribute :wheels, Integer
 end
 
@@ -30,4 +31,9 @@ class SmallCompanyC < BaseEntity
   reference :company_car, VehicleC
   reference :company_van, VehicleC
   reference :company_cars, VehicleC, :multi => true
+end
+
+class AssignedOwnerC < BaseEntity
+  parent :ground_vehicle_c
+  attribute :name, String
 end

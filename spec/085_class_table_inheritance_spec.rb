@@ -3,9 +3,14 @@ require 'fixtures/class_table_inheritance'
 
 describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheritance' do
   before(:all) do
-    DatabaseUtils.create_tables(VehicleC, RegisteredVehicleC, SmallCompanyC)
-
-
+    DatabaseUtils.create_tables(VehicleC,
+                                RegisteredVehicleC,
+                                FleetC,
+                                GroundVehicleC,
+                                CarC,
+                                DeliveryVanC,
+                                AssignedOwnerC,
+                                SmallCompanyC)
   end
 
   it 'should create a table per subclass with the correct columns' do
@@ -93,7 +98,7 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     expect(r_result[:owner]).to eq(bistromath.owner)
   end
 
-  it 'should store references between inheritance trees correctly' do
+  it 'should store references and children correctly' do
     v_1 = VehicleC.fetch_by_id(1)
     v_2 = VehicleC.fetch_by_id(2)
 
@@ -135,17 +140,34 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
 
   it 'should manage the parent and child references correctly' do
     fleet = FleetC.new(:name => 'Test fleet')
+
     #TODO This should change, the parent should have a factory for its children
-    car = CarC.new({:seats => 4}, fleet)
-    van = DeliveryVanC.new({:capacity => 1000}, fleet)
+    car = CarC.new({:wheels => 4, :seats => 4}, fleet)
+    van = DeliveryVanC.new({:wheels => 4, :capacity => 1000}, fleet)
+    motorcycle = GroundVehicleC.new({:wheels => 2}, fleet)
+
+    owner = AssignedOwnerC.new({:name => 'Foo'}, motorcycle)
+    motorcycle.add_assigned_owner_c(owner)
+
     fleet.add_ground_vehicle_c car
     fleet.add_ground_vehicle_c van
+    fleet.add_ground_vehicle_c motorcycle
+
+    expect(motorcycle.assigned_owner_cs).to include(owner)
+    expect(owner.ground_vehicle_c).to eq(motorcycle)
 
     expect(car.fleet_c).to eq(fleet)
     expect(van.fleet_c).to eq(fleet)
+    expect(motorcycle.fleet_c).to eq(fleet)
 
     expect(fleet.ground_vehicle_cs).to include(car)
     expect(fleet.ground_vehicle_cs).to include(van)
+    expect(fleet.ground_vehicle_cs).to include(motorcycle)
+
+    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction.register_new(fleet)
+    transaction.commit
+
   end
 
   it 'should serialize correctly into Hashes' do
@@ -153,29 +175,75 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     #TODO This should change, the parent should have a factory for its children
     car = CarC.new({:seats => 4}, fleet)
     van = DeliveryVanC.new({:capacity => 1000}, fleet)
+
     fleet.add_ground_vehicle_c car
     fleet.add_ground_vehicle_c van
 
     fleet_h = EntitySerializer.to_nested_hash(fleet)
-    expect(fleet_h).to eq({:id => nil,
-                       :active => true,
-                       :_version=>{:id=>nil, :_version=>0,
-                                   :_version_created_at=>fleet._version._version_created_at,
-                                   :_locked_by=>nil, :_locked_at=>nil},
-                       :ground_vehicle_cs => [
-                         {:id=>nil, :active=>true,
-                          :_version=>{:id=>nil, :_version=>0,
-                                      :_version_created_at=>fleet._version._version_created_at,
-                                      :_locked_by=>nil, :_locked_at=>nil},
-                          :name=>nil, :wheels=>nil, :seats=>4},
-                         {:id=>nil, :active=>true,
-                          :_version=>{:id=>nil, :_version=>0,
-                                      :_version_created_at=>fleet._version._version_created_at,
-                                      :_locked_by=>nil, :_locked_at=>nil},
-                          :name=>nil, :wheels=>nil, :capacity=>1000}],
-                       :name => "Test fleet"
-                      })
+    version_h = {
+      :id=>nil,
+      :_version=>0,
+      :_version_created_at => fleet._version._version_created_at,
+      :_locked_by => nil,
+      :_locked_at=>nil
+    }
+
+    expect(fleet_h).to eq({
+                            :id => nil, :active => true, :_version => version_h,
+                            :ground_vehicle_cs => [
+                              {
+                                :id => nil, :active => true, :_version => version_h,
+                                :assigned_owner_cs => [],
+                                :name => nil, :wheels => nil, :seats => 4
+                              },
+                              {
+                                :id => nil, :active => true, :_version => version_h,
+                                :assigned_owner_cs => [],
+                                :name => nil, :wheels => nil, :capacity => 1000
+                              }
+                            ],
+                            :name => "Test fleet"
+                          })
   end
+
+
+  {
+    :id => nil, :active => true,
+    :_version => {:id => nil, :_version => 0, :_version_created_at => "DateTime", :_locked_by => nil, :_locked_at => nil},
+    :ground_vehicle_cs => [
+      {
+        :id => nil, :active => true,
+        :_version => {:id => nil, :_version => 0, :_version_created_at => "DateTime", :_locked_by => nil, :_locked_at => nil},
+        :assigned_owner_c => [
+          {
+            :id => nil, :active => true, :name => "Eccentrica Gallumbits",
+            :_version => {:id => nil, :_version => 0, :_version_created_at => "DateTime", :_locked_by => nil, :_locked_at => nil}
+          }
+        ],
+        :name => nil, :wheels => nil, :seats => 4
+      }, {
+        :id => nil, :active => true,
+        :_version => {:id => nil, :_version => 0, :_version_created_at => "DateTime", :_locked_by => nil, :_locked_at => nil},
+        :assigned_owner_c => [], :name => nil, :wheels => nil, :capacity => 1000
+      }
+    ], :name => "Test fleet"
+  }
+
+
+  {
+    :id => nil, :active => true,
+    :ground_vehicle_cs => [
+      {
+        :id => nil, :active => true, :name => nil, :assigned_owner_cs => [], :wheels => nil, :seats => 4,
+        :_version => {:id => nil, :_version => 0, :_version_created_at => "DateTime", :_locked_by => nil, :_locked_at => nil}
+      }, {
+        :id => nil, :active => true, :name => nil, :assigned_owner_cs => [], :wheels => nil, :capacity => 1000,
+        :_version => {:id => nil, :_version => 0, :_version_created_at => "DateTime", :_locked_by => nil, :_locked_at => nil}
+      }
+    ],
+    :name => "Test fleet",
+    :_version => {:id => nil, :_version => 0, :_version_created_at => "DateTime", :_locked_by => nil, :_locked_at => nil}
+  }
 
   it 'should deserialize correctly from a Hash' do
     v_1 = VehicleC.fetch_by_id(1)

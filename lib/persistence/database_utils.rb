@@ -73,25 +73,25 @@ module Dilithium
     end
 
     def self.to_schema(entity_class)
-      attr = case PersistenceService.mapper_for(entity_class)
+      attrs = case PersistenceService.mapper_for(entity_class)
                when :leaf
-                 entity_class.attributes
-               when :class
                  yield 'primary_key', ":#{entity_class.pk}"
+                 entity_class.attributes
 
+               when :class
                  if PersistenceService.is_inheritance_root?(entity_class)
+                   yield 'primary_key', ":#{entity_class.pk}"
                    yield 'String', ':_type'
                  else
                    super_table = PersistenceService.table_for(entity_class.superclass)
-                   yield 'foreign_key', ":#{entity_class.pk}, :#{super_table}, :key => :#{entity_class.pk}"
+                   yield 'foreign_key',
+                     ":#{entity_class.pk}, :#{super_table}, :key => :#{entity_class.pk}, :primary_key => true"
                  end
                  entity_class.self_attributes
              end
 
-      attr.each do |attr|
-        if entity_class.pk == attr.name
-          yield 'primary_key', ":#{attr.name}"
-        else
+      attrs.each do |attr|
+        unless entity_class.pk == attr.name
           case attr
             # TODO Refactor this behaviour to a class
             when BasicAttributes::ParentReference, BasicAttributes::ImmutableReference
