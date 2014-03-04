@@ -19,7 +19,7 @@ PersistenceService.configure do |config|
   )
 end
 
-#$database.logger = Logger.new($stdout)
+$database.logger = Logger.new($stdout)
 
 $:<< File.join(File.dirname(__FILE__), '..')
 require_relative 'spec_fixtures'
