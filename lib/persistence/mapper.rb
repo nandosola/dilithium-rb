@@ -210,7 +210,7 @@ module Dilithium
                          attr.name
                      end
 
-              memo[klazz][name] = row_h[name]
+              memo[klazz][name] = row_h[name] if row_h.has_key?(name)
             end
 
             memo
