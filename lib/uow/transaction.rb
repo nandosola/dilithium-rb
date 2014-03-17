@@ -170,7 +170,7 @@ module Dilithium
           raise ArgumentError, "Only BasicEntities can be registered in the Transaction. Got: #{obj.class}"
         end
 
-        id = BaseEntity::PRIMARY_KEY[:identifier]
+        id = obj.class.identifier_names
 
         if must_have_id
           raise ArgumentError, "Cannot register #{obj.class} without an identity (#{id})" if obj.id.nil?

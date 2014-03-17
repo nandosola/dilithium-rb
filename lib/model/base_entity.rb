@@ -2,6 +2,7 @@
 
 module Dilithium
   class BaseEntity < DomainObject
+    extend Identifiers::Id
     extend Repository::Sequel::ClassFinders
     include Repository::Sequel::InstanceFinders
     extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
@@ -46,6 +47,7 @@ module Dilithium
         immutable_class = Class.new(superclass.const_get(:Immutable))
         immutable_class.const_set(:MUTABLE_CLASS, base)
         const_set(:Immutable, immutable_class)
+        add_identifier_accessors
       end
     end
 
@@ -110,7 +112,7 @@ module Dilithium
 
     def full_update(in_h)
       unversioned_h = EntitySerializer.strip_key_from_hash(in_h, :_version)
-      raise ArgumentError, "Entity id must be defined and not changed" if id != unversioned_h[PRIMARY_KEY[:identifier]]
+      raise ArgumentError, "Entity id must be defined and not changed" if id != unversioned_h[self.class.identifier_names]
       check_input_h(unversioned_h)
       detach_children
       detach_multi_references
@@ -417,11 +419,11 @@ module Dilithium
       end
     end
 
-    def self.add_pk_attribute
+    def self.add_identifier_attributes
       super
 
       self.const_get(:Immutable).class_eval do
-        define_method(DomainObject.pk){instance_variable_get("@#{DomainObject.pk}".to_sym)}
+        define_method(DomainObject.identifier_names){instance_variable_get("@#{DomainObject.identifier_names}".to_sym)}
       end
     end
 

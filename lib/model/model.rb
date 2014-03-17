@@ -1,6 +1,7 @@
 # -*- encoding : utf-8 -*-
 
 require_relative 'basic_attributes'
+require_relative 'identifiers'
 require_relative 'base_methods'
 require_relative '../persistence/repository'
 require_relative 'domain_object'

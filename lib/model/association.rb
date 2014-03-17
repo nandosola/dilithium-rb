@@ -48,7 +48,7 @@ module Dilithium
 
       # From the Observable module, update the reference's ID when the original's PK changes
       def update(original, attr_name, value)
-        @id = value if attr_name == DomainObject.pk
+        @id = value if attr_name == original.class.identifier_names
       end
     end
 
