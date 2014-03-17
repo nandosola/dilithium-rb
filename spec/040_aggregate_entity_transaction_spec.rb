@@ -21,6 +21,12 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.finalize
   end
 
+  it 'creates a new Aggregate without children' do
+    company1_h = { name: 'Abstra.cc S.A' }
+    a_company = Company.new(company1_h)
+    a_company.name.should eq('Abstra.cc S.A')
+  end
+
   it 'creates a new Aggregate in the database and retrieves it correctly' do
     company1_h = {
         name: 'Abstra.cc S.A',

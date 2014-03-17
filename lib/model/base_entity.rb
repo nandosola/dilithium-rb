@@ -90,12 +90,16 @@ module Dilithium
 
     def initialize(in_h={}, parent=nil, aggregate_version=nil)
       check_input_h(in_h)
-      self.class.attribute_descriptors.each do |k,v|
-        instance_variable_set("@#{k}".to_sym, v.default)
-      end
+
+      set_version_attribute(aggregate_version, parent)
+
+      load_attributes(in_h)
+    end
+
+    def set_version_attribute(aggregate_version, parent)
       if parent.nil?
         if aggregate_version.nil?
-          @_version =  SharedVersion.create(self)  # Shared version among all the members of the aggregate
+          @_version = SharedVersion.create(self) # Shared version among all the members of the aggregate
         else
           raise ArgumentError,
                 "Version is a #{aggregate_version.class} -- Must be a Version object" unless aggregate_version.is_a?(SharedVersion)
@@ -107,7 +111,6 @@ module Dilithium
         parent_attr = parent.type.to_s.split('::').last.underscore.downcase
         instance_variable_set("@#{parent_attr}".to_sym, parent)
       end
-      load_attributes(in_h)
     end
 
     def full_update(in_h)
@@ -271,6 +274,12 @@ module Dilithium
     end
 
     def load_attributes(in_h)
+      #TODO This loads the default attributes for each type (i.e. an empty Array for children). This should actually
+      # be done in each load_xxx method instead of here
+      self.class.attribute_descriptors.each do |k,v|
+        instance_variable_set("@#{k}".to_sym, v.default) unless v.is_a? BasicAttributes::ParentReference
+      end
+
       unless in_h.empty?
         load_self_attributes(in_h)
         load_immutable_references(in_h)
