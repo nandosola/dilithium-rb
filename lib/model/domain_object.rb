@@ -86,5 +86,64 @@ module Dilithium
     def self.has_extended_generic_attributes?
       !self.extended_generic_attributes.empty?
     end
+
+    def initialize(in_h={})
+      check_input_h(in_h)
+      load_attributes(in_h)
+    end
+
+
+    protected
+
+    def load_attributes(in_h)
+      #TODO This loads the default attributes for each type (i.e. an empty Array for children). This should actually
+      # be done in each load_xxx method instead of here
+      self.class.attribute_descriptors.each do |k,v|
+        instance_variable_set("@#{k}".to_sym, v.default) unless v.is_a? BasicAttributes::ParentReference
+      end
+
+      load_self_attributes(in_h) unless in_h.empty?
+    end
+
+    def check_input_h(in_h)
+      raise ArgumentError, "BaseEntity must be initialized with a Hash - got: #{in_h.class}" unless in_h.is_a?(Hash)
+      unless in_h.empty?
+        # TODO: check_reserved_keys(in_h) => :metadata
+        attributes = self.class.attribute_descriptors
+        attr_keys = attributes.keys
+        in_h.each do |k,v|
+          base_name = k.to_s.chomp("_id").to_sym
+          if attributes.include?(k)
+            attribute_name = k
+          elsif [BasicAttributes::ImmutableReference, BasicAttributes::ImmutableMultiReference].include?(attributes[base_name].class)
+            attribute_name = base_name
+            v = {:id => v}
+          end
+
+          raise ArgumentError, "Attribute #{k} is not allowed in #{self.class}" unless attr_keys.include?(attribute_name)
+
+          attributes[base_name].check_constraints(v)
+        end
+      end
+    end
+
+    private
+
+    def load_self_attributes(in_h)
+      self.class.each_attribute(BasicAttributes::GenericAttribute,
+                                BasicAttributes::ExtendedGenericAttribute) do |attr|
+        __attr_name = attr.name
+        value = if in_h.include?(__attr_name)
+                  in_h[__attr_name]
+                else
+                  attr.default
+                end
+
+        send("#{__attr_name}=".to_sym,value)
+
+        #TODO Should we actually destroy the Hash?
+        in_h.delete(__attr_name)
+      end
+    end
   end
 end
