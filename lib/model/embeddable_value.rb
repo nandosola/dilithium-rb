@@ -1,7 +1,8 @@
 # -*- encoding : utf-8 -*-
 module Dilithium
   module EmbeddableValue
-    include BaseMethods
+    include BaseMethods::Attributes
+    include BaseMethods::References
 
     #TODO Implement BaseValue (and the embed method in BaseMethods) which would be an actual class
     #TODO Implement eql? and == to do value comparisons

@@ -4,7 +4,8 @@ require 'observer'
 module Dilithium
 # Layer Super-Type that handles only identifier and attributes. No references of any kind.
   class DomainObject
-    extend BaseMethods
+    extend BaseMethods::Attributes
+    extend BaseMethods::References
     include Observable
 
     PRIMARY_KEY = {:identifier => :id, :type => Integer}
