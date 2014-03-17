@@ -28,7 +28,13 @@ module Dilithium
                        raise ArgumentError, "Cannot determine type for attribute #{name}"
                      end
 
-        self.add_attribute(descriptor)
+        add_attribute(descriptor)
+      end
+
+      def add_attribute(descriptor)
+        __attr_name = descriptor.name
+        raise ArgumentError, "Duplicate definition for #{__attr_name}" if @attributes.has_key?(__attr_name)
+        @attributes[__attr_name] = descriptor
       end
 
       def is_a_base_entity?(type)

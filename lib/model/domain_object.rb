@@ -10,6 +10,10 @@ module Dilithium
 
     PRIMARY_KEY = {:identifier => :id, :type => Integer}
 
+    class << self
+      alias_method :base_add_attribute, :add_attribute
+    end
+
     def self.pk
       PRIMARY_KEY[:identifier]
     end
@@ -25,6 +29,10 @@ module Dilithium
     def self.inherited(base)
 
       base.instance_eval do
+
+        # TODO Move this into BaseMethods::Attributes
+        @attributes = { }
+
         def attributes
           self.attribute_descriptors.values
         end
@@ -54,13 +62,9 @@ module Dilithium
         end
 
         def add_attribute(descriptor)
-          __attr_name = descriptor.name
-          raise ArgumentError, "Duplicate definition for #{__attr_name}" if @attributes.has_key?(__attr_name)
-          @attributes[__attr_name] = descriptor
+          base_add_attribute(descriptor)
           self.attach_attribute_accessors(descriptor)
         end
-
-        @attributes = { }
 
         base.add_pk_attribute
       end

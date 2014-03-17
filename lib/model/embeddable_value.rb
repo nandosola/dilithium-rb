@@ -9,18 +9,15 @@ module Dilithium
 
     def self.extended(base_value)
       base_value.instance_eval do
+
+        # TODO Move this into BaseMethods::Attributes
+        @attributes = { }
+
+        # EmbeddableValue only stores the attribute descriptors: values (and accessors) are stored in the including BaseEntity
         def included(base_entity)
           raise ArgumentError, 'EmbeddabelValue should only be mixed into BaseEntities' unless base_entity < BaseEntity
           @attributes.values.each { |desc| base_entity.add_attribute(desc) }
         end
-
-        def add_attribute(descriptor)
-          __attr_name = descriptor.name
-          raise ArgumentError, "Duplicate definition for #{__attr_name}" if @attributes.has_key?(__attr_name)
-          @attributes[__attr_name] = descriptor
-        end
-
-        @attributes = { }
       end
     end
   end
