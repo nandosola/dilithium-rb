@@ -15,8 +15,9 @@ module Dilithium
         end
 
         def add_attribute(descriptor)
-          raise ArgumentError, "Duplicate definition for #{name}" if @attributes.has_key?(name)
-          @attributes[descriptor.name] = descriptor
+          __attr_name = descriptor.name
+          raise ArgumentError, "Duplicate definition for #{__attr_name}" if @attributes.has_key?(__attr_name)
+          @attributes[__attr_name] = descriptor
         end
 
         @attributes = { }

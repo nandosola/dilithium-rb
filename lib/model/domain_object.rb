@@ -54,10 +54,9 @@ module Dilithium
         end
 
         def add_attribute(descriptor)
-          name = descriptor.name
-          raise ArgumentError, "Duplicate definition for #{name}" if @attributes.has_key?(name)
-
-          @attributes[name] = descriptor
+          __attr_name = descriptor.name
+          raise ArgumentError, "Duplicate definition for #{__attr_name}" if @attributes.has_key?(__attr_name)
+          @attributes[__attr_name] = descriptor
           self.attach_attribute_accessors(descriptor)
         end
 
@@ -94,13 +93,13 @@ module Dilithium
     end
 
     def self.attach_attribute_accessors(attribute_descriptor)
-      name = attribute_descriptor.name
+      __attr_name = attribute_descriptor.name
 
       self.class_eval do
-        define_method(name){instance_variable_get("@#{name}".to_sym)}
-        define_method("#{name}="){ |new_value|
+        define_method(__attr_name){instance_variable_get("@#{__attr_name}".to_sym)}
+        define_method("#{__attr_name}="){ |new_value|
           attribute_descriptor.check_constraints(new_value)
-          instance_variable_set("@#{name}".to_sym, new_value)
+          instance_variable_set("@#{__attr_name}".to_sym, new_value)
         }
       end
     end

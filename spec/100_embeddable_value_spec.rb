@@ -51,11 +51,26 @@ describe 'An model which embeds a value' do
     end
   end
 
-  it 'should not allow duplicated attribute definitions' do
+  it 'should not allow a BaseEntity to define attributes defined in an EmbeddableValue' do
     expect {
       module Name
         extend EmbeddableValue
         attribute :name, String
+      end
+
+      class Duplicate < BaseEntity
+        include Name
+
+        attribute :name, String
+      end
+    }.to raise_error(ArgumentError)
+  end
+
+  it 'should not allow a BaseEntity to extend an EmbeddableValue which redefines already-defined attributes' do
+    expect {
+      module Name
+        attribute :name, String
+        extend EmbeddableValue
       end
 
       class Duplicate < BaseEntity

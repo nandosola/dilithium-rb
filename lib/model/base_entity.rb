@@ -279,52 +279,52 @@ module Dilithium
 
     def load_child_attributes(in_h)
       self.class.each_attribute(BasicAttributes::ChildReference) do |attr|
-        name = attr.name
-        value = if in_h[name].nil?
+        __attr_name = attr.name
+        value = if in_h[__attr_name].nil?
                   attr.default
                 else
-                  in_h[name]
+                  in_h[__attr_name]
                 end
 
-        send("make_#{name}".to_sym, value) unless value.empty?
+        send("make_#{__attr_name}".to_sym, value) unless value.empty?
       end
     end
 
     # TODO refactor the frak out of here: make generic for any ListReference
     def load_multi_reference_attributes(in_h)
       self.class.each_attribute(BasicAttributes::MultiReference) do |attr|
-        name = attr.name
-        value = if in_h[name].nil?
+        __attr_name = attr.name
+        value = if in_h[__attr_name].nil?
                   attr.default
                 else
-                  in_h[name]
+                  in_h[__attr_name]
                 end
 
-        value.each { |ref| send("add_#{name.to_s.singularize}".to_sym, ref) }
+        value.each { |ref| send("add_#{__attr_name.to_s.singularize}".to_sym, ref) }
       end
     end
 
     def load_self_attributes(in_h)
       self.class.each_attribute(BasicAttributes::GenericAttribute,
                                 BasicAttributes::ExtendedGenericAttribute) do |attr|
-        name = attr.name
-        value = if in_h.include?(name)
-                  in_h[name]
+        __attr_name = attr.name
+        value = if in_h.include?(__attr_name)
+                  in_h[__attr_name]
                 else
                   attr.default
                 end
 
-        send("#{name}=".to_sym,value)
+        send("#{__attr_name}=".to_sym,value)
 
         #TODO Should we actually destroy the Hash?
-        in_h.delete(name)
+        in_h.delete(__attr_name)
       end
     end
 
     def load_immutable_references(in_h)
       self.class.each_attribute(BasicAttributes::ImmutableReference) do |attr|
-        name = attr.name
-        in_value = in_h[name]
+        __attr_name = attr.name
+        in_value = in_h[__attr_name]
         value = case in_value
                   #FIXME We should NEVER get a Hash at this level
                   when Hash
@@ -332,15 +332,15 @@ module Dilithium
                   when Association::ImmutableEntityReference, BaseEntity, NilClass
                     in_value
                   else
-                    raise IllegalArgumentException, "Invalid reference #{name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
+                    raise IllegalArgumentException, "Invalid reference #{__attr_name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
                 end
 
-        send("#{name}=".to_sym,value)
+        send("#{__attr_name}=".to_sym,value)
       end
 
       self.class.each_attribute(BasicAttributes::ImmutableMultiReference) do |attr|
-        name = attr.name
-        in_array = in_h[name]
+        __attr_name = attr.name
+        in_array = in_h[__attr_name]
 
         unless in_array.nil?
           in_array.each do |in_value|
@@ -353,14 +353,14 @@ module Dilithium
                       when BaseEntity
                         in_value.immutable
                       else
-                        raise IllegalArgumentException, "Invalid reference #{name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
+                        raise IllegalArgumentException, "Invalid reference #{__attr_name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
                     end
 
-            send("add_#{name.to_s.singularize}".to_sym, value)
+            send("add_#{__attr_name.to_s.singularize}".to_sym, value)
           end
         end
 
-        in_h.delete(name)
+        in_h.delete(__attr_name)
       end
     end
 
@@ -426,17 +426,17 @@ module Dilithium
     end
 
     def self.attach_attribute_accessors(attribute_descriptor)
-      name = attribute_descriptor.name
+      __attr_name = attribute_descriptor.name
 
       if attribute_descriptor.is_a? BasicAttributes::GenericAttribute
         self.const_get(:Immutable).class_eval do
-          define_method(name){instance_variable_get("@#{name}".to_sym)}
+          define_method(__attr_name){instance_variable_get("@#{__attr_name}".to_sym)}
         end
       end
 
       self.class_eval do
-        define_method(name){instance_variable_get("@#{name}".to_sym)}
-        singular_ref_name = name.to_s.singularize
+        define_method(__attr_name){instance_variable_get("@#{__attr_name}".to_sym)}
+        singular_ref_name = __attr_name.to_s.singularize
         add_to_collection = "add_#{singular_ref_name}"
 
         case attribute_descriptor
@@ -446,22 +446,22 @@ module Dilithium
               # TODO children shouldn't have a public constructor
               attribute_descriptor.check_assignment_constraints(new_value)
               new_value._version = self._version
-              instance_variable_get("@#{name}".to_sym) << new_value
+              instance_variable_get("@#{__attr_name}".to_sym) << new_value
             }
           when BasicAttributes::MultiReference
             define_method(add_to_collection){ |new_value|
               attribute_descriptor.check_assignment_constraints(new_value)
-              instance_variable_get("@#{name}".to_sym) << new_value
+              instance_variable_get("@#{__attr_name}".to_sym) << new_value
             }
           when BasicAttributes::ImmutableMultiReference
             define_method(add_to_collection){ |new_value|
               attribute_descriptor.check_assignment_constraints(new_value)
-              instance_variable_get("@#{name}".to_sym) << Association::ImmutableEntityReference.create(new_value)
+              instance_variable_get("@#{__attr_name}".to_sym) << Association::ImmutableEntityReference.create(new_value)
             }
           when BasicAttributes::ImmutableReference
-            define_method("#{name}="){ |new_value|
+            define_method("#{__attr_name}="){ |new_value|
               attribute_descriptor.check_assignment_constraints(new_value)
-              instance_variable_set("@#{name}".to_sym, Association::ImmutableEntityReference.create(new_value))
+              instance_variable_set("@#{__attr_name}".to_sym, Association::ImmutableEntityReference.create(new_value))
             }
           else
             super
