@@ -96,23 +96,6 @@ module Dilithium
       load_attributes(in_h)
     end
 
-    def set_version_attribute(aggregate_version, parent)
-      if parent.nil?
-        if aggregate_version.nil?
-          @_version = SharedVersion.create(self) # Shared version among all the members of the aggregate
-        else
-          raise ArgumentError,
-                "Version is a #{aggregate_version.class} -- Must be a Version object" unless aggregate_version.is_a?(SharedVersion)
-          @_version = aggregate_version
-        end
-      else
-        @_version = parent._version
-        #TODO Add child to parent
-        parent_attr = parent.type.to_s.split('::').last.underscore.downcase
-        instance_variable_set("@#{parent_attr}".to_sym, parent)
-      end
-    end
-
     def full_update(in_h)
       unversioned_h = EntitySerializer.strip_key_from_hash(in_h, :_version)
       raise ArgumentError, "Entity id must be defined and not changed" if id != unversioned_h[self.class.identifier_names]
@@ -270,6 +253,23 @@ module Dilithium
 
           attributes[base_name].check_constraints(v)
         end
+      end
+    end
+
+    def set_version_attribute(aggregate_version, parent)
+      if parent.nil?
+        if aggregate_version.nil?
+          @_version = SharedVersion.create(self) # Shared version among all the members of the aggregate
+        else
+          raise ArgumentError,
+                "Version is a #{aggregate_version.class} -- Must be a Version object" unless aggregate_version.is_a?(SharedVersion)
+          @_version = aggregate_version
+        end
+      else
+        @_version = parent._version
+        #TODO Add child to parent
+        parent_attr = parent.type.to_s.split('::').last.underscore.downcase
+        instance_variable_set("@#{parent_attr}".to_sym, parent)
       end
     end
 
