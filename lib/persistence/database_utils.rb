@@ -55,7 +55,11 @@ module Dilithium
         table_name = PersistenceService.table_for(entity_class)
 
         DB.create_table(table_name) do
-          ::DatabaseUtils.to_schema(entity_class){ |type,opts| eval("#{type} #{opts}") }
+          ::DatabaseUtils.to_schema(entity_class){ |type,opts|
+            require 'pp'
+            pp "***** TABLE: #{table_name} TYPE: #{type} OPTS: #{opts}"
+            eval("#{type} #{opts}")
+          }
         end
 
         SharedVersion.add_to_table(table_name) if PersistenceService.is_inheritance_root?(entity_class)
@@ -72,26 +76,48 @@ module Dilithium
       end
     end
 
-    def self.to_schema(entity_class)
+    def self.define_primary_keys(block, entity_class)
+      entity_class.identifier_names.each { |id| block.call('primary_key', ":#{id}") }
+    end
+
+    def self.define_foreign_keys(block, entity_class)
+      super_table = PersistenceService.table_for(entity_class.superclass)
+      keys = entity_class.identifier_names.join(",:")
+      block.call('foreign_key',
+                 ":#{keys}, :#{super_table}, :key => :#{keys}, :primary_key => true")
+    end
+
+=begin
+    def self.define_foreign_keys(entity_class, &block)
+      super_table = PersistenceService.table_for(entity_class.superclass)
+      fk_names = if entity_class.identifier_names.length == 1
+                   ":#{entity_class.identifier_names.first}"
+                 else
+                   "[:{entity_class.identifier_names.join(', :')}]"
+                 end
+      block.call('foreign_key',
+                 "#{fk_names}, :#{super_table}, :key => :#{entity_class.identifier_names}, :primary_key => true")
+    end
+=end
+
+    def self.to_schema(entity_class, &block)
       attrs = case PersistenceService.mapper_for(entity_class)
                when :leaf
-                 yield 'primary_key', ":#{entity_class.identifier_names}"
+                 define_primary_keys(block, entity_class)
                  entity_class.attributes
 
                when :class
                  if PersistenceService.is_inheritance_root?(entity_class)
-                   yield 'primary_key', ":#{entity_class.identifier_names}"
-                   yield 'String', ':_type'
+                   define_primary_keys(block, entity_class)
+                   block.call('String', ':_type')
                  else
-                   super_table = PersistenceService.table_for(entity_class.superclass)
-                   yield 'foreign_key',
-                     ":#{entity_class.identifier_names}, :#{super_table}, :key => :#{entity_class.identifier_names}, :primary_key => true"
+                   define_foreign_keys(block, entity_class)
                  end
                  entity_class.self_attributes
              end
 
       attrs.each do |attr|
-        unless entity_class.identifier_names == attr.name
+        unless entity_class.identifier_names.first == attr.name
           case attr
             # TODO Refactor this behaviour to a class
             when BasicAttributes::ParentReference, BasicAttributes::ImmutableReference
@@ -100,15 +126,15 @@ module Dilithium
                      else
                        PersistenceService.table_for(attr.type)
                      end
-              yield 'foreign_key', ":#{DatabaseUtils.to_reference_name(attr)}, :#{name}"
+              block.call('foreign_key', ":#{DatabaseUtils.to_reference_name(attr)}, :#{name}")
             when BasicAttributes::ExtendedGenericAttribute
               default = attr.default.nil? ? 'nil' : attr.default
               default = "'#{default}'" if default.is_a?(String) && attr.default
-              yield "#{attr.type.superclass}", ":#{attr.name}, :default => #{attr.to_generic_type(default)}"
+              block.call("#{attr.type.superclass}", ":#{attr.name}, :default => #{attr.to_generic_type(default)}")
             when BasicAttributes::GenericAttribute
               default = attr.default.nil? ? 'nil' : attr.default
               default = "'#{default}'" if default.is_a?(String) && attr.default
-              yield "#{attr.type}", ":#{attr.name}, :default => #{default}"
+              block.call("#{attr.type}", ":#{attr.name}, :default => #{default}")
             when BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference
               dependent = PersistenceService.table_for(entity_class)
               create_intermediate_table(dependent, attr.name, attr.reference_path.last.underscore)
