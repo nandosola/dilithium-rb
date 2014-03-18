@@ -12,7 +12,7 @@ PersistenceService::Sequel.db = $database
 
 PersistenceService.configure do |config|
   config.inheritance_mappers(
-    :'Dilithium::BaseEntity' => :leaf,
+    :default => :leaf,
     :'PersistenceConfigTest::Base' => :class,
     :FleetC => :class,
     :VehicleC => :class

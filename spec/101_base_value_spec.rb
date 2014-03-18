@@ -21,6 +21,14 @@ describe 'BaseValue class' do
     end
   }
 
+  let(:planet_h) {
+    {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y'}
+  }
+
+  let(:another_planet_h) {
+    {iso2:'GY', iso3:'GFY', name:'Gallifrey', type:'M'}
+  }
+
   describe '::identified_by' do
 
     it 'accepts any type of previously defined attributes' do
@@ -35,13 +43,15 @@ describe 'BaseValue class' do
       planet.identified_by(:iso2)
       expect { planet.identified_by(:iso3) }.to raise_error(DomainObjectExceptions::ConfigurationError)
     end
+
+    it 'accepts multiple attributes' do
+      alien.identified_by(:race, :subrace)
+      expect(alien.instance_variable_get(:'@identifiers')).to eq([:race, :subrace])
+    end
   end
 
   describe '#==' do
     it 'Compares objects by their values' do
-      planet_h = {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y'}
-      another_planet_h = {iso2:'GY', iso3:'GFY', name:'Gallifrey', type:'M'}
-
       a_planet = planet.new(planet_h.dup)
       the_same_planet = planet.new(planet_h)
       another_planet = planet.new(another_planet_h)
