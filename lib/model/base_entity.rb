@@ -96,7 +96,10 @@ module Dilithium
 
     def full_update(in_h)
       unversioned_h = EntitySerializer.strip_key_from_hash(in_h, :_version)
-      raise ArgumentError, "Entity id must be defined and not changed" if id != unversioned_h[self.class.identifier_names]
+
+      self.class.identifier_names.each do |id|
+        raise ArgumentError, "Entity id must be defined and not changed" if instance_variable_get(:"@#{id}") != unversioned_h[id]
+      end
       check_input_h(unversioned_h)
       detach_children
       detach_multi_references
@@ -385,8 +388,13 @@ module Dilithium
     def self.add_identifier_attributes
       super
 
+      mutable_class = self
+
       self.const_get(:Immutable).class_eval do
-        define_method(DomainObject.identifier_names){instance_variable_get("@#{DomainObject.identifier_names}".to_sym)}
+        mutable_class.identifier_names.each do |id|
+          id_var = "@#{id}".to_sym
+          define_method(id){instance_variable_get(id_var)}
+        end
       end
     end
 
