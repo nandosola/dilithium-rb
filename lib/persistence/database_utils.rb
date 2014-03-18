@@ -6,14 +6,13 @@ module Dilithium
 
       module BaseEntityKeys
         def self.define_primary_keys(entity_class, &block)
-          entity_class.identifier_names.each { |id| block.call('primary_key', ":#{id}") }
+          block.call('primary_key', ":#{entity_class.identifier_names.first}")
         end
 
         def self.define_inheritance_keys(entity_class, &block)
           super_table = PersistenceService.table_for(entity_class.superclass)
-          keys = entity_class.identifier_names.join(",:")
-          block.call('foreign_key',
-                     ":#{keys}, :#{super_table}, :key => :#{keys}, :primary_key => true")
+          key = entity_class.identifier_names.first
+          block.call('foreign_key', ":#{key}, :#{super_table}, :key => :#{key}, :primary_key => true")
         end
       end
 
