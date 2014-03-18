@@ -4,42 +4,56 @@ module Dilithium
   module DatabaseUtils
     module DomainObjectSchema
 
-      module BaseEntityKeys
-        def self.define_primary_keys(entity_class, &block)
-          block.call('primary_key', ":#{entity_class.identifier_names.first}")
+      class KeySchema
+        def initialize(domain_class)
+          @domain_class = domain_class
+        end
+      end
+      
+      class BaseEntityKeys < KeySchema
+        def define_primary_keys(&block)
+          block.call('primary_key', ":#{@domain_class.identifier_names.first}")
         end
 
-        def self.define_inheritance_keys(entity_class, &block)
-          super_table = PersistenceService.table_for(entity_class.superclass)
-          key = entity_class.identifier_names.first
+        def define_inheritance_keys(&block)
+          super_table = PersistenceService.table_for(@domain_class.superclass)
+          key = @domain_class.identifier_names.first
           block.call('foreign_key', ":#{key}, :#{super_table}, :key => :#{key}, :primary_key => true")
+        end
+
+        def needs_version?
+          PersistenceService.is_inheritance_root?(@domain_class)
         end
       end
 
-      module BaseValueKeys
-        def self.define_primary_keys(value_class, &block)
-          value_class.identifier_names.each do |id|
-            attr = value_class.attribute_descriptors[id]
+      class BaseValueKeys < KeySchema
+        def define_primary_keys(&block)
+          @domain_class.identifier_names.each do |id|
+            attr = @domain_class.attribute_descriptors[id]
             default = attr.default.nil? ? 'nil' : attr.default
             default = "'#{default}'" if default.is_a?(String) && attr.default
-            if value_class.identifier_names.length == 1
+            if @domain_class.identifier_names.length == 1
               block.call("#{attr.generic_type}", ":#{attr.name}, :default => #{attr.to_generic_type(default)}, :primary_key => true")
             else
               block.call("#{attr.generic_type}", ":#{attr.name}, :default => #{attr.to_generic_type(default)}")
             end
           end
 
-          if value_class.identifier_names.length > 1
-            keys = value_class.identifier_names.join(",:")
+          if @domain_class.identifier_names.length > 1
+            keys = @domain_class.identifier_names.join(",:")
             block.call('primary_key', "[:#{keys}]")
           end
         end
 
-        def self.define_inheritance_keys(value_class, &block)
-          super_table = PersistenceService.table_for(value_class.superclass)
-          keys = value_class.identifier_names.join(",:")
+        def define_inheritance_keys(&block)
+          super_table = PersistenceService.table_for(@domain_class.superclass)
+          keys = @domain_class.identifier_names.join(",:")
           block.call('foreign_key',
                      ":#{keys}, :#{super_table}, :key => :#{keys}, :primary_key => true")
+        end
+
+        def needs_version?
+          false
         end
       end
 
@@ -72,13 +86,17 @@ module Dilithium
           end
         end
 
+        def needs_version?
+          key_schema.needs_version?
+        end
+
         protected
 
         def key_schema
           if @domain_class <= BaseEntity
-            BaseEntityKeys
+            BaseEntityKeys.new(@domain_class)
           elsif @domain_class <= BaseValue
-            BaseValueKeys
+            BaseValueKeys.new(@domain_class)
           else
             raise ArgumentError, "#{@domain_class} is neither a BaseEntity nor a BaseValue"
           end
@@ -105,7 +123,7 @@ module Dilithium
         end
 
         def define_base_schema(&block)
-          key_schema.define_primary_keys(@domain_class, &block)
+          key_schema.define_primary_keys(&block)
         end
       end
 
@@ -116,10 +134,10 @@ module Dilithium
 
         def define_base_schema(&block)
           if PersistenceService.is_inheritance_root?(@domain_class)
-            key_schema.define_primary_keys(@domain_class, &block)
+            key_schema.define_primary_keys(&block)
             block.call('String', ':_type')
           else
-            key_schema.define_inheritance_keys(@domain_class, &block)
+            key_schema.define_inheritance_keys(&block)
           end
         end
       end
@@ -191,7 +209,7 @@ module Dilithium
           mapper_strategy.define_schema{ |type,opts| eval("#{type} #{opts}") }
         end
 
-        SharedVersion.add_to_table(table_name) if PersistenceService.is_inheritance_root?(domain_class)
+        SharedVersion.add_to_table(table_name) if mapper_strategy.needs_version?
       end
     end
 

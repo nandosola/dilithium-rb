@@ -68,7 +68,7 @@ describe 'BaseValue class' do
   # them out of their current places in BaseEntity/EmbeddableValue
 end
 
-describe 'BaseValue schemifier' do
+describe 'BaseValue persistence' do
   before(:all) do
     class Planet < BaseValue
       attribute :iso2, String
@@ -84,11 +84,18 @@ describe 'BaseValue schemifier' do
       attribute :hostility_level, String
       identified_by :race, :subrace
     end
-
-    DatabaseUtils.create_tables(Planet, Alien)
   end
 
   describe '#create_tables' do
+    before(:all) do
+      DatabaseUtils.create_tables(Planet, Alien)
+    end
+
+    after(:all) do
+      $database.drop_table :planets
+      $database.drop_table :aliens
+    end
+
     it 'Creates the tables' do
       $database.table_exists?(:planets).should be_true
       $database.table_exists?(:aliens).should be_true
@@ -99,8 +106,7 @@ describe 'BaseValue schemifier' do
                                                          iso2: {type: 'varchar(255)', primary_key: true},
                                                          iso3: {type: 'varchar(255)', primary_key: false},
                                                          name: {type: 'varchar(255)', primary_key: false},
-                                                         type: {type: 'varchar(255)', primary_key: false},
-                                                         _version_id: {type: 'integer', primary_key: false}
+                                                         type: {type: 'varchar(255)', primary_key: false}
                                                        })
 
     end
@@ -109,8 +115,7 @@ describe 'BaseValue schemifier' do
       expect(DatabaseUtils.get_schema(:aliens)).to eq({
                                                         race: {type: 'varchar(255)', primary_key: true},
                                                         subrace: {type: 'varchar(255)', primary_key: true},
-                                                        hostility_level: {type: 'varchar(255)', primary_key: false},
-                                                        _version_id: {type: 'integer', primary_key: false}
+                                                        hostility_level: {type: 'varchar(255)', primary_key: false}
                                                       })
     end
   end
