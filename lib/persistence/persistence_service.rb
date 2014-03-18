@@ -12,10 +12,12 @@ module Dilithium
       def inheritance_mappers(args)
         args.each do |k, v|
           raise ConfigurationError, "Invalid inheritance mapper type #{v}" unless [:class, :leaf].include?(v)
-          raise ConfigurationError, "Mapper for class #{k} has already been set" if @mappers.has_key?(k)
+          raise ConfigurationError, "Mapper for class #{k} has already been set" if @mappers.key?(k)
 
           @mappers[k] = v
         end
+        
+        raise ConfigurationError 'Must define a :default inheritance_mapper' unless @mappers.key?(:default)
       end
 
       def find_in(map_sym, klazz, allow_redefines, include_inherited = true)
@@ -28,17 +30,19 @@ module Dilithium
                   raise PersistenceService::ConfigurationError, "Unknown configuration map type #{map_sym}"
               end
 
-        raise PersistenceService::ConfigurationError, "#{klazz} is not a BaseEntity. The PersistenceService can only be configured for BaseEntities." unless klazz <= BaseEntity
-        if map.has_key?(klazz)
+        raise PersistenceService::ConfigurationError, "The PersistenceService can only be configured for subclasses of BaseEntity or BaseValue. #{klazz} is neither." unless klazz <= BaseEntity || klazz <= BaseValue
+
+        if klazz.superclass == DomainObject
+          map[:default]
+        elsif map.key?(klazz)
           map[klazz]
         else
           str = klazz.to_s
           sym = str.to_sym
 
-          if map.has_key?(sym)
+          if map.key?(sym)
             if ! allow_redefines &&
-              klazz.superclass != BaseEntity &&
-              klazz != BaseEntity &&
+              klazz.superclass.superclass != DomainObject &&
               find_in(map, klazz.superclass, allow_redefines) != sym
 
               raise PersistenceService::ConfigurationError
@@ -50,9 +54,9 @@ module Dilithium
             cls = path.reduce(Object) { |m, c| m.const_get(c.to_sym) }
             map[klazz] = find_in(map_sym, cls.superclass, allow_redefines)
           end
-        end
 
-        map[klazz]
+          map[klazz]
+        end
       end
 
       def class_for(table)
