@@ -14,6 +14,7 @@ module Dilithium
         @mandatory = mandatory
         @default = default
       end
+
       def check_constraints(value)  # check invariant constraints, called by setter
         raise ArgumentError, "#{@name} must be defined" if @mandatory && value.nil?
         if [TrueClass, FalseClass].include?(@type)
@@ -21,6 +22,14 @@ module Dilithium
         else
           raise ArgumentError, "#{@name} must be a #{@type} - got: #{value.class}" unless value.nil? || value.is_a?(@type)
         end
+      end
+
+      def generic_type
+        type
+      end
+
+      def to_generic_type(value)
+        value
       end
     end
 
@@ -101,16 +110,23 @@ module Dilithium
         @mandatory = mandatory
         @default = default  # TODO extra check for default value type
       end
-      def to_generic_type(attr)
-        case attr
+
+      def generic_type
+        type.superclass
+      end
+
+      def to_generic_type(value)
+        case value
           when String
-            attr.to_s
+            value.to_s
           when Integer
-            attr.to_i
+            value.to_i
           when Float
-            attr.to_f
+            value.to_f
         end
       end
+
+
     end
 
     class ParentReference < Reference

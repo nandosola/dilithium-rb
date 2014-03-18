@@ -68,3 +68,59 @@ describe 'BaseValue class' do
   # them out of their current places in BaseEntity/EmbeddableValue
 end
 
+describe 'BaseValue schemifier' do
+  before(:all) do
+    class Planet < BaseValue
+      attribute :iso2, String
+      attribute :iso3, String
+      attribute :name, String
+      attribute :type, String
+      identified_by :iso2
+    end
+
+    class Alien < BaseValue
+      attribute :race, String
+      attribute :subrace, String
+      attribute :hostility_level, String
+      identified_by :race, :subrace
+    end
+
+    DatabaseUtils.create_tables(Planet, Alien)
+  end
+
+  describe '#create_tables' do
+    it 'Creates the tables' do
+      $database.table_exists?(:planets).should be_true
+      $database.table_exists?(:aliens).should be_true
+    end
+
+    it 'Creates the tables with the proper columns when identified_by has a single field' do
+      expect(DatabaseUtils.get_schema(:planets)).to eq({
+                                                         iso2: {type: 'varchar(255)', primary_key: true},
+                                                         iso3: {type: 'varchar(255)', primary_key: false},
+                                                         name: {type: 'varchar(255)', primary_key: false},
+                                                         type: {type: 'varchar(255)', primary_key: false},
+                                                         _version_id: {type: 'integer', primary_key: false}
+                                                       })
+
+    end
+
+    it 'Creates the tables with the proper columns when identified_by has multiple fields' do
+      expect(DatabaseUtils.get_schema(:aliens)).to eq({
+                                                        race: {type: 'varchar(255)', primary_key: true},
+                                                        subrace: {type: 'varchar(255)', primary_key: true},
+                                                        hostility_level: {type: 'varchar(255)', primary_key: false},
+                                                        _version_id: {type: 'integer', primary_key: false}
+                                                      })
+    end
+  end
+
+  describe 'BaseValue mapper' do
+
+  end
+
+  describe 'BaseValue repository' do
+
+  end
+end
+

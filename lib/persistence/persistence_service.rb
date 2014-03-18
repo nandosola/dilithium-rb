@@ -102,7 +102,7 @@ module Dilithium
       begin
         @configuration.find_in(:mappers, klazz, false)
       rescue ConfigurationError
-        raise ConfigurationError, "Not allowed to redefine the mapper type for entities that are not direct subclasses of Dilithium::BaseEntity. Offending class: #{klazz}"
+        raise ConfigurationError, "Not allowed to redefine the mapper type for entities that are not direct subclasses of Dilithium::BaseEntity or Dilithium::BaseValue. Offending class: #{klazz}"
       end
     end
 
@@ -119,7 +119,7 @@ module Dilithium
     end
 
     def self.is_inheritance_root?(klazz)
-      klazz.superclass == BaseEntity || mapper_for(klazz) == :leaf
+      klazz.superclass.superclass == DomainObject || mapper_for(klazz) == :leaf
     end
 
     def self.inheritance_root_for(klazz)
@@ -128,7 +128,7 @@ module Dilithium
 
     def self.superclass_list(klazz)
       @inheritance_roots[klazz] ||= klazz.ancestors.inject([]) do |memo, c|
-        memo << c if c < BaseEntity
+        memo << c if c.superclass < DomainObject
         break memo if is_inheritance_root?(c)
         memo
       end
