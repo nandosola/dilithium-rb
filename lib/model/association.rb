@@ -3,7 +3,7 @@
 module Dilithium
   module Association
     class LazyEntityReference
-      attr_reader :type, :id, :_version
+      attr_reader :id, :_version
 
       #TODO Should we also create delegate methods to call the resolved_entity instead of having to use ref.resolved_entity.foo?
       def initialize(id, referenced_class, version = nil, resolved_entity = nil)
@@ -27,6 +27,10 @@ module Dilithium
         end
       end
 
+      def _type
+        @type
+      end
+
       #TODO Rename resolve to resolve!
       def resolve
         @resolved_entity ||= @type.fetch_by_id(@id)
@@ -42,7 +46,7 @@ module Dilithium
       def ==(other)
         other.class == self.class &&
           @id == other.id &&
-          @type == other.type &&
+          @type == other._type &&
           @_version == other._version
       end
 

@@ -32,7 +32,7 @@ module Dilithium
 
         raise PersistenceService::ConfigurationError, "The PersistenceService can only be configured for subclasses of BaseEntity or BaseValue. #{klazz} is neither." unless klazz <= BaseEntity || klazz <= BaseValue
 
-        if klazz.superclass == DomainObject
+        if klazz.superclass == DomainObject || klazz.superclass == ImmutableDomainObject
           map[:default]
         elsif map.key?(klazz)
           map[klazz]
@@ -43,9 +43,10 @@ module Dilithium
           if map.key?(sym)
             if ! allow_redefines &&
               klazz.superclass.superclass != DomainObject &&
+              klazz.superclass.superclass != ImmutableDomainObject &&
               find_in(map, klazz.superclass, allow_redefines) != sym
 
-              raise PersistenceService::ConfigurationError
+              raise PersistenceService::ConfigurationError, "Not allowed to redefine the mapper type for entities that are not direct subclasses of Dilithium::BaseEntity or Dilithium::BaseValue. Offending class: #{klazz}"
             end
 
             map[klazz] = map.delete(sym)
@@ -99,11 +100,7 @@ module Dilithium
     end
 
     def self.mapper_for(klazz)
-      begin
-        @configuration.find_in(:mappers, klazz, false)
-      rescue ConfigurationError
-        raise ConfigurationError, "Not allowed to redefine the mapper type for entities that are not direct subclasses of Dilithium::BaseEntity. Offending class: #{klazz}"
-      end
+      @configuration.find_in(:mappers, klazz, false)
     end
 
     def self.table_for(klazz)
@@ -119,7 +116,7 @@ module Dilithium
     end
 
     def self.is_inheritance_root?(klazz)
-      klazz.superclass == BaseEntity || mapper_for(klazz) == :leaf
+      klazz.superclass.superclass == DomainObject || mapper_for(klazz) == :leaf
     end
 
     def self.inheritance_root_for(klazz)
@@ -128,7 +125,7 @@ module Dilithium
 
     def self.superclass_list(klazz)
       @inheritance_roots[klazz] ||= klazz.ancestors.inject([]) do |memo, c|
-        memo << c if c < BaseEntity
+        memo << c if c.superclass < DomainObject
         break memo if is_inheritance_root?(c)
         memo
       end

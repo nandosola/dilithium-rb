@@ -1,7 +1,7 @@
 # -*- encoding : utf-8 -*-
 
 module Dilithium
-  class BaseValue < DomainObject
+  class BaseValue < ImmutableDomainObject
     include DomainObjectExceptions
 
     extend BaseMethods::Attributes
@@ -11,6 +11,8 @@ module Dilithium
         @attributes = {}
         @identifiers = []
       end
+
+      PersistenceService.add_table(base)
     end
 
     def self.identified_by(*attributes)
@@ -20,6 +22,16 @@ module Dilithium
         attr_name.to_sym.tap do |attr_sym|
           raise ArgumentError, ":#{attr_sym} must be defined as an attribute" unless @attributes.key? attr_sym
         end
+      end
+    end
+
+    def self.identifier_names
+      @identifiers
+    end
+
+    def self.identifiers
+      @identifiers.map do |id|
+        { :identifier => id, :type => self.attribute_descriptors[id].type }
       end
     end
 

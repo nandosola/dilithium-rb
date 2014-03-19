@@ -433,7 +433,7 @@ describe 'A Transaction handling an Aggregate Entity' do
 
     romana.local_office.id.should eq(office.id)
     romana.name.should eq('Romana I')
-    romana.local_office.type.should eq(LocalOffice)
+    romana.local_office._type.should eq(LocalOffice)
   end
 
   it 'Correctly persists an intermediate root' do

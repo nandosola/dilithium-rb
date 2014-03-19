@@ -14,6 +14,7 @@ module Dilithium
         @mandatory = mandatory
         @default = default
       end
+
       def check_constraints(value)  # check invariant constraints, called by setter
         raise ArgumentError, "#{@name} must be defined" if @mandatory && value.nil?
         if [TrueClass, FalseClass].include?(@type)
@@ -21,6 +22,14 @@ module Dilithium
         else
           raise ArgumentError, "#{@name} must be a #{@type} - got: #{value.class}" unless value.nil? || value.is_a?(@type)
         end
+      end
+
+      def generic_type
+        type
+      end
+
+      def to_generic_type(value)
+        value
       end
     end
 
@@ -36,7 +45,7 @@ module Dilithium
         raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless
           value.nil? ||
             value.is_a?(@type) ||
-            (value.is_a?(Association::LazyEntityReference) && value.type <= @type)
+            (value.is_a?(Association::LazyEntityReference) && value._type <= @type)
       end
 
       def check_assignment_constraints(value) # check invariant constraints, called by setter
@@ -88,7 +97,7 @@ module Dilithium
         raise RuntimeError, "#{@name} must contain only elements of type #{inner_type} - got: #{value.class}" unless
           value.nil? ||
             value.is_a?(inner_type) ||
-            (value.is_a?(Association::LazyEntityReference) && value.type <= inner_type)
+            (value.is_a?(Association::LazyEntityReference) && value._type <= inner_type)
       end
     end
 
@@ -101,16 +110,23 @@ module Dilithium
         @mandatory = mandatory
         @default = default  # TODO extra check for default value type
       end
-      def to_generic_type(attr)
-        case attr
+
+      def generic_type
+        type.superclass
+      end
+
+      def to_generic_type(value)
+        case value
           when String
-            attr.to_s
+            value.to_s
           when Integer
-            attr.to_i
+            value.to_i
           when Float
-            attr.to_f
+            value.to_f
         end
       end
+
+
     end
 
     class ParentReference < Reference
@@ -132,7 +148,7 @@ module Dilithium
         raise ArgumentError, "Reference to #{@name} must be a #{@type} - got: #{value.class}" unless
           case value
             when Association::ImmutableEntityReference
-              value.type <= @type
+              value._type <= @type
             when Hash
               value.include?(:id)
             when BaseEntity, NilClass
@@ -155,7 +171,7 @@ module Dilithium
         raise RuntimeError, "#{@name} must contain only elements of type #{inner_type} - got: #{value.class}" unless
           value.nil? ||
             clazz <= inner_type ||
-            (value.is_a?(Association::LazyEntityReference) && value.type <= inner_type)
+            (value.is_a?(Association::LazyEntityReference) && value._type <= inner_type)
       end
     end
   end

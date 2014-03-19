@@ -12,6 +12,7 @@ module Dilithium
 
     # Each BaseEntity subclass will have an internal class called Immutable that contains the immutable representation of
     # said BaseEntity. The Immutable classes are all subclasses of BaseEntity::Immutable
+    #TODO See comments for Issue #49: Should we make Immutable a subclass of ImmutableDomainObject?
     class Immutable
       MUTABLE_CLASS = BaseEntity
 
@@ -247,7 +248,7 @@ module Dilithium
       else
         @_version = parent._version
         #TODO Add child to parent
-        parent_attr = parent.type.to_s.split('::').last.underscore.downcase
+        parent_attr = parent._type.to_s.split('::').last.underscore.downcase
         instance_variable_set("@#{parent_attr}".to_sym, parent)
       end
     end

@@ -1,5 +1,6 @@
 # -*- encoding : utf-8 -*-
 
+require_relative 'exceptions'
 require_relative '../model/shared_version'
 require_relative 'persistence_service'
 require_relative 'database_utils'

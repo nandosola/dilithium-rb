@@ -50,13 +50,13 @@ describe 'A Simple Entity' do
   it 'fetches references' do
     duke = User.fetch_by_email('duke@example.net').first
     duke.reference.should be_a(Association::ImmutableEntityReference)
-    duke.reference.type.should eq(Reference)
+    duke.reference._type.should eq(Reference)
     duke.reference.id.should eq(1)
     duke.reference.resolve
     duke.reference.resolved_entity.name.should eq('Duke ref')
 
     duke.refers_to.should be_a(Association::ImmutableEntityReference)
-    duke.refers_to.type.should eq(Reference)
+    duke.refers_to._type.should eq(Reference)
     duke.refers_to.id.should eq(2)
   end
 
