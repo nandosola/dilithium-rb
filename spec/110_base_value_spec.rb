@@ -81,7 +81,7 @@ describe 'BaseValue persistence' do
     class Alien < BaseValue
       attribute :race, String
       attribute :subrace, String
-      attribute :hostility_level, String
+      attribute :hostility_level, Integer
       identified_by :race, :subrace
     end
   end
@@ -115,42 +115,56 @@ describe 'BaseValue persistence' do
       expect(DatabaseUtils.get_schema(:aliens)).to eq({
                                                         race: {type: 'varchar(255)', primary_key: true},
                                                         subrace: {type: 'varchar(255)', primary_key: true},
-                                                        hostility_level: {type: 'varchar(255)', primary_key: false}
+                                                        hostility_level: {type: 'integer', primary_key: false}
                                                       })
     end
   end
 
   describe 'BaseValue mapper - Leaf-Table Inheritance' do
-    before(:all) do
-      DatabaseUtils.create_tables(Planet, Alien)
-    end
-
-    after(:all) do
-      $database.drop_table :planets
-      $database.drop_table :aliens
-    end
-
-    let(:planet_h) {
-      {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y'}
-    }
-
-    describe '#insert' do
-      it 'Inserts a new BaseValue' do
-        a_planet = Planet.new(planet_h.dup)
-        mapper = Mapper::Sequel.mapper_for(Planet)
-        mapper.insert(a_planet)
-
-        result_h = $database[:planets].where(iso2: planet_h[:iso2]).first
-        expect(result_h).to eq(planet_h)
+    describe 'With a single identified_by key' do
+      before(:each) do
+        DatabaseUtils.create_tables(Planet)
+        planet_mapper.insert(a_planet)
       end
-    end
 
-    describe '#update' do
+      after(:each) do
+        $database.drop_table :planets
+      end
 
-    end
+      let(:planet_h) {
+        {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y'}
+      }
 
-    describe '#delete' do
+      let(:a_planet) {
+        Planet.new(planet_h.dup)
+      }
 
+      let(:planet_mapper) {
+        Mapper::Sequel.mapper_for(Planet)
+      }
+
+      describe '#insert' do
+        it 'Inserts a new BaseValue with a identified_by' do
+          result_h = $database[:planets].where(iso2: planet_h[:iso2]).first
+          expect(result_h).to eq(planet_h)
+        end
+
+        it 'Doesn\'t allow inserting a BaseValue with the same identifier value, ' do
+          a_planet.iso3 = 'NBU'
+          a_planet.type = 'y'
+          expect { planet_mapper.insert(a_planet) }.to raise_error(Sequel::UniqueConstraintViolation)
+        end
+      end
+
+      describe '#update' do
+        it 'Updates the fields in a BaseValue' do
+
+        end
+      end
+
+      describe '#delete' do
+
+      end
     end
   end
 
