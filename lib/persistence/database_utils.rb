@@ -24,6 +24,10 @@ module Dilithium
         def needs_version?
           PersistenceService.is_inheritance_root?(@domain_class)
         end
+
+        def soft_delete?
+          true
+        end
       end
 
       class BaseValueKeys < KeySchema
@@ -53,6 +57,10 @@ module Dilithium
         end
 
         def needs_version?
+          false
+        end
+
+        def soft_delete?
           false
         end
       end
@@ -89,8 +97,6 @@ module Dilithium
         def needs_version?
           key_schema.needs_version?
         end
-
-        protected
 
         def key_schema
           if @domain_class <= BaseEntity

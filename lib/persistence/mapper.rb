@@ -105,6 +105,13 @@ module Dilithium
         end
       end
 
+      def self.condition_for(domain_object)
+        domain_object.class.identifiers.each_with_object(Hash.new) do | id_desc, h |
+          id = id_desc[:identifier]
+          h[id] = domain_object.instance_variable_get(:"@#{id}".to_sym)
+        end
+      end
+
       private
 
       def self.insert_in_intermediate_table(dependee, dependent, ref_attr, from=:insert)
@@ -167,7 +174,17 @@ module Dilithium
         end
 
         def self.delete(entity)
-          Sequel::DB[PersistenceService.table_for(PersistenceService.inheritance_root_for(entity.class))].where(id: entity.id).update(active: false)
+          inheritance_root = PersistenceService.inheritance_root_for(entity.class)
+          query = Sequel::DB[PersistenceService.table_for(inheritance_root)].where(id: entity.id)
+
+          mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(entity.class)
+
+          if mapper_strategy.key_schema.soft_delete?
+            query.update(active: false)
+          else
+            query.delete
+          end
+
         end
 
         def self.update(modified_entity, original_entity, already_versioned = false)
@@ -232,21 +249,33 @@ module Dilithium
           Sequel::DB[DatabaseUtils.to_table_name(domain_object)].insert(entity_data)
         end
 
-        def self.delete(entity)
-          Sequel::DB[DatabaseUtils.to_table_name(entity)].where(id: entity.id).update(active: false)
+        def self.delete(domain_object)
+          mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(domain_object.class)
+          condition = Sequel.condition_for(domain_object)
+          #TODO Does it make sense for a BaseValue to be active/inactive?
+          query = Sequel::DB[DatabaseUtils.to_table_name(domain_object)].where(condition)
+
+          if mapper_strategy.key_schema.soft_delete?
+            query.update(active: false)
+          else
+            query.delete
+          end
         end
 
-        def self.update(modified_entity, original_entity, already_versioned = false)
-          modified_data = DatabaseUtils.to_row(modified_entity)
-          original_data = DatabaseUtils.to_row(original_entity)
+        def self.update(modified_domain_object, original_object, already_versioned = false)
+          modified_data = DatabaseUtils.to_row(modified_domain_object)
+          original_data = DatabaseUtils.to_row(original_object)
+          #TODO Validate key hasn't changed?
+          #TODO Should we allow modification of BaseValues?
 
           unless modified_data.eql?(original_data)
             unless already_versioned
-              modified_entity._version.increment!
+              modified_domain_object._version.increment!
               already_versioned = true
             end
 
-            Sequel::DB[DatabaseUtils.to_table_name(modified_entity)].where(id: modified_entity.id).update(modified_data)
+            condition = Sequel.condition_for(modified_domain_object)
+            Sequel::DB[DatabaseUtils.to_table_name(modified_domain_object)].where(condition).update(modified_data)
 
             already_versioned
           end

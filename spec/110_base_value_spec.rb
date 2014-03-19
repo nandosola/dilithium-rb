@@ -163,7 +163,15 @@ describe 'BaseValue persistence' do
       end
 
       describe '#delete' do
+        it 'Deletes a BaseValue from the DB' do
+          count = $database[:planets].where(iso2: planet_h[:iso2]).count
+          expect(count).to eq(1)
 
+          planet_mapper.delete(a_planet)
+
+          count = $database[:planets].where(iso2: planet_h[:iso2]).count
+          expect(count).to eq(0)
+        end
       end
     end
 
