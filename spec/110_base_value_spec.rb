@@ -144,15 +144,15 @@ describe 'BaseValue persistence' do
       }
 
       describe '#insert' do
-        it 'Inserts a new BaseValue with a identified_by' do
+        it 'Inserts a new BaseValue' do
           result_h = $database[:planets].where(iso2: planet_h[:iso2]).first
           expect(result_h).to eq(planet_h)
         end
 
         it 'Doesn\'t allow inserting a BaseValue with the same identifier value, ' do
-          a_planet.iso3 = 'NBU'
-          a_planet.type = 'y'
-          expect { planet_mapper.insert(a_planet) }.to raise_error(Sequel::UniqueConstraintViolation)
+          another_planet_h = planet_h.merge({iso3: 'NBU', type:'y'})
+          another_planet = Planet.new(another_planet_h)
+          expect { planet_mapper.insert(another_planet) }.to raise_error(Sequel::UniqueConstraintViolation)
         end
       end
 
@@ -160,6 +160,51 @@ describe 'BaseValue persistence' do
         it 'Updates the fields in a BaseValue' do
 
         end
+      end
+
+      describe '#delete' do
+
+      end
+    end
+
+    describe 'With multiple identified_by keys' do
+      before(:each) do
+        DatabaseUtils.create_tables(Alien)
+        alien_mapper.insert(an_alien)
+      end
+
+      after(:each) do
+        $database.drop_table :aliens
+      end
+
+      let(:alien_h) {
+        {race: 'Dalek', subrace: 'Davros', hostility_level: 100}
+      }
+
+      let(:an_alien) {
+        Alien.new(alien_h.dup)
+      }
+
+      let(:alien_mapper) {
+        Mapper::Sequel.mapper_for(Alien)
+      }
+
+      describe '#insert' do
+        it 'Inserts a new BaseValue' do
+          result_h = $database[:aliens].where(race: alien_h[:race], subrace: alien_h[:subrace]).first
+          expect(result_h).to eq(alien_h)
+        end
+
+        it 'Doesn\'t allow inserting a BaseValue with the same identifier values' do
+          another_alien_h = alien_h.merge({hostility_level: 90})
+          another_alien = Alien.new(another_alien_h)
+          #TODO We should be getting a Sequel::ConstraintViolation or something similar, but constraint violations on multiple keys get mapped as generic Sequel::DatabaseErrors
+          expect { alien_mapper.insert(another_alien) }.to raise_error(Sequel::DatabaseError)
+        end
+      end
+
+      describe '#update' do
+
       end
 
       describe '#delete' do
