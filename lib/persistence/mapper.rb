@@ -112,6 +112,13 @@ module Dilithium
         end
       end
 
+      def self.verify_identifiers_unchanged(modified_domain_object, modified_data, original_data)
+        modified_domain_object.class.identifiers.each do |id_desc|
+          id = id_desc[:identifier]
+          raise Dilithium::PersistenceExceptions::IllegalUpdateError, "Illegal update, identifiers don't match" unless original_data[id] == modified_data[id]
+        end
+      end
+
       private
 
       def self.insert_in_intermediate_table(dependee, dependent, ref_attr, from=:insert)
@@ -131,6 +138,8 @@ module Dilithium
         end
       end
 
+      private_class_method(:insert_in_intermediate_table)
+
       def self.delete_in_intermediate_table(dependee, dependent, ref_attr)
         column_dependee, column_dependent, intermediate_table_name = intermediate_table_descriptor(dependee, dependent, ref_attr)
 
@@ -139,6 +148,8 @@ module Dilithium
             where(column_dependee => dependee.id).delete
         end
       end
+
+      private_class_method(:delete_in_intermediate_table)
 
       def self.intermediate_table_descriptor(dependee, dependent, ref_attr)
         table_dependee = mapper_for(dependee.class).table_name_for_intermediate(dependee.class)
@@ -151,12 +162,7 @@ module Dilithium
         return column_dependee, column_dependent, intermediate_table_name
       end
 
-      def self.verify_identifiers_unchanged(modified_data, modified_domain_object, original_data)
-        modified_domain_object.class.identifiers.each do |id_desc|
-          id = id_desc[:identifier]
-          raise Dilithium::PersistenceExceptions::IllegalUpdateError, "Illegal update, identifiers don't match" unless original_data[id] == modified_data[id]
-        end
-      end
+      private_class_method(:intermediate_table_descriptor)
 
       class ClassTableInheritance
         def self.insert(entity, parent_id = nil)
@@ -186,6 +192,7 @@ module Dilithium
 
           mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(entity.class)
 
+          #TODO Should we even allow modification of BaseValues?
           if mapper_strategy.key_schema.soft_delete?
             query.update(active: false)
           else
@@ -204,7 +211,7 @@ module Dilithium
               already_versioned = true
             end
 
-            Sequel.verify_identifiers_unchanged(modified_data, modified_entity, original_data)
+            Sequel.verify_identifiers_unchanged(modified_entity, modified_data, original_data)
 
             superclass_list = PersistenceService.superclass_list(modified_entity.class)
             rows = split_row(superclass_list, modified_data)
@@ -245,6 +252,8 @@ module Dilithium
             memo
           end
         end
+
+        private_class_method(:split_row)
       end
 
       class LeafTableInheritance
@@ -261,9 +270,10 @@ module Dilithium
         def self.delete(domain_object)
           mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(domain_object.class)
           condition = Sequel.condition_for(domain_object)
-          #TODO Does it make sense for a BaseValue to be active/inactive?
+
           query = Sequel::DB[DatabaseUtils.to_table_name(domain_object)].where(condition)
 
+          #TODO Does it make sense for a BaseValue to be active/inactive?
           if mapper_strategy.key_schema.soft_delete?
             query.update(active: false)
           else
@@ -275,9 +285,9 @@ module Dilithium
           mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(modified_domain_object.class)
           modified_data = DatabaseUtils.to_row(modified_domain_object)
           original_data = DatabaseUtils.to_row(original_object)
-          #TODO Validate key hasn't changed?
-          #TODO Should we allow modification of BaseValues?
-          Sequel.verify_identifiers_unchanged(modified_data, modified_domain_object, original_data)
+
+          #TODO Should we even allow modification of BaseValues?
+          Sequel.verify_identifiers_unchanged(modified_domain_object, modified_data, original_data)
 
           unless modified_data.eql?(original_data)
             if ! already_versioned && mapper_strategy.needs_version?
