@@ -61,6 +61,37 @@ describe 'BaseValue class' do
     end
   end
 
+  describe 'accessors' do
+    it 'Has the proper accessors' do
+      a_planet = planet.new(planet_h.dup)
+      
+      expect(a_planet).to respond_to(:iso2)
+      expect(a_planet).to respond_to(:iso3)
+      expect(a_planet).to respond_to(:name)
+      expect(a_planet).to respond_to(:type)
+      
+      expect(a_planet.iso2).to eq(planet_h[:iso2])
+      expect(a_planet.iso3).to eq(planet_h[:iso3])
+      expect(a_planet.name).to eq(planet_h[:name])
+      expect(a_planet.type).to eq(planet_h[:type])
+    end
+    
+    it 'Has mutators that throw an exception' do
+      #TODO See comments for Issue #49: It should really not have mutators but they are needed to load data initially
+      a_planet = planet.new(planet_h.dup)
+
+      expect(a_planet).to respond_to(:iso2=)
+      expect(a_planet).to respond_to(:iso3=)
+      expect(a_planet).to respond_to(:name=)
+      expect(a_planet).to respond_to(:type=)
+
+      expect { a_planet.iso2 = 'GF' }.to raise_error(::Dilithium::DomainObjectExceptions::ImmutableError)
+      expect { a_planet.iso3 = 'GFY' }.to raise_error(::Dilithium::DomainObjectExceptions::ImmutableError)
+      expect { a_planet.name = 'Gallifrey' }.to raise_error(::Dilithium::DomainObjectExceptions::ImmutableError)
+      expect { a_planet.type = 'M' }.to raise_error(::Dilithium::DomainObjectExceptions::ImmutableError)
+    end
+  end
+
   #TODO We are currently including setters for attributes in the BaseValue (to be called from load_self_attributes).
   # These setters should not be there since BaseValue should be immutable.
 

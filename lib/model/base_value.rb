@@ -1,7 +1,7 @@
 # -*- encoding : utf-8 -*-
 
 module Dilithium
-  class BaseValue < DomainObject
+  class BaseValue < ImmutableDomainObject
     include DomainObjectExceptions
 
     extend BaseMethods::Attributes
