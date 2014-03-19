@@ -10,7 +10,7 @@ module Dilithium
       alias_method :base_add_attribute, :add_attribute
     end
 
-    def type
+    def _type
       self.class
     end
 

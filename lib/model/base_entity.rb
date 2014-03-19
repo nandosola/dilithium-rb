@@ -247,7 +247,7 @@ module Dilithium
       else
         @_version = parent._version
         #TODO Add child to parent
-        parent_attr = parent.type.to_s.split('::').last.underscore.downcase
+        parent_attr = parent._type.to_s.split('::').last.underscore.downcase
         instance_variable_set("@#{parent_attr}".to_sym, parent)
       end
     end

@@ -45,7 +45,7 @@ module Dilithium
         raise RuntimeError, "#{@name} must be a #{@type} - got: #{value.class}" unless
           value.nil? ||
             value.is_a?(@type) ||
-            (value.is_a?(Association::LazyEntityReference) && value.type <= @type)
+            (value.is_a?(Association::LazyEntityReference) && value._type <= @type)
       end
 
       def check_assignment_constraints(value) # check invariant constraints, called by setter
@@ -97,7 +97,7 @@ module Dilithium
         raise RuntimeError, "#{@name} must contain only elements of type #{inner_type} - got: #{value.class}" unless
           value.nil? ||
             value.is_a?(inner_type) ||
-            (value.is_a?(Association::LazyEntityReference) && value.type <= inner_type)
+            (value.is_a?(Association::LazyEntityReference) && value._type <= inner_type)
       end
     end
 
@@ -148,7 +148,7 @@ module Dilithium
         raise ArgumentError, "Reference to #{@name} must be a #{@type} - got: #{value.class}" unless
           case value
             when Association::ImmutableEntityReference
-              value.type <= @type
+              value._type <= @type
             when Hash
               value.include?(:id)
             when BaseEntity, NilClass
@@ -171,7 +171,7 @@ module Dilithium
         raise RuntimeError, "#{@name} must contain only elements of type #{inner_type} - got: #{value.class}" unless
           value.nil? ||
             clazz <= inner_type ||
-            (value.is_a?(Association::LazyEntityReference) && value.type <= inner_type)
+            (value.is_a?(Association::LazyEntityReference) && value._type <= inner_type)
       end
     end
   end

@@ -163,7 +163,7 @@ module Dilithium
     # Returns:
     #   Symbol with table name
     def self.to_table_name(reference)
-      PersistenceService.table_for(reference.type)
+      PersistenceService.table_for(reference._type)
     end
 
     def self.to_reference_name(attr)

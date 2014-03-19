@@ -135,7 +135,7 @@ module Dilithium
 
       def self.intermediate_table_descriptor(dependee, dependent, ref_attr)
         table_dependee = mapper_for(dependee.class).table_name_for_intermediate(dependee.class)
-        table_dependent = mapper_for(dependent.type).table_name_for_intermediate(dependent.type)
+        table_dependent = mapper_for(dependent._type).table_name_for_intermediate(dependent._type)
 
         intermediate_table_name = :"#{table_dependee}_#{ref_attr}"
 
