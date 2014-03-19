@@ -151,6 +151,13 @@ module Dilithium
         return column_dependee, column_dependent, intermediate_table_name
       end
 
+      def self.verify_identifiers_unchanged(modified_data, modified_domain_object, original_data)
+        modified_domain_object.class.identifiers.each do |id_desc|
+          id = id_desc[:identifier]
+          raise Dilithium::PersistenceExceptions::IllegalUpdateError, "Illegal update, identifiers don't match" unless original_data[id] == modified_data[id]
+        end
+      end
+
       class ClassTableInheritance
         def self.insert(entity, parent_id = nil)
           entity_data = DatabaseUtils.to_row(entity, parent_id)
@@ -196,6 +203,8 @@ module Dilithium
               modified_entity._version.increment!
               already_versioned = true
             end
+
+            Sequel.verify_identifiers_unchanged(modified_data, modified_entity, original_data)
 
             superclass_list = PersistenceService.superclass_list(modified_entity.class)
             rows = split_row(superclass_list, modified_data)
@@ -263,13 +272,15 @@ module Dilithium
         end
 
         def self.update(modified_domain_object, original_object, already_versioned = false)
+          mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(modified_domain_object.class)
           modified_data = DatabaseUtils.to_row(modified_domain_object)
           original_data = DatabaseUtils.to_row(original_object)
           #TODO Validate key hasn't changed?
           #TODO Should we allow modification of BaseValues?
+          Sequel.verify_identifiers_unchanged(modified_data, modified_domain_object, original_data)
 
           unless modified_data.eql?(original_data)
-            unless already_versioned
+            if ! already_versioned && mapper_strategy.needs_version?
               modified_domain_object._version.increment!
               already_versioned = true
             end

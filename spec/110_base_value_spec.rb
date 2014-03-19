@@ -189,7 +189,21 @@ describe 'BaseValue persistence' do
 
       describe '#update' do
         it 'Updates the fields in a BaseValue' do
+          planet_h[:iso3] = 'NBU'
+          planet_h[:name] = 'Nibiru 2'
+          planet_h[:type] = 'X'
+          planet_mapper.update(Planet.new(planet_h.dup), a_planet)
 
+          result_h = $database[:planets].where(iso2: planet_h[:iso2]).first
+          expect(result_h).to eq(planet_h)
+        end
+
+        it 'Raises an error if you try to update with changed keys' do
+          another_planet_h = {iso2:'GY', iso3:'GFY', name:'Gallifrey', type:'M'}
+
+          expect {
+            planet_mapper.update(Planet.new(another_planet_h.dup), a_planet)
+          }.to raise_error(Dilithium::PersistenceExceptions::IllegalUpdateError)
         end
       end
 
@@ -243,7 +257,20 @@ describe 'BaseValue persistence' do
       end
 
       describe '#update' do
+        it 'Updates the fields in a BaseValue' do
+          alien_h[:hostility_level] = 110
+          alien_mapper.update(Alien.new(alien_h.dup), an_alien)
 
+          result_h = $database[:aliens].where(race: alien_h[:race], subrace: alien_h[:subrace]).first
+          expect(result_h).to eq(alien_h)
+        end
+
+        it 'Raises an error if you try to update with changed keys' do
+          alien_h[:subrace] = 'Dalek Sek'
+          alien_h[:hostility_level] = 90
+
+          expect { alien_mapper.update(Alien.new(alien_h.dup), an_alien) }.to raise_error(Dilithium::PersistenceExceptions::IllegalUpdateError)
+        end
       end
 
       describe '#delete' do
