@@ -247,7 +247,15 @@ describe 'BaseValue persistence' do
       end
 
       describe '#delete' do
+        it 'Deletes a BaseValue from the DB' do
+          count = $database[:aliens].where(race: alien_h[:race], subrace: alien_h[:subrace]).count
+          expect(count).to eq(1)
 
+          alien_mapper.delete(an_alien)
+
+          count = $database[:aliens].where(race: alien_h[:race], subrace: alien_h[:subrace]).count
+          expect(count).to eq(0)
+        end
       end
     end
   end
