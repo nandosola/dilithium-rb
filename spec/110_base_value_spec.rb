@@ -120,12 +120,41 @@ describe 'BaseValue persistence' do
     end
   end
 
-  describe 'BaseValue mapper' do
+  describe 'BaseValue mapper - Leaf-Table Inheritance' do
+    before(:all) do
+      DatabaseUtils.create_tables(Planet, Alien)
+    end
 
+    after(:all) do
+      $database.drop_table :planets
+      $database.drop_table :aliens
+    end
+
+    let(:planet_h) {
+      {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y'}
+    }
+
+    describe '#insert' do
+      it 'Inserts a new BaseValue' do
+        a_planet = Planet.new(planet_h.dup)
+        mapper = Mapper::Sequel.mapper_for(Planet)
+        mapper.insert(a_planet)
+
+        result_h = $database[:planets].where(iso2: planet_h[:iso2]).first
+        expect(result_h).to eq(planet_h)
+      end
+    end
+
+    describe '#update' do
+
+    end
+
+    describe '#delete' do
+
+    end
   end
 
   describe 'BaseValue repository' do
 
   end
 end
-

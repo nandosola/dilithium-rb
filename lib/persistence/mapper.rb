@@ -222,10 +222,14 @@ module Dilithium
       end
 
       class LeafTableInheritance
-        def self.insert(entity, parent_id = nil)
-          entity_data = DatabaseUtils.to_row(entity, parent_id)
+        def self.insert(domain_object, parent_id = nil)
+          mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(domain_object.class)
+
+          entity_data = DatabaseUtils.to_row(domain_object, parent_id)
           entity_data.delete(:id)
-          Sequel::DB[DatabaseUtils.to_table_name(entity)].insert(entity_data.merge(_version_id:entity._version.id))
+          entity_data.merge!(_version_id:domain_object._version.id) if mapper_strategy.needs_version?
+
+          Sequel::DB[DatabaseUtils.to_table_name(domain_object)].insert(entity_data)
         end
 
         def self.delete(entity)

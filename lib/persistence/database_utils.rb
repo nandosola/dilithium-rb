@@ -170,9 +170,16 @@ module Dilithium
       "#{attr.name.to_s.singularize}_id".to_sym
     end
 
-    def self.to_row(entity, parent_id=nil)
+    def self.to_row(domain_object, parent_id=nil)
+      mapper_strategy = DomainObjectSchema.mapper_schema_for(domain_object.class)
+
       row = {}
-      entity_h = EntitySerializer.to_hash(entity)
+
+      entity_h = if mapper_strategy.needs_version?
+                   EntitySerializer.to_hash(domain_object)
+                 else
+                   EntitySerializer.to_hash(domain_object, :without => SharedVersion)
+                 end
 
       if entity_h[:_version]
         entity_h[:_version_id] = entity_h[:_version][:id]
@@ -180,11 +187,12 @@ module Dilithium
       end
 
       if parent_id
-        parent_ref = "#{entity.class.parent_reference}_id".to_sym
+        parent_ref = "#{domain_object.class.parent_reference}_id".to_sym
         entity_h[parent_ref] = parent_id if parent_id
       end
+
       entity_h.each do |attr,value|
-        attr_type = entity.class.attribute_descriptors[attr]
+        attr_type = domain_object.class.attribute_descriptors[attr]
         unless [BasicAttributes::ChildReference, BasicAttributes::ParentReference,
                 BasicAttributes::MultiReference, BasicAttributes::ImmutableMultiReference].include?(attr_type.class)
           case attr_type
