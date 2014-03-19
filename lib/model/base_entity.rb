@@ -12,6 +12,7 @@ module Dilithium
 
     # Each BaseEntity subclass will have an internal class called Immutable that contains the immutable representation of
     # said BaseEntity. The Immutable classes are all subclasses of BaseEntity::Immutable
+    #TODO See comments for Issue #49: Should we make Immutable a subclass of ImmutableDomainObject?
     class Immutable
       MUTABLE_CLASS = BaseEntity
 
