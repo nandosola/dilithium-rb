@@ -131,8 +131,10 @@ describe 'BaseValue persistence' do
                                                          iso2: {type: 'varchar(255)', primary_key: true},
                                                          iso3: {type: 'varchar(255)', primary_key: false},
                                                          name: {type: 'varchar(255)', primary_key: false},
-                                                         type: {type: 'varchar(255)', primary_key: false}
-                                                       })
+                                                         type: {type: 'varchar(255)', primary_key: false},
+                                                         active: {type: 'boolean', primary_key: false}
+
+                                                             })
 
     end
 
@@ -140,7 +142,8 @@ describe 'BaseValue persistence' do
       expect(SchemaUtils::Sequel.get_schema(:aliens)).to eq({
                                                         race: {type: 'varchar(255)', primary_key: true},
                                                         subrace: {type: 'varchar(255)', primary_key: true},
-                                                        hostility_level: {type: 'integer', primary_key: false}
+                                                        hostility_level: {type: 'integer', primary_key: false},
+                                                        active: {type: 'boolean', primary_key: false}
                                                       })
     end
   end
@@ -157,7 +160,7 @@ describe 'BaseValue persistence' do
       end
 
       let(:planet_h) {
-        {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y'}
+        {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y', active:true}
       }
 
       let(:a_planet) {
@@ -205,13 +208,10 @@ describe 'BaseValue persistence' do
       describe '#delete' do
         #TODO Use soft deletes for BaseValues
         it 'Deletes a BaseValue from the DB' do
-          count = $database[:planets].where(iso2: planet_h[:iso2]).count
-          expect(count).to eq(1)
-
           planet_mapper.delete(a_planet)
 
-          count = $database[:planets].where(iso2: planet_h[:iso2]).count
-          expect(count).to eq(0)
+          modified_h = $database[:planets].where(iso2: planet_h[:iso2]).first
+          expect(modified_h[:active]).to be_false
         end
       end
     end
@@ -227,7 +227,7 @@ describe 'BaseValue persistence' do
       end
 
       let(:alien_h) {
-        {race: 'Dalek', subrace: 'Davros', hostility_level: 100}
+        {race: 'Dalek', subrace: 'Davros', hostility_level: 100, active:true}
       }
 
       let(:an_alien) {
@@ -273,13 +273,10 @@ describe 'BaseValue persistence' do
       describe '#delete' do
         #TODO Use soft deletes for BaseValues
         it 'Deletes a BaseValue from the DB' do
-          count = $database[:aliens].where(race: alien_h[:race], subrace: alien_h[:subrace]).count
-          expect(count).to eq(1)
-
           alien_mapper.delete(an_alien)
 
-          count = $database[:aliens].where(race: alien_h[:race], subrace: alien_h[:subrace]).count
-          expect(count).to eq(0)
+          modified_h = $database[:aliens].where(race: alien_h[:race], subrace: alien_h[:subrace]).first
+          expect(modified_h[:active]).to be_false
         end
       end
     end

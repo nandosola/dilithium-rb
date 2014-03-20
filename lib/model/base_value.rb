@@ -10,6 +10,8 @@ module Dilithium
       base.instance_eval do
         @attributes = {}
         @identifiers = []
+
+        add_attribute(BasicAttributes::GenericAttribute.new(:active, TrueClass, false, true)) unless attribute_descriptors.has_key? :active
       end
 
       PersistenceService.add_table(base)

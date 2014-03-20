@@ -188,17 +188,7 @@ module Dilithium
 
         def self.delete(entity)
           inheritance_root = PersistenceService.inheritance_root_for(entity.class)
-          query = Sequel::DB[PersistenceService.table_for(inheritance_root)].where(id: entity.id)
-
-          mapper_strategy = SchemaUtils::Sequel::DomainObjectSchema.mapper_schema_for(entity.class)
-
-          #TODO Should we even allow modification of BaseValues?
-          if mapper_strategy.key_schema.soft_delete?
-            query.update(active: false)
-          else
-            query.delete
-          end
-
+          Sequel::DB[PersistenceService.table_for(inheritance_root)].where(id: entity.id).update(active: false)
         end
 
         def self.update(modified_entity, original_entity, already_versioned = false)
@@ -268,17 +258,8 @@ module Dilithium
         end
 
         def self.delete(domain_object)
-          mapper_strategy = SchemaUtils::Sequel::DomainObjectSchema.mapper_schema_for(domain_object.class)
           condition = Sequel.condition_for(domain_object)
-
-          query = Sequel::DB[SchemaUtils::Sequel.to_table_name(domain_object)].where(condition)
-
-          #TODO Does it make sense for a BaseValue to be active/inactive?
-          if mapper_strategy.key_schema.soft_delete?
-            query.update(active: false)
-          else
-            query.delete
-          end
+          Sequel::DB[SchemaUtils::Sequel.to_table_name(domain_object)].where(condition).update(active: false)
         end
 
         def self.update(modified_domain_object, original_object, already_versioned = false)
