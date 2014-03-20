@@ -108,11 +108,6 @@ module Dilithium
     def check_input_h(in_h)
       raise ArgumentError, "BaseEntity must be initialized with a Hash - got: #{in_h.class}" unless in_h.is_a?(Hash)
       unless in_h.empty?
-        self.class.identifier_names.each do |id|
-          old_id = instance_variable_get(:"@#{id}")
-          raise ArgumentError, "Entity id cannot be changed once defined. Offending key: #{id} new value: '#{unversioned_h[id]}' was: '#{old_id}'" if old_id != unversioned_h[id]
-        end
-
         # TODO: check_reserved_keys(in_h) => :metadata
         attributes = self.class.attribute_descriptors
         attr_keys = attributes.keys
