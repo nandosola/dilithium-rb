@@ -247,7 +247,7 @@ describe 'BaseValue persistence' do
         it 'Doesn\'t allow inserting a BaseValue with the same identifier values' do
           another_alien_h = alien_h.merge({hostility_level: 90})
           another_alien = Alien.new(another_alien_h)
-          #TODO We should be getting a Sequel::ConstraintViolation or something similar, but constraint violations on multiple keys get mapped as generic Sequel::DatabaseErrors
+          #TODO We should be getting a Sequel::ConstraintViolation or something similar, but constraint violations on multiple keys get mapped as generic Sequel::DatabaseErrors. See https://github.com/jeremyevans/sequel/issues/782
           expect { alien_mapper.insert(another_alien) }.to raise_error(Sequel::DatabaseError)
         end
       end
