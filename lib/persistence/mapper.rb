@@ -192,6 +192,8 @@ module Dilithium
         end
 
         def self.update(modified_entity, original_entity, already_versioned = false)
+          raise Dilithium::PersistenceExceptions::ImmutableObjectError, "#{modified_entity.class} is immutable - it can't be updated" if (modified_entity.is_a? ImmutableDomainObject)
+
           modified_data = SchemaUtils::Sequel.to_row(modified_entity)
           original_data = SchemaUtils::Sequel.to_row(original_entity)
 
@@ -263,6 +265,8 @@ module Dilithium
         end
 
         def self.update(modified_domain_object, original_object, already_versioned = false)
+          raise Dilithium::PersistenceExceptions::ImmutableObjectError, "#{modified_domain_object.class} is immutable - it can't be updated" if (modified_domain_object.is_a? ImmutableDomainObject)
+
           mapper_strategy = SchemaUtils::Sequel::DomainObjectSchema.mapper_schema_for(modified_domain_object.class)
           modified_data = SchemaUtils::Sequel.to_row(modified_domain_object)
           original_data = SchemaUtils::Sequel.to_row(original_object)
