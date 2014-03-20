@@ -3,7 +3,7 @@ require_relative 'spec_base'
 
 describe 'A transaction handling a Simple Entity' do
   before(:all) do
-    DatabaseUtils.create_tables(Reference, User)
+    SchemaUtils::Sequel.create_tables(Reference, User)
     insert_test_users
 
     class UnitOfWork::Transaction

@@ -3,7 +3,7 @@ require 'fixtures/leaf_table_inheritance'
 
 describe 'A single-inheritance hierarchy of BaseEntities with Leaf Table Inheritance' do
   before(:all) do
-    DatabaseUtils.create_tables(VehicleL, RegisteredVehicleL)
+    SchemaUtils::Sequel.create_tables(VehicleL, RegisteredVehicleL)
   end
 
   it 'should create a table per subclass with the correct columns' do

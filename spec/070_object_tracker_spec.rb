@@ -6,7 +6,7 @@ require 'lib/uow/object_tracker'
 describe 'The object tracker' do
 
   before :all do
-    DatabaseUtils.create_tables(Shipment, Container, Shipyard, Package, Location)
+    SchemaUtils::Sequel.create_tables(Shipment, Container, Shipyard, Package, Location)
 
     class OtQux < BaseEntity
       attribute :name, String

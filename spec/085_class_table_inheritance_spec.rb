@@ -3,7 +3,7 @@ require 'fixtures/class_table_inheritance'
 
 describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheritance' do
   before(:all) do
-    DatabaseUtils.create_tables(VehicleC,
+    SchemaUtils::Sequel.create_tables(VehicleC,
                                 RegisteredVehicleC,
                                 FleetC,
                                 GroundVehicleC,
