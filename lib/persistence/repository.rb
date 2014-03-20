@@ -81,7 +81,7 @@ module Dilithium
             def resolve_references(in_h)
               self.immutable_references.each do |ref|
                 attr = self.attribute_descriptors[ref]
-                ref_name = DatabaseUtils.to_reference_name(attr)
+                ref_name = SchemaUtils::Sequel.to_reference_name(attr)
                 ref_id = in_h[ref_name]  #TODO change to "_id" here, not at the BasicAttribute
                 ref_value = ref_id.nil? ? nil : in_h[attr.name] = attr.type.fetch_by_id(ref_id)
                 in_h.delete(ref_name)
@@ -94,7 +94,7 @@ module Dilithium
               ret = nil
 
               unless attr.nil? || in_h.has_key?(attr.name)
-                ref_name = DatabaseUtils.to_reference_name(attr)
+                ref_name = SchemaUtils::Sequel.to_reference_name(attr)
                 if in_h.has_key?(ref_name)
                   ref_id = in_h[ref_name] #TODO change to "_id" here, not at the BasicAttribute
                   ref_value = Association::LazyEntityReference.new(ref_id, attr.type)
@@ -163,7 +163,7 @@ module Dilithium
               references = self.class.multi_references + self.class.immutable_multi_references
 
               references.each do |ref_name|
-                intermediate_table = "#{DatabaseUtils.to_table_name(self)}_#{ref_name}"
+                intermediate_table = "#{SchemaUtils::Sequel.to_table_name(self)}_#{ref_name}"
                 module_path = self.class.to_s.split('::')
                 dependent_name = "#{module_path.last.underscore.downcase}_id"
                 multi_refs = DB[intermediate_table.to_sym].where(dependent_name.to_sym=>self.id).all

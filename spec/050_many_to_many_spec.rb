@@ -6,7 +6,7 @@ require_relative '../spec/fixtures/many_to_many'
 describe 'A BasicEntity with a many to many relationship' do
 
   before(:all) do
-    DatabaseUtils.create_tables(Employee, Department, Building)
+    SchemaUtils::Sequel.create_tables(Employee, Department, Building)
     insert_test_employees_depts_and_buildings
 
     module Mapper
@@ -138,17 +138,17 @@ describe 'A BasicEntity with a many to many relationship' do
     emp.add_department dept
     EntitySerializer.to_hash(emp)[:departments].should eq([dept])
     EntitySerializer.to_nested_hash(emp)[:departments].should eq([EntitySerializer.to_nested_hash(dept)])
-    DatabaseUtils.to_row(emp)[:departments].should be_nil
+    SchemaUtils::Sequel.to_row(emp)[:departments].should be_nil
 
     emp.add_managed_department dept2
     EntitySerializer.to_hash(emp)[:managed_departments].should eq([dept2])
     EntitySerializer.to_nested_hash(emp)[:managed_departments].should eq([EntitySerializer.to_nested_hash(dept2)])
-    DatabaseUtils.to_row(emp)[:managed_departments].should be_nil
+    SchemaUtils::Sequel.to_row(emp)[:managed_departments].should be_nil
 
     emp2.add_department ref_dept
     EntitySerializer.to_hash(emp2)[:departments].should eq([ref_dept])
     EntitySerializer.to_nested_hash(emp2)[:departments].should eq([EntitySerializer.to_nested_hash(ref_dept)])
-    DatabaseUtils.to_row(emp2)[:departments].should be_nil
+    SchemaUtils::Sequel.to_row(emp2)[:departments].should be_nil
 
     existing_ref_dept = Association::LazyEntityReference.new(1, Department)
     existing_ref_dept.resolve

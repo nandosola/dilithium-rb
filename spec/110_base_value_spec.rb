@@ -91,12 +91,6 @@ describe 'BaseValue class' do
       expect { a_planet.type = 'M' }.to raise_error(::Dilithium::DomainObjectExceptions::ImmutableError)
     end
   end
-
-  #TODO We are currently including setters for attributes in the BaseValue (to be called from load_self_attributes).
-  # These setters should not be there since BaseValue should be immutable.
-
-  #TODO The attributes method is not tested, it should be tested in the BaseMethods::Attributes tests once we refactor
-  # them out of their current places in BaseEntity/EmbeddableValue
 end
 
 describe 'BaseValue persistence' do
@@ -119,7 +113,7 @@ describe 'BaseValue persistence' do
 
   describe '#create_tables' do
     before(:all) do
-      DatabaseUtils.create_tables(Planet, Alien)
+      SchemaUtils::Sequel.create_tables(Planet, Alien)
     end
 
     after(:all) do
@@ -133,7 +127,7 @@ describe 'BaseValue persistence' do
     end
 
     it 'Creates the tables with the proper columns when identified_by has a single field' do
-      expect(DatabaseUtils.get_schema(:planets)).to eq({
+      expect(SchemaUtils::Sequel.get_schema(:planets)).to eq({
                                                          iso2: {type: 'varchar(255)', primary_key: true},
                                                          iso3: {type: 'varchar(255)', primary_key: false},
                                                          name: {type: 'varchar(255)', primary_key: false},
@@ -143,7 +137,7 @@ describe 'BaseValue persistence' do
     end
 
     it 'Creates the tables with the proper columns when identified_by has multiple fields' do
-      expect(DatabaseUtils.get_schema(:aliens)).to eq({
+      expect(SchemaUtils::Sequel.get_schema(:aliens)).to eq({
                                                         race: {type: 'varchar(255)', primary_key: true},
                                                         subrace: {type: 'varchar(255)', primary_key: true},
                                                         hostility_level: {type: 'integer', primary_key: false}
@@ -154,7 +148,7 @@ describe 'BaseValue persistence' do
   describe 'BaseValue mapper - Leaf-Table Inheritance' do
     describe 'With a single identified_by key' do
       before(:each) do
-        DatabaseUtils.create_tables(Planet)
+        SchemaUtils::Sequel.create_tables(Planet)
         planet_mapper.insert(a_planet)
       end
 
@@ -189,6 +183,7 @@ describe 'BaseValue persistence' do
 
       describe '#update' do
         it 'Updates the fields in a BaseValue' do
+          #TODO This should throw an exception
           planet_h[:iso3] = 'NBU'
           planet_h[:name] = 'Nibiru 2'
           planet_h[:type] = 'X'
@@ -208,6 +203,7 @@ describe 'BaseValue persistence' do
       end
 
       describe '#delete' do
+        #TODO Use soft deletes for BaseValues
         it 'Deletes a BaseValue from the DB' do
           count = $database[:planets].where(iso2: planet_h[:iso2]).count
           expect(count).to eq(1)
@@ -222,7 +218,7 @@ describe 'BaseValue persistence' do
 
     describe 'With multiple identified_by keys' do
       before(:each) do
-        DatabaseUtils.create_tables(Alien)
+        SchemaUtils::Sequel.create_tables(Alien)
         alien_mapper.insert(an_alien)
       end
 
@@ -258,6 +254,7 @@ describe 'BaseValue persistence' do
 
       describe '#update' do
         it 'Updates the fields in a BaseValue' do
+          #TODO This should throw an exception
           alien_h[:hostility_level] = 110
           alien_mapper.update(Alien.new(alien_h.dup), an_alien)
 
@@ -274,6 +271,7 @@ describe 'BaseValue persistence' do
       end
 
       describe '#delete' do
+        #TODO Use soft deletes for BaseValues
         it 'Deletes a BaseValue from the DB' do
           count = $database[:aliens].where(race: alien_h[:race], subrace: alien_h[:subrace]).count
           expect(count).to eq(1)
@@ -288,6 +286,6 @@ describe 'BaseValue persistence' do
   end
 
   describe 'BaseValue repository' do
-
+    #TODO Create a ValueRepository, rename the current Repository to EntityRepository. Use a Repository.for(domain_object_class)
   end
 end

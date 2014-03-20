@@ -4,7 +4,7 @@ require_relative 'spec_base'
 describe 'A Simple Entity' do
 
   before(:all) do
-    DatabaseUtils.create_tables(Reference, User)
+    SchemaUtils::Sequel.create_tables(Reference, User)
     insert_test_users
   end
 

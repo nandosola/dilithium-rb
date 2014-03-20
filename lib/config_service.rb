@@ -22,7 +22,7 @@ module Dilithium
   module PersistenceService
     class Sequel
       def self.db=(db)
-        DatabaseUtils.const_set(:DB, db)
+        SchemaUtils::Sequel.const_set(:DB, db)
         Mapper::Sequel.const_set(:DB, db)
         Repository::Sequel.const_set(:DB, db)
         SharedVersion.const_set(:DB, db)

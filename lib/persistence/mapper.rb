@@ -166,7 +166,7 @@ module Dilithium
 
       class ClassTableInheritance
         def self.insert(entity, parent_id = nil)
-          entity_data = DatabaseUtils.to_row(entity, parent_id)
+          entity_data = SchemaUtils::Sequel.to_row(entity, parent_id)
           entity_data.delete(:id)
 
           superclass_list = PersistenceService.superclass_list(entity.class)
@@ -190,7 +190,7 @@ module Dilithium
           inheritance_root = PersistenceService.inheritance_root_for(entity.class)
           query = Sequel::DB[PersistenceService.table_for(inheritance_root)].where(id: entity.id)
 
-          mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(entity.class)
+          mapper_strategy = SchemaUtils::Sequel::DomainObjectSchema.mapper_schema_for(entity.class)
 
           #TODO Should we even allow modification of BaseValues?
           if mapper_strategy.key_schema.soft_delete?
@@ -202,8 +202,8 @@ module Dilithium
         end
 
         def self.update(modified_entity, original_entity, already_versioned = false)
-          modified_data = DatabaseUtils.to_row(modified_entity)
-          original_data = DatabaseUtils.to_row(original_entity)
+          modified_data = SchemaUtils::Sequel.to_row(modified_entity)
+          original_data = SchemaUtils::Sequel.to_row(original_entity)
 
           unless modified_data.eql?(original_data)
             unless already_versioned
@@ -241,7 +241,7 @@ module Dilithium
                          BasicAttributes::ChildReference,
                          BasicAttributes::ParentReference
 
-                         DatabaseUtils.to_reference_name(attr)
+                         SchemaUtils::Sequel.to_reference_name(attr)
                        else
                          attr.name
                      end
@@ -258,20 +258,20 @@ module Dilithium
 
       class LeafTableInheritance
         def self.insert(domain_object, parent_id = nil)
-          mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(domain_object.class)
+          mapper_strategy = SchemaUtils::Sequel::DomainObjectSchema.mapper_schema_for(domain_object.class)
 
-          entity_data = DatabaseUtils.to_row(domain_object, parent_id)
+          entity_data = SchemaUtils::Sequel.to_row(domain_object, parent_id)
           entity_data.delete(:id)
           entity_data.merge!(_version_id:domain_object._version.id) if mapper_strategy.needs_version?
 
-          Sequel::DB[DatabaseUtils.to_table_name(domain_object)].insert(entity_data)
+          Sequel::DB[SchemaUtils::Sequel.to_table_name(domain_object)].insert(entity_data)
         end
 
         def self.delete(domain_object)
-          mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(domain_object.class)
+          mapper_strategy = SchemaUtils::Sequel::DomainObjectSchema.mapper_schema_for(domain_object.class)
           condition = Sequel.condition_for(domain_object)
 
-          query = Sequel::DB[DatabaseUtils.to_table_name(domain_object)].where(condition)
+          query = Sequel::DB[SchemaUtils::Sequel.to_table_name(domain_object)].where(condition)
 
           #TODO Does it make sense for a BaseValue to be active/inactive?
           if mapper_strategy.key_schema.soft_delete?
@@ -282,9 +282,9 @@ module Dilithium
         end
 
         def self.update(modified_domain_object, original_object, already_versioned = false)
-          mapper_strategy = DatabaseUtils::DomainObjectSchema.mapper_schema_for(modified_domain_object.class)
-          modified_data = DatabaseUtils.to_row(modified_domain_object)
-          original_data = DatabaseUtils.to_row(original_object)
+          mapper_strategy = SchemaUtils::Sequel::DomainObjectSchema.mapper_schema_for(modified_domain_object.class)
+          modified_data = SchemaUtils::Sequel.to_row(modified_domain_object)
+          original_data = SchemaUtils::Sequel.to_row(original_object)
 
           #TODO Should we even allow modification of BaseValues?
           Sequel.verify_identifiers_unchanged(modified_domain_object, modified_data, original_data)
@@ -296,7 +296,7 @@ module Dilithium
             end
 
             condition = Sequel.condition_for(modified_domain_object)
-            Sequel::DB[DatabaseUtils.to_table_name(modified_domain_object)].where(condition).update(modified_data)
+            Sequel::DB[SchemaUtils::Sequel.to_table_name(modified_domain_object)].where(condition).update(modified_data)
 
             already_versioned
           end
