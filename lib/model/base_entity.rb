@@ -98,9 +98,6 @@ module Dilithium
     def full_update(in_h)
       unversioned_h = EntitySerializer.strip_key_from_hash(in_h, :_version)
 
-      self.class.identifier_names.each do |id|
-        raise ArgumentError, "Entity id must be defined and not changed" if instance_variable_get(:"@#{id}") != unversioned_h[id]
-      end
       check_input_h(unversioned_h)
       detach_children
       detach_multi_references
