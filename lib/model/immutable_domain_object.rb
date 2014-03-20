@@ -15,7 +15,7 @@ module Dilithium
           if instance_variable_get(var_name).nil?
             instance_variable_set(var_name, new_value)
           else
-            raise Dilithium::DomainObjectExceptions::ImmutableError, "The value of #{__attr_name} cannot be changed has been set"
+            raise Dilithium::DomainObjectExceptions::ImmutableError, "#{self.class.name} is immutable. The value of #{__attr_name} cannot be changed once it has been set" unless __attr_name == :active
           end
         }
       end
