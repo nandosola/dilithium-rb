@@ -84,7 +84,20 @@ module Dilithium
                          else
                            PersistenceService.table_for(attr.type)
                          end
+
                   block.call('foreign_key', ":#{SchemaUtils::Sequel.to_reference_name(attr)}, :#{name}")
+
+                when BasicAttributes::ValueReference
+                  name = PersistenceService.table_for(attr.type)
+                  ref_prefix = attr.name.to_s.singularize
+                  refs = Hash[attr.type.identifiers.map do |id_desc|
+                    [ ":#{ref_prefix}_#{id_desc[:identifier]}", id_desc[:type] ]
+                  end]
+
+                  refs.each { |ref_name, type| block.call(type, ref_name) }
+
+                  block.call('foreign_key', "[#{refs.keys.join(',')}], :#{name}")
+
                 when BasicAttributes::GenericAttribute
                   default = attr.default.nil? ? 'nil' : attr.default
                   default = "'#{default}'" if default.is_a?(String) && attr.default

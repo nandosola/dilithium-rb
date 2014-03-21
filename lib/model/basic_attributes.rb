@@ -33,6 +33,32 @@ module Dilithium
       end
     end
 
+    class ExtendedGenericAttribute < GenericAttribute
+      def initialize(name, type, mandatory=false, default=nil)
+        raise ArgumentError, "The attribute #{name} does not extend a Ruby generic type" unless \
+       BasicAttributes::GENERIC_TYPES.include?(type.superclass)
+        @name = name
+        @type = type
+        @mandatory = mandatory
+        @default = default  # TODO extra check for default value type
+      end
+
+      def generic_type
+        type.superclass
+      end
+
+      def to_generic_type(value)
+        case value
+          when String
+            value.to_s
+          when Integer
+            value.to_i
+          when Float
+            value.to_f
+        end
+      end
+    end
+
     class Reference
       attr_reader :name, :type
 
@@ -58,15 +84,25 @@ module Dilithium
 
       protected
 
-      def self.get_reference_path(clazz, attr_name)
+      def get_reference_path(clazz, attr_name)
         module_path = clazz.to_s.split('::')
         reference_literal = attr_name.to_s.singularize.camelize
         module_path.pop
         module_path.push(reference_literal)
       end
 
-      def self.path_to_class(path)
+      def path_to_class(path)
         path.reduce(Object){ |m,c| m.const_get(c) }
+      end
+    end
+
+    class ValueReference < Reference
+      def initialize(name, type, mandatory = false, default = nil)
+        super(name, type)
+      end
+
+      def check_constraints(value)
+        # no-op
       end
     end
 
@@ -75,7 +111,7 @@ module Dilithium
         super(name, Array)
 
         @reference_path = if type.nil?
-                            Reference.get_reference_path(containing_class, name)
+                            get_reference_path(containing_class, name)
                           else
                             type.to_s.split('::')
                           end
@@ -86,7 +122,7 @@ module Dilithium
       end
 
       def inner_type
-        @inner_type ||= Reference.path_to_class(@reference_path)
+        @inner_type ||= path_to_class(@reference_path)
       end
 
       def reference_path
@@ -101,38 +137,10 @@ module Dilithium
       end
     end
 
-    class ExtendedGenericAttribute < GenericAttribute
-      def initialize(name, type, mandatory=false, default=nil)
-        raise ArgumentError, "The attribute #{name} does not extend a Ruby generic type" unless \
-       BasicAttributes::GENERIC_TYPES.include?(type.superclass)
-        @name = name
-        @type = type
-        @mandatory = mandatory
-        @default = default  # TODO extra check for default value type
-      end
-
-      def generic_type
-        type.superclass
-      end
-
-      def to_generic_type(value)
-        case value
-          when String
-            value.to_s
-          when Integer
-            value.to_i
-          when Float
-            value.to_f
-        end
-      end
-
-
-    end
-
     class ParentReference < Reference
       def initialize(parent_name, child_klazz)
-        reference_path = Reference.get_reference_path(child_klazz, parent_name)
-        parent_klazz = Reference.path_to_class(reference_path)
+        reference_path = get_reference_path(child_klazz, parent_name)
+        parent_klazz = path_to_class(reference_path)
         super(parent_name, parent_klazz)
       end
     end
