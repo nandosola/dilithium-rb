@@ -266,8 +266,14 @@ describe 'BaseValue infrastructure' do
   end
 
   describe 'reference in a BaseEntity' do
+    let(:skaro) { Planet.new(iso2: 'SK', iso3: 'SKR', name: 'Skaro', type: 'K') }
+
+    let(:davros) { Alien.new(race: 'Kaled', subrace: 'Dalek hybrid', hostility_level: 100) }
+
+    let(:dalek_emperor) { Alien.new(race: 'Dalek', subrace: 'Emperor', hostility_level: 95) }
+
     describe 'BaseEntity#attribute' do
-      let (:species) {
+      let(:species) {
         Class.new(BaseEntity) do
           attribute :name, String
           attribute :origin, Planet
@@ -290,15 +296,12 @@ describe 'BaseValue infrastructure' do
       end
 
       it 'Adds accesors and mutators' do
-        skaro = Planet.new(iso2: 'SK', iso3: 'SKR', name: 'Skaro', type: 'M')
-        davros = Alien.new(race: 'Dalek', subrace: 'Leader', hostility_level: 100)
         dalek = species.new(name: 'Dalek', origin: skaro, leader: davros)
 
         expect(dalek.origin).to eq(skaro)
         expect(dalek.leader).to eq(davros)
         expect(dalek).to respond_to(:name, :origin, :leader, :origin=, :leader=)
 
-        dalek_emperor = Alien.new(race: 'Dalek', subrace: 'Emperor', hostility_level: 90)
         dalek.leader = dalek_emperor
         expect(dalek.leader).to eq(dalek_emperor)
       end
@@ -327,19 +330,40 @@ describe 'BaseValue infrastructure' do
             $database.table_exists?(:species).should be_true
           end
 
-          it 'Creates the tables with the proper columns when identified_by has a single field' do
+          it 'Creates the tables with the proper columns' do
             expect(SchemaUtils::Sequel.get_schema(:species)).to eq(
                                                                   id: {type: 'integer', primary_key: true},
+                                                                  active: {type: 'boolean', primary_key: false},
                                                                   _version_id: {type: 'integer', :primary_key=>false},
                                                                   name: {type: 'varchar(255)', primary_key: false},
                                                                   origin_iso2: {type: 'varchar(255)', primary_key: false},
                                                                   leader_race: {type: 'varchar(255)', primary_key: false},
-                                                                  leader_subrace: {type: 'varchar(255)', primary_key: false},
-                                                                  active: {type: 'boolean', primary_key: false}
-
+                                                                  leader_subrace: {type: 'varchar(255)', primary_key: false}
 
                                                                 )
 
+          end
+        end
+
+        describe 'mapper' do
+          describe '#insert' do
+            it 'inserts foreign keys' do
+
+            end
+
+            it 'raises an exception when trying to insert a nonpersisted BaseValue' do
+
+            end
+          end
+
+          describe '#update' do
+            it 'updates foreign keys' do
+
+            end
+
+            it 'raises an exception when trying to update with a nonpersisted BaseValue' do
+
+            end
           end
         end
       end
