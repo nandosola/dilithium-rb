@@ -130,9 +130,7 @@ module Dilithium
     private
 
     def load_self_attributes(in_h)
-      self.class.each_attribute(BasicAttributes::GenericAttribute,
-                                BasicAttributes::ExtendedGenericAttribute,
-                                BasicAttributes::ValueReference) do |attr|
+      self.class.attributes.select { |attr| attr.is_attribute? }.each do |attr|
         __attr_name = attr.name
         value = if in_h.include?(__attr_name)
                   in_h[__attr_name]

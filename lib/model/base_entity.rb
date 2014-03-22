@@ -175,10 +175,8 @@ module Dilithium
     # hasn't been persisted.
     def immutable
       obj = self.class.const_get(:Immutable).new
-      attributes = self.class.attribute_descriptors
-
-      attributes.each do |name, attr|
-        if attr.is_a?(BasicAttributes::GenericAttribute)
+      self.class.attribute_descriptors.each do |name, attr|
+        if attr.is_attribute?
           value = self.instance_variable_get(:"@#{name}")
           obj.instance_variable_set(:"@#{name}", value)
         end
@@ -404,7 +402,7 @@ module Dilithium
     def self.attach_attribute_accessors(attribute_descriptor)
       __attr_name = attribute_descriptor.name
 
-      if attribute_descriptor.is_a? BasicAttributes::GenericAttribute
+      if attribute_descriptor.is_attribute?
         self.const_get(:Immutable).class_eval do
           define_method(__attr_name){instance_variable_get("@#{__attr_name}".to_sym)}
         end

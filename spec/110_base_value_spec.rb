@@ -281,6 +281,9 @@ describe 'BaseValue infrastructure' do
         end
       }
 
+      let(:dalek) {
+        species.new(name: 'Dalek', origin: skaro, leader: davros)
+      }
       it 'Creates a new attribute entry in the BaseEntity' do
         expect(species.attribute_descriptors).to include(:origin, :leader)
 
@@ -296,14 +299,26 @@ describe 'BaseValue infrastructure' do
       end
 
       it 'Adds accesors and mutators' do
-        dalek = species.new(name: 'Dalek', origin: skaro, leader: davros)
-
         expect(dalek.origin).to eq(skaro)
         expect(dalek.leader).to eq(davros)
         expect(dalek).to respond_to(:name, :origin, :leader, :origin=, :leader=)
 
         dalek.leader = dalek_emperor
         expect(dalek.leader).to eq(dalek_emperor)
+      end
+
+      it 'Copies the reference to the BaseValue when creating an immutable copy' do
+        frozen = dalek.immutable
+        expect(frozen.origin).to eq(dalek.origin)
+        expect(frozen.leader).to eq(dalek.leader)
+      end
+
+      it 'Is constructed from a Hash and retrieves the BaseValue\'s actual attributes from the DB' do
+        fail
+      end
+
+      it 'Raises an exception if a nonpersisted BaseValue is referenced' do
+        fail
       end
 
       describe 'persistence' do
@@ -348,21 +363,21 @@ describe 'BaseValue infrastructure' do
         describe 'mapper' do
           describe '#insert' do
             it 'inserts foreign keys' do
-
+              fail
             end
 
             it 'raises an exception when trying to insert a nonpersisted BaseValue' do
-
+              fail
             end
           end
 
           describe '#update' do
             it 'updates foreign keys' do
-
+              fail
             end
 
             it 'raises an exception when trying to update with a nonpersisted BaseValue' do
-
+              fail
             end
           end
         end

@@ -31,6 +31,10 @@ module Dilithium
       def to_generic_type(value)
         value
       end
+
+      def is_attribute?
+        true
+      end
     end
 
     class ExtendedGenericAttribute < GenericAttribute
@@ -82,6 +86,10 @@ module Dilithium
         nil
       end
 
+      def is_attribute?
+        false
+      end
+
       protected
 
       def get_reference_path(clazz, attr_name)
@@ -103,6 +111,10 @@ module Dilithium
 
       def check_constraints(value)
         # no-op
+      end
+
+      def is_attribute?
+        true
       end
     end
 
