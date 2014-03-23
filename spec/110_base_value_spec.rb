@@ -345,11 +345,10 @@ describe 'BaseValue infrastructure' do
           end
         end
       end
-      #TODO Create a ValueRepository, rename the current Repository to EntityRepository. Use a Repository.for(domain_object_class)
     end
   end
 
-  describe 'reference in a BaseEntity' do
+  describe 'as a BaseEntity attribute' do
     let(:skaro) { Planet.new(iso2: 'SK', iso3: 'SKR', name: 'Skaro', type: 'K') }
 
     let(:davros) { Alien.new(race: 'Kaled', subrace: 'Dalek hybrid', hostility_level: 100) }
@@ -427,66 +426,87 @@ describe 'BaseValue infrastructure' do
           }.to raise_error(PersistenceExceptions::NotFound)
         end
       end
+    end
 
-      describe 'persistence' do
-        before(:all) do
-          class Species < BaseEntity
-            attribute :name, String
-            attribute :origin, Planet
-            attribute :leader, Alien
-          end
+    describe 'persistence' do
+      before(:all) do
+        class Species < BaseEntity
+          attribute :name, String
+          attribute :origin, Planet
+          attribute :leader, Alien
+        end
+      end
+
+      let(:dalek) { Species.new(name: 'Dalek', origin: skaro, leader: davros) }
+
+      let(:renegade_dalek) { Species.new(name: 'Renegade dalek', origin: skaro, leader: dalek_emperor) }
+
+      before(:each) do
+        SchemaUtils::Sequel.create_tables(Planet, Alien, Species)
+        Mapper::Sequel.mapper_for(Planet).insert(skaro)
+        Mapper::Sequel.mapper_for(Alien).insert(davros)
+      end
+
+      after(:each) do
+        $database.drop_table :species
+        $database.drop_table :aliens
+        $database.drop_table :planets
+      end
+
+      describe '#create_tables' do
+        it 'Creates the tables' do
+          $database.table_exists?(:species).should be_true
         end
 
-        describe '#create_tables' do
-          before(:all) do
-            SchemaUtils::Sequel.create_tables(Planet, Alien, Species)
-          end
+        it 'Creates the tables with the proper columns' do
+          expect(SchemaUtils::Sequel.get_schema(:species)).to eq(
+                                                                id: {type: 'integer', primary_key: true},
+                                                                active: {type: 'boolean', primary_key: false},
+                                                                _version_id: {type: 'integer', :primary_key=>false},
+                                                                name: {type: 'varchar(255)', primary_key: false},
+                                                                origin_iso2: {type: 'varchar(255)', primary_key: false},
+                                                                leader_race: {type: 'varchar(255)', primary_key: false},
+                                                                leader_subrace: {type: 'varchar(255)', primary_key: false}
 
-          after(:all) do
-            $database.drop_table :species
-            $database.drop_table :alien
-            $database.drop_table :planet
-          end
+                                                              )
 
-          it 'Creates the tables' do
-            $database.table_exists?(:species).should be_true
-          end
+        end
+      end
 
-          it 'Creates the tables with the proper columns' do
-            expect(SchemaUtils::Sequel.get_schema(:species)).to eq(
-                                                                  id: {type: 'integer', primary_key: true},
-                                                                  active: {type: 'boolean', primary_key: false},
-                                                                  _version_id: {type: 'integer', :primary_key=>false},
-                                                                  name: {type: 'varchar(255)', primary_key: false},
-                                                                  origin_iso2: {type: 'varchar(255)', primary_key: false},
-                                                                  leader_race: {type: 'varchar(255)', primary_key: false},
-                                                                  leader_subrace: {type: 'varchar(255)', primary_key: false}
+      describe '#insert' do
+        it 'inserts foreign keys' do
+          id = Mapper::Sequel.mapper_for(Species).insert(dalek)
 
-                                                                )
-
-          end
+          result_h = $database[:species].where(id: id).first
+          expect(result_h[:origin_iso2]).to eq(skaro.iso2)
+          expect(result_h[:leader_race]).to eq(davros.race)
+          expect(result_h[:leader_subrace]).to eq(davros.subrace)
         end
 
-        describe 'mapper' do
-          describe '#insert' do
-            it 'inserts foreign keys' do
-              fail
-            end
+        it 'raises an exception when trying to insert a nonpersisted BaseValue' do
+          expect {
+            Mapper::Sequel.mapper_for(Species).insert(renegade_dalek)
+          }.to raise_error(PersistenceExceptions::NotFound)
+        end
+      end
 
-            it 'raises an exception when trying to insert a nonpersisted BaseValue' do
-              fail
-            end
-          end
+      describe '#update' do
+        it 'updates foreign keys' do
+          Mapper::Sequel.mapper_for(Alien).insert(dalek_emperor)
+          id = Mapper::Sequel.mapper_for(Species).insert(renegade_dalek)
 
-          describe '#update' do
-            it 'updates foreign keys' do
-              fail
-            end
+          result_h = $database[:species].where(id: id).first
+          expect(result_h[:leader_race]).to eq(dalek_emperor.race)
+          expect(result_h[:leader_subrace]).to eq(dalek_emperor.subrace)
+        end
 
-            it 'raises an exception when trying to update with a nonpersisted BaseValue' do
-              fail
-            end
-          end
+        it 'raises an exception when trying to update with a nonpersisted BaseValue' do
+          supreme_dalek = Alien.new(race: 'Dalek', subrace: 'Supreme Dalek', hostility_level: 99)
+          renegade_dalek.leader = supreme_dalek
+
+          expect {
+            Mapper::Sequel.mapper_for(Species).insert(renegade_dalek)
+          }.to raise_error(PersistenceExceptions::NotFound)
         end
       end
     end
