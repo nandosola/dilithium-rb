@@ -21,13 +21,9 @@ describe 'BaseValue class' do
     end
   }
 
-  let(:planet_h) {
-    {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y'}
-  }
+  let(:planet_h) { {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y'} }
 
-  let(:another_planet_h) {
-    {iso2:'GY', iso3:'GFY', name:'Gallifrey', type:'M'}
-  }
+  let(:another_planet_h) { {iso2:'GY', iso3:'GFY', name:'Gallifrey', type:'M'} }
 
   describe '::identified_by' do
 
@@ -160,17 +156,11 @@ describe 'BaseValue infrastructure' do
           $database.drop_table :planets
         end
 
-        let(:planet_h) {
-          {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y', active:true}
-        }
+        let(:planet_h) { {iso2: 'NU', iso3:'NRU', name:'Nibiru', type:'Y', active:true} }
 
-        let(:a_planet) {
-          Planet.new(planet_h.dup)
-        }
+        let(:a_planet) { Planet.new(planet_h.dup) }
 
-        let(:planet_mapper) {
-          Mapper::Sequel.mapper_for(Planet)
-        }
+        let(:planet_mapper) { Mapper::Sequel.mapper_for(Planet) }
 
         describe '#insert' do
           it 'Inserts a new BaseValue' do
@@ -217,17 +207,11 @@ describe 'BaseValue infrastructure' do
           $database.drop_table :aliens
         end
 
-        let(:alien_h) {
-          {race: 'Dalek', subrace: 'Davros', hostility_level: 100, active:true}
-        }
+        let(:alien_h) { {race: 'Dalek', subrace: 'Davros', hostility_level: 100, active:true} }
 
-        let(:an_alien) {
-          Alien.new(alien_h.dup)
-        }
+        let(:an_alien) { Alien.new(alien_h.dup) }
 
-        let(:alien_mapper) {
-          Mapper::Sequel.mapper_for(Alien)
-        }
+        let(:alien_mapper) { Mapper::Sequel.mapper_for(Alien) }
 
         describe '#insert' do
           it 'Inserts a new BaseValue' do
@@ -276,49 +260,27 @@ describe 'BaseValue infrastructure' do
         $database.drop_table :planets
       end
 
-      let(:planet_h) {
-        {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y', active:true}
-      }
+      let(:planet_h) { {iso2: 'NU', iso3:'NRU', name:'Nibiru', type:'Y', active:true} }
 
-      let(:alien_h) {
-        {race: 'Dalek', subrace: 'Soldier', hostility_level: 85, active:true}
-      }
+      let(:alien_h) { {race: 'Dalek', subrace: 'Soldier', hostility_level: 85, active:true} }
 
-      let(:another_alien_h) {
-        {race: 'Cyberman', subrace: 'Soldier', hostility_level: 80, active:true}
-      }
+      let(:another_alien_h) { {race: 'Cyberman', subrace: 'Soldier', hostility_level: 80, active:true} }
 
-      let(:inactive_alien_h) {
-        {race: 'Cyberman', subrace: 'Original', hostility_level: 60, active:false}
-      }
+      let(:inactive_alien_h) { {race: 'Cyberman', subrace: 'Original', hostility_level: 60, active:false} }
 
-      let(:a_planet) {
-        Planet.new(planet_h.dup)
-      }
+      let(:a_planet) { Planet.new(planet_h.dup) }
 
-      let(:an_alien) {
-        Alien.new(alien_h.dup)
-      }
+      let(:an_alien) { Alien.new(alien_h.dup) }
 
-      let(:another_alien) {
-        Alien.new(another_alien_h.dup)
-      }
+      let(:another_alien) { Alien.new(another_alien_h.dup) }
 
-      let(:inactive_alien) {
-        Alien.new(inactive_alien_h.dup)
-      }
+      let(:inactive_alien) { Alien.new(inactive_alien_h.dup) }
 
-      let(:all_aliens) {
-        [an_alien, another_alien, inactive_alien]
-      }
+      let(:all_aliens) { [an_alien, another_alien, inactive_alien] }
 
-      let(:alien_repo) {
-        Repository.for(Alien)
-      }
+      let(:alien_repo) { Repository.for(Alien) }
 
-      let(:planet_repo) {
-        Repository.for(Planet)
-      }
+      let(:planet_repo) { Repository.for(Planet) }
 
       describe 'Repository::for' do
         it 'Returns a Repository for the given BaseValue class' do
@@ -344,6 +306,26 @@ describe 'BaseValue infrastructure' do
             expect(aliens).to eq(all_aliens)
           end
         end
+      end
+    end
+
+    describe 'In a transaction' do
+      let(:transaction) { UnitOfWork::Transaction.new(Mapper::Sequel) }
+
+      it 'Allows a BaseValue to be registered as new and inserts it' do
+        fail
+      end
+
+      it 'Allows a BaseValue to be registered as clean' do
+        fail
+      end
+
+      it 'Does not allow a BaseValue to be registered as dirty' do
+        fail
+      end
+
+      it 'Does not allow a BaseValue to be registered as deleted' do
+        fail
       end
     end
   end
@@ -508,6 +490,12 @@ describe 'BaseValue infrastructure' do
             Mapper::Sequel.mapper_for(Species).insert(renegade_dalek)
           }.to raise_error(PersistenceExceptions::NotFound)
         end
+      end
+    end
+
+    describe 'in a transaction' do
+      it 'Inserts new BaseValues before the objects that reference them' do
+        fail
       end
     end
   end
