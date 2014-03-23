@@ -17,6 +17,15 @@ module Dilithium
       end
     end
 
+    def self.for(type)
+      if type < BaseValue
+        Sequel::ValueRepository.new(type)
+      else
+        type
+      end
+    end
+
+
     module Sequel
       module GenericFinders
         def self.fetch_by_id(domain_class, id_h)

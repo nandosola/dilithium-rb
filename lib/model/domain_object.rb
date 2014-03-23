@@ -137,7 +137,7 @@ module Dilithium
 
                   if attr.is_a?(BasicAttributes::ValueReference) && attr_value.is_a?(Hash)
                     keys = attr.type.identifier_names.map{ |id| attr_value[id]}
-                    Repository::Sequel::ValueRepository.repository_for(attr.type).fetch_by_id(*keys)
+                    Repository.for(attr.type).fetch_by_id(*keys)
                   else
                     attr_value
                   end

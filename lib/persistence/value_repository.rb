@@ -18,10 +18,6 @@ module Dilithium
       end
 
       class ValueRepository
-        def self.repository_for(type)
-          ValueRepository.new(type)
-        end
-
         def fetch_by_id(*args)
           raise ArgumentError, "fetch_by_id must be called with #{@type.identifier_names.length} args, was called with #{args.length} args" unless args.length == @type.identifier_names.length
 

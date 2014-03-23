@@ -293,19 +293,21 @@ describe 'BaseValue infrastructure' do
       }
 
       let(:alien_repo) {
-        Repository::Sequel::ValueRepository.repository_for(Alien)
+        Repository.for(Alien)
       }
 
       let(:planet_repo) {
-        Repository::Sequel::ValueRepository.repository_for(Planet)
+        Repository.for(Planet)
       }
 
-      describe '.repository_for' do
+      describe 'Repository::for' do
         it 'Returns a Repository for the given BaseValue class' do
           expect(alien_repo).to be_a(Repository::Sequel::ValueRepository)
           expect(planet_repo).to be_a(Repository::Sequel::ValueRepository)
         end
+      end
 
+      describe 'ValueRepository' do
         describe '#fetch_by_id' do
           it 'retrieves a BaseValue when identified by a single key' do
             planet = planet_repo.fetch_by_id('NU')
