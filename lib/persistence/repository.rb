@@ -18,50 +18,79 @@ module Dilithium
     end
 
     module Sequel
+      module GenericFinders
+        def self.fetch_by_id(domain_class, id_h)
+          superclasses = PersistenceService.superclass_list(domain_class)
+          i_root = superclasses.last
+          root_table = PersistenceService.table_for(i_root)
+          root_db = DB[root_table]
+          root_h = root_db.where(id_h).first
 
-      module ClassFinders
+          type = if root_h.nil? || root_h[:_type].nil?
+                   domain_class
+                 else
+                   PersistenceService.class_for(root_h[:_type])
+                 end
+
+          key_h = i_root.identifier_names.each_with_object(Hash.new) { |id, h| h[id] = id}
+
+          merged_h = if root_h.nil?
+                       nil
+                     else
+                       query = PersistenceService.superclass_list(type)[0..-2].inject(root_db) do |memo, klazz|
+                         memo.join(PersistenceService.table_for(klazz), key_h)
+                       end
+
+                       condition_h = id_h.each_with_object(Hash.new) do |(k, v), h|
+                         h["#{root_table}__#{k}".to_sym] = v
+                       end
+
+                       query.where(condition_h.merge(active:true)).first
+                     end
+
+          merged_h.delete(:_type) unless merged_h.nil?
+
+          type.create_object(merged_h)
+        end
+
+        def self.fetch_all(domain_class)
+          #TODO We do N+1 queries, fix this to get it in a single query
+          table = PersistenceService.table_for(domain_class)
+          found_h = DB[table]
+
+          if found_h.empty?
+            []
+          else
+            ids = domain_class.identifier_names
+            found_h.map do |row|
+              id_h = row.select { |k, v| ids.include? k }
+              fetch_by_id(domain_class, id_h)
+            end
+          end
+        end
+      end
+
+      module BuilderHelpers
+        def self.resolve_extended_generic_attributes(klazz, in_h)
+          klazz.extended_generic_attributes.each do |gen_attr|
+            attr = klazz.attribute_descriptors[gen_attr]
+            in_h[gen_attr] = attr.type.new(in_h[attr.name])
+          end
+        end
+
+      end
+
+      module EntityClassBuilders
 
         def self.extended(base)
           base.instance_eval do
 
             def fetch_by_id(id)
-              superclasses = PersistenceService.superclass_list(self)
-              i_root = superclasses.last
-              root_table = PersistenceService.table_for(i_root)
-              root_db = DB[root_table]
-              root_h = root_db.where(id:id).first
-
-              type = if root_h.nil? || root_h[:_type].nil?
-                       self
-                     else
-                       PersistenceService.class_for(root_h[:_type])
-                     end
-
-              merged_h = if root_h.nil?
-                           nil
-                         else
-                           query = PersistenceService.superclass_list(type)[0..-2].inject(root_db) do |memo, klazz|
-                             memo.join(PersistenceService.table_for(klazz), :id => :id)
-                           end
-
-                           query.where("#{root_table}__id".to_sym => id).where(active:true).first
-                         end
-
-              merged_h.delete(:_type) unless merged_h.nil?
-
-              type.create_object(merged_h)
+              GenericFinders.fetch_by_id(self, self.identifier_names.first => id)
             end
 
             def fetch_all
-              table = PersistenceService.table_for(self)
-              found_h = DB[table]
-              unless found_h.empty?
-                found_h.map do |reg|
-                  fetch_by_id(reg[:id])
-                end
-              else
-                []
-              end
+              GenericFinders.fetch_all(self)
             end
 
             #TODO Refactor in Reference class
@@ -69,14 +98,6 @@ module Dilithium
               Association::LazyEntityReference.new(id, self)
             end
 
-            def resolve_extended_generic_attributes(in_h)
-              if self.has_extended_generic_attributes?
-                self.extended_generic_attributes.each do |gen_attr|
-                  attr = self.attribute_descriptors[gen_attr]
-                  in_h[gen_attr] = attr.type.new(in_h[attr.name])
-                end
-              end
-            end
 
             def resolve_references(in_h)
               self.immutable_references.each do |ref|
@@ -112,7 +133,7 @@ module Dilithium
                 version = SharedVersion.resolve(self, in_h[:id])
                 in_h.delete(:_version_id)
                 resolve_references(in_h)
-                resolve_extended_generic_attributes(in_h)
+                BuilderHelpers.resolve_extended_generic_attributes(self, in_h)
                 parent = resolve_parent(in_h)
                 root_obj = self.new(in_h, parent, version)
                 root_obj.attach_children
@@ -126,7 +147,7 @@ module Dilithium
         end
       end
 
-      module InstanceFinders
+      module EntityInstanceBuilders
 
         def self.included(base)
           base.class_eval do

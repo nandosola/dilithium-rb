@@ -127,7 +127,7 @@ describe 'BaseValue infrastructure' do
         $database.table_exists?(:aliens).should be_true
       end
 
-      it 'Creates the tables with the proper columns when identified_by has a single field' do
+      it 'Creates the tables with the proper columns with a single key' do
         expect(SchemaUtils::Sequel.get_schema(:planets)).to eq({
                                                                  iso2: {type: 'varchar(255)', primary_key: true},
                                                                  iso3: {type: 'varchar(255)', primary_key: false},
@@ -139,7 +139,7 @@ describe 'BaseValue infrastructure' do
 
       end
 
-      it 'Creates the tables with the proper columns when identified_by has multiple fields' do
+      it 'Creates the tables with the proper columns with a compound key' do
         expect(SchemaUtils::Sequel.get_schema(:aliens)).to eq({
                                                                 race: {type: 'varchar(255)', primary_key: true},
                                                                 subrace: {type: 'varchar(255)', primary_key: true},
@@ -150,7 +150,7 @@ describe 'BaseValue infrastructure' do
     end
 
     describe 'mapper - Leaf-Table Inheritance' do
-      describe 'With a single identified_by key' do
+      describe 'With a single key' do
         before(:each) do
           SchemaUtils::Sequel.create_tables(Planet)
           planet_mapper.insert(a_planet)
@@ -207,7 +207,7 @@ describe 'BaseValue infrastructure' do
         end
       end
 
-      describe 'With multiple identified_by keys' do
+      describe 'With multiple keys' do
         before(:each) do
           SchemaUtils::Sequel.create_tables(Alien)
           alien_mapper.insert(an_alien)
@@ -263,6 +263,63 @@ describe 'BaseValue infrastructure' do
         end
       end
     end
+
+    describe 'ValueRepository' do
+      before(:each) do
+        SchemaUtils::Sequel.create_tables(Alien, Planet)
+        Mapper::Sequel.mapper_for(Alien).insert(an_alien)
+        Mapper::Sequel.mapper_for(Planet).insert(a_planet)
+      end
+
+      after(:each) do
+        $database.drop_table :aliens
+        $database.drop_table :planets
+      end
+
+      let(:planet_h) {
+        {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y', active:true}
+      }
+
+      let(:alien_h) {
+        {race: 'Dalek', subrace: 'Soldier', hostility_level: 85, active:true}
+      }
+
+      let(:a_planet) {
+        Planet.new(planet_h.dup)
+      }
+
+      let(:an_alien) {
+        Alien.new(alien_h.dup)
+      }
+
+      let(:alien_repo) {
+        Repository::Sequel::ValueRepository.repository_for(Alien)
+      }
+
+      let(:planet_repo) {
+        Repository::Sequel::ValueRepository.repository_for(Planet)
+      }
+
+      describe '.repository_for' do
+        it 'Returns a Repository for the given BaseValue class' do
+          expect(alien_repo).to be_a(Repository::Sequel::ValueRepository)
+          expect(planet_repo).to be_a(Repository::Sequel::ValueRepository)
+        end
+
+        describe '#fetch_by_id' do
+          it 'retrieves a BaseValue when identified by a single key' do
+            planet = planet_repo.fetch_by_id('NU')
+            expect(planet).to eq(a_planet)
+          end
+
+          it 'retrieves a BaseValue when identified by a compound key' do
+            alien = alien_repo.fetch_by_id('Dalek', 'Soldier')
+            expect(alien).to eq(an_alien)
+          end
+        end
+      end
+      #TODO Create a ValueRepository, rename the current Repository to EntityRepository. Use a Repository.for(domain_object_class)
+    end
   end
 
   describe 'reference in a BaseEntity' do
@@ -298,6 +355,15 @@ describe 'BaseValue infrastructure' do
         expect(leader.type).to eq(Alien)
       end
 
+      it 'Is constructed from a Hash, retrieving the BaseValue\'s attributes from the DB' do
+        dalek2 = species.new(name: 'Dalek',
+                             origin: {iso2: 'SK'},
+                             leader: {race: 'Kaled', subrace: 'Dalek hybrid'})
+
+        expect(dalek2.origin).to eq(skaro)
+        expect(dalek2.leader).to eq(davros)
+      end
+
       it 'Adds accesors and mutators' do
         expect(dalek.origin).to eq(skaro)
         expect(dalek.leader).to eq(davros)
@@ -311,10 +377,6 @@ describe 'BaseValue infrastructure' do
         frozen = dalek.immutable
         expect(frozen.origin).to eq(dalek.origin)
         expect(frozen.leader).to eq(dalek.leader)
-      end
-
-      it 'Is constructed from a Hash and retrieves the BaseValue\'s actual attributes from the DB' do
-        fail
       end
 
       it 'Raises an exception if a nonpersisted BaseValue is referenced' do
@@ -383,11 +445,6 @@ describe 'BaseValue infrastructure' do
         end
       end
     end
-  end
-
-
-  describe 'repository' do
-    #TODO Create a ValueRepository, rename the current Repository to EntityRepository. Use a Repository.for(domain_object_class)
   end
 end
 

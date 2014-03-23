@@ -3,8 +3,8 @@
 module Dilithium
   class BaseEntity < DomainObject
     extend Identifiers::Id
-    extend Repository::Sequel::ClassFinders
-    include Repository::Sequel::InstanceFinders
+    extend Repository::Sequel::EntityClassBuilders
+    include Repository::Sequel::EntityInstanceBuilders
     extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
     include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
 

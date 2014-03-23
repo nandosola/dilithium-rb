@@ -5,6 +5,7 @@ module Dilithium
     include DomainObjectExceptions
 
     extend BaseMethods::Attributes
+    extend Repository::Sequel::ValueClassBuilders
 
     def self.inherited(base)
       base.instance_eval do
