@@ -23,7 +23,7 @@ module Dilithium
         end
 
         def fetch_by_id(*args)
-          raise IllegalArgumentException, "fetch_by_id must be called with #{@type.identifier_names.length} args, was called with #{args.length} args" unless args.length == @type.identifier_names.length
+          raise ArgumentError, "fetch_by_id must be called with #{@type.identifier_names.length} args, was called with #{args.length} args" unless args.length == @type.identifier_names.length
 
           condition_h = Hash[@type.identifier_names.zip(args)]
           GenericFinders.fetch_by_id(@type, condition_h)
@@ -32,7 +32,7 @@ module Dilithium
         private
 
         def initialize(type)
-          raise IllegalArgumentException "#{type} is not a descendant of BaseValue" unless type < BaseValue
+          raise ArgumentError "#{type} is not a descendant of BaseValue" unless type < BaseValue
           @type = type
         end
       end

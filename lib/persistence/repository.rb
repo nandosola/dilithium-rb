@@ -26,6 +26,8 @@ module Dilithium
           root_db = DB[root_table]
           root_h = root_db.where(id_h).first
 
+          raise PersistenceExceptions::NotFound, "#{domain_class} with IDs #{id_h} not found" if root_h.nil?
+
           type = if root_h.nil? || root_h[:_type].nil?
                    domain_class
                  else

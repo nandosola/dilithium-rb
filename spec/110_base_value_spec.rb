@@ -341,6 +341,7 @@ describe 'BaseValue infrastructure' do
       let(:dalek) {
         species.new(name: 'Dalek', origin: skaro, leader: davros)
       }
+
       it 'Creates a new attribute entry in the BaseEntity' do
         expect(species.attribute_descriptors).to include(:origin, :leader)
 
@@ -353,15 +354,6 @@ describe 'BaseValue infrastructure' do
         expect(leader).to be_a(BasicAttributes::ValueReference)
         expect(leader.name).to eq(:leader)
         expect(leader.type).to eq(Alien)
-      end
-
-      it 'Is constructed from a Hash, retrieving the BaseValue\'s attributes from the DB' do
-        dalek2 = species.new(name: 'Dalek',
-                             origin: {iso2: 'SK'},
-                             leader: {race: 'Kaled', subrace: 'Dalek hybrid'})
-
-        expect(dalek2.origin).to eq(skaro)
-        expect(dalek2.leader).to eq(davros)
       end
 
       it 'Adds accesors and mutators' do
@@ -379,8 +371,34 @@ describe 'BaseValue infrastructure' do
         expect(frozen.leader).to eq(dalek.leader)
       end
 
-      it 'Raises an exception if a nonpersisted BaseValue is referenced' do
-        fail
+      describe '#initialize' do
+        before(:each) do
+          SchemaUtils::Sequel.create_tables(Planet, Alien)
+          Mapper::Sequel.mapper_for(Planet).insert(skaro)
+          Mapper::Sequel.mapper_for(Alien).insert(davros)
+        end
+
+        after(:each) do
+          $database.drop_table(:planets)
+          $database.drop_table(:aliens)
+        end
+
+        it 'Is constructed from a Hash, retrieving the BaseValue\'s attributes from the DB' do
+          dalek2 = species.new(name: 'Dalek',
+                               origin: {iso2: 'SK'},
+                               leader: {race: 'Kaled', subrace: 'Dalek hybrid'})
+
+          expect(dalek2.origin).to eq(skaro)
+          expect(dalek2.leader).to eq(davros)
+        end
+
+        it 'Raises an exception if a nonpersisted BaseValue is referenced from the constructing Hash' do
+          expect {
+            species.new(name: 'Dalek',
+                        origin: {iso2: 'MO'},
+                        leader: {race: 'Cyberman', subrace: 'Cyber controller'})
+          }.to raise_error(PersistenceExceptions::NotFound)
+        end
       end
 
       describe 'persistence' do

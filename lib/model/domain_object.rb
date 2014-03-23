@@ -131,17 +131,24 @@ module Dilithium
 
     def load_self_attributes(in_h)
       self.class.attributes.select { |attr| attr.is_attribute? }.each do |attr|
-        __attr_name = attr.name
-        value = if in_h.include?(__attr_name)
-                  in_h[__attr_name]
+        attr_name = attr.name
+        value = if in_h.include?(attr_name)
+                  attr_value = in_h[attr_name]
+
+                  if attr.is_a?(BasicAttributes::ValueReference) && attr_value.is_a?(Hash)
+                    keys = attr.type.identifier_names.map{ |id| attr_value[id]}
+                    Repository::Sequel::ValueRepository.repository_for(attr.type).fetch_by_id(*keys)
+                  else
+                    attr_value
+                  end
                 else
                   attr.default
                 end
 
-        send("#{__attr_name}=".to_sym,value)
+        send("#{attr_name}=".to_sym,value)
 
         #TODO Should we actually destroy the Hash?
-        in_h.delete(__attr_name)
+        in_h.delete(attr_name)
       end
     end
   end
