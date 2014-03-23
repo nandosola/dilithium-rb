@@ -267,7 +267,7 @@ describe 'BaseValue infrastructure' do
     describe 'ValueRepository' do
       before(:each) do
         SchemaUtils::Sequel.create_tables(Alien, Planet)
-        Mapper::Sequel.mapper_for(Alien).insert(an_alien)
+        all_aliens.each { |alien| Mapper::Sequel.mapper_for(Alien).insert(alien) }
         Mapper::Sequel.mapper_for(Planet).insert(a_planet)
       end
 
@@ -284,12 +284,32 @@ describe 'BaseValue infrastructure' do
         {race: 'Dalek', subrace: 'Soldier', hostility_level: 85, active:true}
       }
 
+      let(:another_alien_h) {
+        {race: 'Cyberman', subrace: 'Soldier', hostility_level: 80, active:true}
+      }
+
+      let(:inactive_alien_h) {
+        {race: 'Cyberman', subrace: 'Original', hostility_level: 60, active:false}
+      }
+
       let(:a_planet) {
         Planet.new(planet_h.dup)
       }
 
       let(:an_alien) {
         Alien.new(alien_h.dup)
+      }
+
+      let(:another_alien) {
+        Alien.new(another_alien_h.dup)
+      }
+
+      let(:inactive_alien) {
+        Alien.new(inactive_alien_h.dup)
+      }
+
+      let(:all_aliens) {
+        [an_alien, another_alien, inactive_alien]
       }
 
       let(:alien_repo) {
@@ -317,6 +337,11 @@ describe 'BaseValue infrastructure' do
           it 'retrieves a BaseValue when identified by a compound key' do
             alien = alien_repo.fetch_by_id('Dalek', 'Soldier')
             expect(alien).to eq(an_alien)
+          end
+
+          it 'retrieves all instances of the given BaseValue' do
+            aliens = alien_repo.fetch_all
+            expect(aliens).to eq(all_aliens)
           end
         end
       end

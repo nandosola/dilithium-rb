@@ -17,10 +17,19 @@ module Dilithium
       end
     end
 
+    # Repository factory
+    # Returns a repository for the given type. The repository should at the very least support fetch_by_id and
+    # fetch_all
+    #
+    # Parameters:
+    #  type: A subclass of BaseValue or BaseEntity
     def self.for(type)
       if type < BaseValue
         Sequel::ValueRepository.new(type)
       else
+        #TODO Refactor to have a real BaseEntityRepository and possibly a ReferenceRepository. Not done yet to
+        # preserve backwards compatibility and because it should be part of the implementation of #41 (Move all
+        # finders from Entities to the Repository)
         type
       end
     end
