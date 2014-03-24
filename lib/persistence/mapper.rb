@@ -6,6 +6,10 @@ module Dilithium
     class NullMapper
     end
 
+    def self.for(domain_class)
+      Sequel.mapper_for(domain_class)
+    end
+
     class Sequel
       TRANSACTION_DEFAULT_PARAMS = {rollback: :reraise, deferrable: true}
 

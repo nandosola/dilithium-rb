@@ -160,7 +160,7 @@ describe 'BaseValue infrastructure' do
 
         let(:a_planet) { Planet.new(planet_h.dup) }
 
-        let(:planet_mapper) { Mapper::Sequel.mapper_for(Planet) }
+        let(:planet_mapper) { Mapper.for(Planet) }
 
         describe '#insert' do
           it 'Inserts a new BaseValue' do
@@ -211,7 +211,7 @@ describe 'BaseValue infrastructure' do
 
         let(:an_alien) { Alien.new(alien_h.dup) }
 
-        let(:alien_mapper) { Mapper::Sequel.mapper_for(Alien) }
+        let(:alien_mapper) { Mapper.for(Alien) }
 
         describe '#insert' do
           it 'Inserts a new BaseValue' do
@@ -251,8 +251,8 @@ describe 'BaseValue infrastructure' do
     describe 'ValueRepository' do
       before(:each) do
         SchemaUtils::Sequel.create_tables(Alien, Planet)
-        all_aliens.each { |alien| Mapper::Sequel.mapper_for(Alien).insert(alien) }
-        Mapper::Sequel.mapper_for(Planet).insert(a_planet)
+        all_aliens.each { |alien| Mapper.for(Alien).insert(alien) }
+        Mapper.for(Planet).insert(a_planet)
       end
 
       after(:each) do
@@ -408,8 +408,8 @@ describe 'BaseValue infrastructure' do
       describe '#initialize' do
         before(:each) do
           SchemaUtils::Sequel.create_tables(Planet, Alien)
-          Mapper::Sequel.mapper_for(Planet).insert(skaro)
-          Mapper::Sequel.mapper_for(Alien).insert(davros)
+          Mapper.for(Planet).insert(skaro)
+          Mapper.for(Alien).insert(davros)
         end
 
         after(:each) do
@@ -451,8 +451,8 @@ describe 'BaseValue infrastructure' do
 
       before(:each) do
         SchemaUtils::Sequel.create_tables(Planet, Alien, Species)
-        Mapper::Sequel.mapper_for(Planet).insert(skaro)
-        Mapper::Sequel.mapper_for(Alien).insert(davros)
+        Mapper.for(Planet).insert(skaro)
+        Mapper.for(Alien).insert(davros)
       end
 
       after(:each) do
@@ -483,7 +483,7 @@ describe 'BaseValue infrastructure' do
 
       describe '#insert' do
         it 'inserts foreign keys' do
-          id = Mapper::Sequel.mapper_for(Species).insert(dalek)
+          id = Mapper.for(Species).insert(dalek)
 
           result_h = $database[:species].where(id: id).first
           expect(result_h[:origin_iso2]).to eq(skaro.iso2)
@@ -493,15 +493,15 @@ describe 'BaseValue infrastructure' do
 
         it 'raises an exception when trying to insert a nonpersisted BaseValue' do
           expect {
-            Mapper::Sequel.mapper_for(Species).insert(renegade_dalek)
+            Mapper.for(Species).insert(renegade_dalek)
           }.to raise_error(PersistenceExceptions::NotFound)
         end
       end
 
       describe '#update' do
         it 'updates foreign keys' do
-          Mapper::Sequel.mapper_for(Alien).insert(dalek_emperor)
-          id = Mapper::Sequel.mapper_for(Species).insert(renegade_dalek)
+          Mapper.for(Alien).insert(dalek_emperor)
+          id = Mapper.for(Species).insert(renegade_dalek)
 
           result_h = $database[:species].where(id: id).first
           expect(result_h[:leader_race]).to eq(dalek_emperor.race)
@@ -513,7 +513,7 @@ describe 'BaseValue infrastructure' do
           renegade_dalek.leader = supreme_dalek
 
           expect {
-            Mapper::Sequel.mapper_for(Species).insert(renegade_dalek)
+            Mapper.for(Species).insert(renegade_dalek)
           }.to raise_error(PersistenceExceptions::NotFound)
         end
       end
