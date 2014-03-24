@@ -518,12 +518,6 @@ describe 'BaseValue infrastructure' do
         end
       end
     end
-
-    describe 'in a transaction' do
-      it 'Inserts new BaseValues before the objects that reference them' do
-        fail
-      end
-    end
   end
 end
 
