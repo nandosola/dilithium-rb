@@ -24,7 +24,7 @@ module Dilithium
         entity._version.insert! if entity.is_a?(BaseEntity) && parent_id.nil?
 
         # Then insert model
-        id = mapper_for(entity.class).insert(entity, parent_id)
+        id = Mapper.for(entity.class).insert(entity, parent_id)
         entity.id = id if entity.respond_to? :id=
 
         # Then recurse children for inserting them
@@ -46,7 +46,7 @@ module Dilithium
           already_versioned = true
         end
 
-        mapper_for(entity.class).delete(entity)
+        Mapper.for(entity.class).delete(entity)
 
         entity.each_child do |child|
           delete(child, already_versioned)
@@ -56,7 +56,7 @@ module Dilithium
       def self.update(modified_entity, original_entity, already_versioned=false)
         Sequel.check_uow_transaction(modified_entity)
 
-        already_versioned = mapper_for(modified_entity.class).update(modified_entity, original_entity, already_versioned)
+        already_versioned = Mapper.for(modified_entity.class).update(modified_entity, original_entity, already_versioned)
 
         modified_entity.each_child do |child|
           if child.id.nil?
@@ -155,8 +155,8 @@ module Dilithium
       private_class_method(:delete_in_intermediate_table)
 
       def self.intermediate_table_descriptor(dependee, dependent, ref_attr)
-        table_dependee = mapper_for(dependee.class).table_name_for_intermediate(dependee.class)
-        table_dependent = mapper_for(dependent._type).table_name_for_intermediate(dependent._type)
+        table_dependee = Mapper.for(dependee.class).table_name_for_intermediate(dependee.class)
+        table_dependent = Mapper.for(dependent._type).table_name_for_intermediate(dependent._type)
 
         intermediate_table_name = :"#{table_dependee}_#{ref_attr}"
 
