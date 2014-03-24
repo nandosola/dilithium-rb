@@ -17,12 +17,11 @@ module Dilithium
         Sequel.check_uow_transaction(entity) unless parent_id  # It's the root
 
         # First insert version when persisting the root; no need to lock the row/table
-        if parent_id.nil?
-          entity._version.insert!
-        end
+        entity._version.insert! if entity.is_a?(BaseEntity) && parent_id.nil?
 
         # Then insert model
-        entity.id = mapper_for(entity.class).insert(entity, parent_id)
+        id = mapper_for(entity.class).insert(entity, parent_id)
+        entity.id = id if entity.respond_to? :id=
 
         # Then recurse children for inserting them
         entity.each_child do |child|
@@ -38,7 +37,7 @@ module Dilithium
       def self.delete(entity, already_versioned=false)
         Sequel.check_uow_transaction(entity)
 
-        unless already_versioned
+        if entity.is_a?(BaseEntity) && ! already_versioned
           entity._version.increment!
           already_versioned = true
         end
@@ -271,7 +270,6 @@ module Dilithium
           modified_data = SchemaUtils::Sequel.to_row(modified_domain_object)
           original_data = SchemaUtils::Sequel.to_row(original_object)
 
-          #TODO Should we even allow modification of BaseValues?
           Sequel.verify_identifiers_unchanged(modified_domain_object, modified_data, original_data)
 
           unless modified_data.eql?(original_data)

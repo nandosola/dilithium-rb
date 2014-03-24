@@ -88,6 +88,12 @@ module Dilithium
             end
           end
         end
+
+        def self.key?(domain_class, id_h)
+          root_class = PersistenceService.inheritance_root_for(domain_class)
+          root_table = PersistenceService.table_for(root_class)
+          DB[root_table].where(id_h).count > 0
+        end
       end
 
       module BuilderHelpers
@@ -111,6 +117,10 @@ module Dilithium
 
             def fetch_all
               GenericFinders.fetch_all(self)
+            end
+
+            def key?(id)
+              GenericFinders.key?(self, self.identifier_names.first => id)
             end
 
             #TODO Refactor in Reference class

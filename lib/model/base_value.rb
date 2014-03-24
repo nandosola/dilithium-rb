@@ -38,6 +38,22 @@ module Dilithium
       end
     end
 
+    def identifiers
+      @identifiers.each_with_object(Hash.new) { |id, h| h[id] = instance_variable_get("@#{id}".to_sym)}
+    end
+
+    def each_reference(include_immutable = false)
+      # No-op: A BaseValue doesn't have references
+    end
+
+    def each_multi_reference(include_immutable = false)
+      # No-op: A BaseValue doesn't have references
+    end
+
+    def each_child
+      # No-op: A BaseValue doesn't have references
+    end
+
     def ==(other)
       self.class.attribute_names.inject(true) do |memo, attr_name|
         var_name = "@#{attr_name}".to_sym

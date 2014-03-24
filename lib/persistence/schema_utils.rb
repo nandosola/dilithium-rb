@@ -229,8 +229,7 @@ module Dilithium
                   row[key] = value.send(id)
                 end
 
-                # We just do this fetch to get an exception if the BaseValue already exists in the DB
-                Repository.for(attr_type.type).fetch_by_id(*key_values)
+                raise PersistenceExceptions::NotFound unless Repository.for(attr_type.type).key?(*key_values)
               else
                 row[attr] = value
             end

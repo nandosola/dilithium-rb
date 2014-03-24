@@ -312,20 +312,48 @@ describe 'BaseValue infrastructure' do
     describe 'In a transaction' do
       let(:transaction) { UnitOfWork::Transaction.new(Mapper::Sequel) }
 
-      it 'Allows a BaseValue to be registered as new and inserts it' do
-        fail
+      let(:davros) { Alien.new(race: 'Kaled', subrace: 'Dalek hybrid', hostility_level: 100) }
+
+      before(:each) do
+        SchemaUtils::Sequel.create_tables(Alien, Planet)
       end
 
-      it 'Allows a BaseValue to be registered as clean' do
-        fail
+      after(:each) do
+        $database.drop_table :aliens
+        $database.drop_table :planets
+      end
+
+      it 'Allows a BaseValue to be registered as clean, which is a no-op' do
+        transaction.register_clean(davros)
+        expect(transaction.fetch_all_objects).to_not include(davros)
+        transaction.abort
+      end
+
+      it 'Allows a BaseValue to be registered as new and inserts it' do
+        transaction.register_new(davros)
+        expect(transaction.fetch_object(davros).object).to eq(davros)
+        transaction.commit
+
+        expect(Repository.for(Alien).fetch_by_id(davros.race, davros.subrace)).to eq(davros)
+        transaction.complete
+      end
+
+      it 'Does not a BaseValue to be registered as deleted' do
+        transaction.register_new(davros)
+        transaction.commit
+
+        expect(Repository.for(Alien).fetch_by_id(davros.race, davros.subrace).active).to be_true
+
+        transaction.register_deleted(davros)
+        transaction.commit
+
+        expect(Repository.for(Alien).fetch_by_id(davros.race, davros.subrace)).to be_nil
+
+        transaction.complete
       end
 
       it 'Does not allow a BaseValue to be registered as dirty' do
-        fail
-      end
-
-      it 'Does not allow a BaseValue to be registered as deleted' do
-        fail
+        expect { transaction.register_dirty(davros) }.to raise_error(ArgumentError)
       end
     end
   end
@@ -346,9 +374,7 @@ describe 'BaseValue infrastructure' do
         end
       }
 
-      let(:dalek) {
-        species.new(name: 'Dalek', origin: skaro, leader: davros)
-      }
+      let(:dalek) { species.new(name: 'Dalek', origin: skaro, leader: davros) }
 
       it 'Creates a new attribute entry in the BaseEntity' do
         expect(species.attribute_descriptors).to include(:origin, :leader)

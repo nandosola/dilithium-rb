@@ -29,6 +29,13 @@ module Dilithium
           GenericFinders.fetch_all(@type)
         end
 
+        def key?(*args)
+          raise ArgumentError, "wrong number of arguments (#{args.length} for #{@type.identifier_names.length})" unless args.length == @type.identifier_names.length
+
+          condition_h = Hash[@type.identifier_names.zip(args)]
+          GenericFinders.key?(@type, condition_h)
+        end
+
         private
 
         def initialize(type)

@@ -38,22 +38,22 @@ module Dilithium
       end
 
       def register_clean(obj)
-        check_valid_entity(obj, STATE_CLEAN)
+        check_valid(obj, STATE_CLEAN)
         register_entity(obj, STATE_CLEAN)
       end
 
       def register_dirty(obj)
-        check_valid_entity(obj, STATE_DIRTY)
+        check_valid(obj, STATE_DIRTY)
         register_entity(obj, STATE_DIRTY)
       end
 
       def register_deleted(obj)
-        check_valid_entity(obj, STATE_DELETED)
+        check_valid(obj, STATE_DELETED)
         register_entity(obj, STATE_DELETED)
       end
 
       def register_new(obj)
-        check_valid_entity(obj, STATE_NEW, false)
+        check_valid(obj, STATE_NEW, false)
         register_entity(obj, STATE_NEW)
       end
 
@@ -165,11 +165,18 @@ module Dilithium
         end
       end
 
-      def check_valid_entity(obj, state, must_have_id=true)
-        unless obj.class < BaseEntity
-          raise ArgumentError, "Only BasicEntities can be registered in the Transaction. Got: #{obj.class}"
+      def check_valid(obj, state, must_have_id=true)
+        case obj
+          when BaseEntity
+            check_valid_entity(obj, state, must_have_id)
+          when BaseValue
+            check_valid_value(obj, state)
+          else
+            raise ArgumentError, "Only BaseEntities and BaseValues can be registered in the Transaction. Got: #{obj.class}"
         end
+      end
 
+      def check_valid_entity(obj, state, must_have_id=true)
         id = obj.class.identifier_names
 
         if must_have_id
@@ -183,12 +190,21 @@ module Dilithium
         else
           raise ArgumentError, "Cannot register #{obj.class} with an existing identity (#{id}=#{obj.id})" unless obj.id.nil?
           found_res = fetch_object(obj)
+
           unless found_res.nil?
             if found_res.state == state
               raise ArgumentError, "Cannot register the same object twice: already exists in the transaction"
             end
           end
         end
+      end
+
+      def check_valid_value(obj, state)
+        unless obj.class < BaseValue
+          raise ArgumentError, "Only BaseEntities and BaseValues can be registered in the Transaction. Got: #{obj.class}"
+        end
+
+        raise ArgumentError, 'BaseValues cannot be registered as dirty or deleted' if state == STATE_DIRTY
       end
 
       def check_valid_uow
@@ -228,7 +244,7 @@ module Dilithium
         lock(entity_class, id)
         entity = entity_class.fetch_by_id(id)
         # manual register_dirty
-        check_valid_entity(entity, STATE_DIRTY)
+        check_valid(entity, STATE_DIRTY)
         register_entity(entity, STATE_DIRTY)
         entity
       end
@@ -241,7 +257,7 @@ module Dilithium
         lock(entity_class, id)
         entity = entity_class.fetch_by_id(id)
         # manual register_deleted
-        check_valid_entity(entity, STATE_DELETED)
+        check_valid(entity, STATE_DELETED)
         register_entity(entity, STATE_DELETED)
         entity
       end
