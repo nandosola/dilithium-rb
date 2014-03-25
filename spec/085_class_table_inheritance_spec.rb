@@ -69,7 +69,7 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
 
   it 'should save data to the database' do
     bistromath = RegisteredVehicleC.new({:active => true, :name => 'Bistromath', :owner => 'Slartibartfast'})
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_new(bistromath)
     transaction.commit
 
@@ -84,7 +84,7 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
   it 'should update data in the database' do
     id = $database[:vehicle_cs].where(name:'Bistromath').first[:id]
     bistromath = VehicleC.fetch_by_id(id)
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_dirty(bistromath)
     bistromath.name = 'Krikkit One'
     bistromath.owner = 'Hactar'
@@ -109,7 +109,7 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     company.add_company_car(v_1)
     company.add_company_car(v_2)
 
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_new(company)
     transaction.commit
 
@@ -130,7 +130,7 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
   it 'should mark a deleted entity as inactive' do
     id = $database[:vehicle_cs].where(name:'Krikkit One').first[:id]
     bistromath = VehicleC.fetch_by_id(id)
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_deleted(bistromath)
     transaction.commit
 
@@ -164,7 +164,7 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     expect(fleet.ground_vehicle_cs).to include(van)
     expect(fleet.ground_vehicle_cs).to include(motorcycle)
 
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_new(fleet)
     transaction.commit
 

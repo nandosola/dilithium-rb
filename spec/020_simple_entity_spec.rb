@@ -111,7 +111,7 @@ describe 'A Simple Entity' do
     another_user.name.should eq('Dilbert')
     another_user.email.should eq('dilbert@example.net')
 
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
 
     transaction.register_new(new_user)
     transaction.register_new(another_user)

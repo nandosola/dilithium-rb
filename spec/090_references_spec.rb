@@ -25,7 +25,7 @@ describe 'An model with references' do
 
     a_location = Location.new({:name => 'tumbolia'})
 
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_new(a_shipment)
     transaction.register_new(a_location)
     transaction.commit
@@ -82,7 +82,7 @@ describe 'An model with references' do
                                 ]
                               })
 
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_new(a_shipyard)
     transaction.commit
 

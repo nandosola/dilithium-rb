@@ -56,7 +56,7 @@ describe 'The object tracker' do
   end
 
   it 'correctly handles multi references' do
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
 
     st_new = UnitOfWork::States::Default::STATE_NEW
 

@@ -13,7 +13,7 @@ describe 'A Transaction handling an Aggregate Entity' do
   end
 
   before(:each) do
-    @transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    @transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
   end
 
   after(:each) do
@@ -221,7 +221,7 @@ describe 'A Transaction handling an Aggregate Entity' do
   end
 
   it "From a new transaction: retrieves an aggregate, registers it as dirty, and rollbacks it " do
-    tr = UnitOfWork::Transaction.new(Mapper::Sequel)
+    tr = UnitOfWork::Transaction.new(EntityMapper::Sequel)
 
     company = Company.fetch_by_id(2)
     tr.register_dirty(company)
@@ -234,7 +234,7 @@ describe 'A Transaction handling an Aggregate Entity' do
   end
 
   it "From a new transaction: retrieves an aggregate, registers it as dirty and deletes it" do
-    tr = UnitOfWork::Transaction.new(Mapper::Sequel)
+    tr = UnitOfWork::Transaction.new(EntityMapper::Sequel)
 
     company = Company.fetch_by_id(2)
     tr.register_dirty(company)
@@ -277,7 +277,7 @@ describe 'A Transaction handling an Aggregate Entity' do
       bazs = $database[:bazs]
       bazs.insert(:baz => 'baz ref 1', :_version_id => v_id)
 
-      tr = UnitOfWork::Transaction.new(Mapper::Sequel)
+      tr = UnitOfWork::Transaction.new(EntityMapper::Sequel)
 
       a_baz = Baz.fetch_by_id(1)
       a_foo = Foo.new({foo:'foo', bars:[{bar:'bar', baz:a_baz}, {bar:'bar2', baz:a_baz}], baz:a_baz})

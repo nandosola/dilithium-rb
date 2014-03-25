@@ -57,7 +57,7 @@ describe 'A single-inheritance hierarchy of BaseEntities with Leaf Table Inherit
 
   it 'should save data to the database' do
     bistromath = RegisteredVehicleL.new({:active => true, :name => 'Bistromath', :owner => 'Slartibartfast'})
-    transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_new(bistromath)
     transaction.commit
 

@@ -12,7 +12,7 @@ describe 'A transaction handling a Simple Entity' do
         @object_tracker
       end
     end
-    @transaction = UnitOfWork::Transaction.new(Mapper::Sequel)
+    @transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     @a_user = User.fetch_by_id(1)
     @b_user = User.fetch_by_id(2)
     @new_user = User.new
@@ -193,7 +193,7 @@ describe 'A transaction handling a Simple Entity' do
     user = User.fetch_by_id(2)
     expect {@transaction.register_dirty(user)}.to raise_error(ArgumentError)
 
-    new_tr = UnitOfWork::Transaction.new(Mapper::Sequel)
+    new_tr = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     expect {new_tr.register_new(user)}.to raise_error(ArgumentError)
 
     new_user = User.new

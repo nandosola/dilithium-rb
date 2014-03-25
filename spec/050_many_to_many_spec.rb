@@ -9,7 +9,7 @@ describe 'A BasicEntity with a many to many relationship' do
     SchemaUtils::Sequel.create_tables(Employee, Department, Building)
     insert_test_employees_depts_and_buildings
 
-    module Mapper
+    module EntityMapper
       module Sequel
         # TESTING PURPOSES ONLY: eliminates dependencies with Transaction
         def self.check_uow_transaction(base_entity)
@@ -172,7 +172,7 @@ describe 'A BasicEntity with a many to many relationship' do
     emp.add_managed_department dept3
     emp.add_managed_department dept4
 
-    Mapper::Sequel.insert(emp)
+    EntityMapper::Sequel.insert(emp)
 
     found_depts = $database[:employees_departments].all
     found_depts[0].should include(:employee_id => emp.id)
@@ -195,7 +195,7 @@ describe 'A BasicEntity with a many to many relationship' do
 
     emp = Employee.new({name:'Grillo', departments:[dept, dept2], managed_departments:[dept3, dept4]})
 
-    Mapper::Sequel.insert(emp)
+    EntityMapper::Sequel.insert(emp)
 
     found_depts = $database[:employees_departments].where(employee_id:emp.id).all
     found_depts[0].should include(:employee_id => emp.id)
@@ -224,7 +224,7 @@ describe 'A BasicEntity with a many to many relationship' do
 
     emp = Employee.new({name:'Kenneth', departments:[dept, dept2], managed_departments:[dept3, dept4]})
 
-    Mapper::Sequel.insert(emp)
+    EntityMapper::Sequel.insert(emp)
     found_depts = $database[:employees_departments].where(employee_id:emp.id).all
     found_depts[0].should include(:employee_id => emp.id)
     found_depts[0].should include(:department_id => dept.id)
@@ -244,9 +244,9 @@ describe 'A BasicEntity with a many to many relationship' do
     dept = Department.fetch_by_id(1)
     emp.add_departmentdept
 
-    Mapper::Sequel.delete(dept)
+    EntityMapper::Sequel.delete(dept)
 
-    Mapper::Sequel.insert(emp)
+    EntityMapper::Sequel.insert(emp)
     #foo = $database[:employees_departments].all
   end
 
@@ -265,7 +265,7 @@ describe 'A BasicEntity with a many to many relationship' do
     emp.add_managed_department dept4
     emp.add_building bld
 
-    Mapper::Sequel.insert(emp)
+    EntityMapper::Sequel.insert(emp)
 
     katrina = Employee.fetch_by_id(emp.id)
     katrina.name.should eq(emp.name)
@@ -306,7 +306,7 @@ describe 'A BasicEntity with a many to many relationship' do
     katrina.managed_departments.size.should eq(1)
     katrina.buildings.size.should eq(0)
 
-    Mapper::Sequel.update(katrina, orig_katrina)
+    EntityMapper::Sequel.update(katrina, orig_katrina)
 
     found_depts = $database[:employees_departments].where(employee_id:kati_id).all
     found_depts.size.should eq(1)
