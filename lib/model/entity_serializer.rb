@@ -20,7 +20,7 @@ module Dilithium
           end
       end
 
-      unless ::Dilithium::SharedVersion == skip_class
+      unless ::Dilithium::SharedVersion == skip_class || entity.is_a?(::Dilithium::BaseValue)
         h[:_version] = entity._version.to_h
       end
 
@@ -41,6 +41,8 @@ module Dilithium
               entity_h[attr] = value
             when BasicAttributes::ChildReference, BasicAttributes::MultiReference
               entity_h[attr] = value.map { |ref| to_nested_hash(ref, opts) } unless value.nil?
+            when BasicAttributes::ValueReference
+              entity_h[attr] = to_hash(value)
           end
         end
       end

@@ -405,6 +405,26 @@ describe 'BaseValue infrastructure' do
         expect(frozen.leader).to eq(dalek.leader)
       end
 
+      describe 'Serialization' do
+        it 'EntitySerializer.to_hash' do
+          h = EntitySerializer.to_hash(davros)
+          expect(h).to include(
+                         race: davros.race,
+                         subrace: davros.subrace,
+                         hostility_level: davros.hostility_level
+                       )
+        end
+
+        it 'EntitySerializer.to_nested_hash' do
+          h = EntitySerializer.to_nested_hash(dalek)
+          expect(h).to include(
+                         name: dalek.name,
+                         origin: EntitySerializer.to_hash(dalek.origin),
+                         leader: EntitySerializer.to_hash(dalek.leader)
+                       )
+        end
+      end
+
       describe '#initialize' do
         before(:each) do
           SchemaUtils::Sequel.create_tables(Planet, Alien)
