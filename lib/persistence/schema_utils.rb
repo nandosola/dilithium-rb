@@ -26,10 +26,6 @@ module Dilithium
           def needs_version?
             PersistenceService.is_inheritance_root?(@domain_class)
           end
-
-          def soft_delete?
-            true
-          end
         end
 
         class BaseValueSchema < BaseSchema
@@ -52,17 +48,17 @@ module Dilithium
           end
 
           def define_inheritance_keys(&block)
+            raise NotImplemented, "CTI for BaseValues not yet implemented"
+=begin
+
             super_table = PersistenceService.table_for(@domain_class.superclass)
             keys = @domain_class.identifier_names.join(",:")
             block.call('foreign_key',
                        ":#{keys}, :#{super_table}, :key => :#{keys}, :primary_key => true")
+=end
           end
 
           def needs_version?
-            false
-          end
-
-          def soft_delete?
             false
           end
         end

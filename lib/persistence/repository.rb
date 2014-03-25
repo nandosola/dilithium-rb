@@ -8,7 +8,7 @@ module Dilithium
     # TODO caching layer
     # TODO get map inside Repository
 
-    class NotFound < Exception
+    class NotFound < StandardError
       attr_accessor :id, :type
       def initialize(id, type)
         super("#{type} with ID #{id} not found")
