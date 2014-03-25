@@ -9,7 +9,7 @@ module Dilithium
   module DatabaseUtils
   end
   module Mapper
-    class Sequel
+    module Sequel
     end
   end
   module Repository
@@ -20,7 +20,7 @@ module Dilithium
   end
 
   module PersistenceService
-    class Sequel
+    module Sequel
       def self.db=(db)
         SchemaUtils::Sequel.const_set(:DB, db)
         Mapper::Sequel.const_set(:DB, db)

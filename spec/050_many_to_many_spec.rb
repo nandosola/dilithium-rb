@@ -10,7 +10,7 @@ describe 'A BasicEntity with a many to many relationship' do
     insert_test_employees_depts_and_buildings
 
     module Mapper
-      class Sequel
+      module Sequel
         # TESTING PURPOSES ONLY: eliminates dependencies with Transaction
         def self.check_uow_transaction(base_entity)
         end
