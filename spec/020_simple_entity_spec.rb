@@ -47,6 +47,10 @@ describe 'A Simple Entity' do
     User.fetch_by_name('Charly').first.id.should eq(3)
   end
 
+  it 'raises an exception if fetch_by_id is called with a nonexistent key' do
+    expect { User.fetch_by_id(42) }.to raise_error(PersistenceExceptions::NotFound)
+  end
+
   it 'fetches references' do
     duke = User.fetch_by_email('duke@example.net').first
     duke.reference.should be_a(Association::ImmutableEntityReference)

@@ -5,6 +5,7 @@ module Dilithium
     include DomainObjectExceptions
 
     extend BaseMethods::Attributes
+    extend Repository::Sequel::ValueClassBuilders
 
     def self.inherited(base)
       base.instance_eval do
@@ -35,6 +36,22 @@ module Dilithium
       @identifiers.map do |id|
         { :identifier => id, :type => self.attribute_descriptors[id].type }
       end
+    end
+
+    def identifiers
+      @identifiers.each_with_object(Hash.new) { |id, h| h[id] = instance_variable_get("@#{id}".to_sym)}
+    end
+
+    def each_reference(include_immutable = false)
+      # No-op: A BaseValue doesn't have references
+    end
+
+    def each_multi_reference(include_immutable = false)
+      # No-op: A BaseValue doesn't have references
+    end
+
+    def each_child
+      # No-op: A BaseValue doesn't have references
     end
 
     def ==(other)

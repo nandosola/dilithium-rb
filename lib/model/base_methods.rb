@@ -24,8 +24,10 @@ module Dilithium
                        BasicAttributes::ExtendedGenericAttribute.new(name, type, opts[:mandatory], opts[:default])
                      elsif BasicAttributes::GENERIC_TYPES.include?(type)
                        BasicAttributes::GenericAttribute.new(name, type, opts[:mandatory], opts[:default])
+                     elsif type < BaseValue
+                       BasicAttributes::ValueReference.new(name, type, opts[:mandatory], opts[:default])
                      else
-                       raise ArgumentError, "Cannot determine type for attribute #{name}"
+                       raise ArgumentError, "The type of attribute #{name} is not a Generic, Extended Generic or BaseValue"
                      end
 
         add_attribute(descriptor)

@@ -26,10 +26,6 @@ module Dilithium
           def needs_version?
             PersistenceService.is_inheritance_root?(@domain_class)
           end
-
-          def soft_delete?
-            true
-          end
         end
 
         class BaseValueSchema < BaseSchema
@@ -52,17 +48,17 @@ module Dilithium
           end
 
           def define_inheritance_keys(&block)
+            raise NotImplemented, "CTI for BaseValues not yet implemented"
+=begin
+
             super_table = PersistenceService.table_for(@domain_class.superclass)
             keys = @domain_class.identifier_names.join(",:")
             block.call('foreign_key',
                        ":#{keys}, :#{super_table}, :key => :#{keys}, :primary_key => true")
+=end
           end
 
           def needs_version?
-            false
-          end
-
-          def soft_delete?
             false
           end
         end
@@ -84,7 +80,20 @@ module Dilithium
                          else
                            PersistenceService.table_for(attr.type)
                          end
+
                   block.call('foreign_key', ":#{SchemaUtils::Sequel.to_reference_name(attr)}, :#{name}")
+
+                when BasicAttributes::ValueReference
+                  refs = attr.type.identifiers.each_with_object(Hash.new) do |id_desc, h|
+                    key = SchemaUtils::Sequel.to_value_ref_name(attr, id_desc[:identifier])
+                    h[":#{key}"] = id_desc[:type]
+                  end
+
+                  refs.each { |ref_name, type| block.call(type, ref_name) }
+
+                  name = PersistenceService.table_for(attr.type)
+                  block.call('foreign_key', "[#{refs.keys.join(',')}], :#{name}")
+
                 when BasicAttributes::GenericAttribute
                   default = attr.default.nil? ? 'nil' : attr.default
                   default = "'#{default}'" if default.is_a?(String) && attr.default
@@ -178,6 +187,10 @@ module Dilithium
         "#{attr.name.to_s.singularize}_id".to_sym
       end
 
+      def self.to_value_ref_name(attr, id)
+        "#{attr.name.to_s.singularize}_#{id}".to_sym
+      end
+
       def self.to_row(domain_object, parent_id=nil)
         mapper_strategy = DomainObjectSchema.mapper_schema_for(domain_object.class)
 
@@ -206,6 +219,13 @@ module Dilithium
             case attr_type
               when BasicAttributes::ImmutableReference
                 row[SchemaUtils::Sequel.to_reference_name(attr_type)] = value.nil? ? attr_type.default : value.id
+              when BasicAttributes::ValueReference
+                key_values = attr_type.type.identifier_names.map do |id|
+                  key = SchemaUtils::Sequel.to_value_ref_name(attr_type, id)
+                  row[key] = value.send(id)
+                end
+
+                raise PersistenceExceptions::NotFound unless Repository.for(attr_type.type).key?(*key_values)
               else
                 row[attr] = value
             end

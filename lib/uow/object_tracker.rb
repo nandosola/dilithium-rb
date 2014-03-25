@@ -181,17 +181,25 @@ module Dilithium
         TrackedObjectSearchResult.factory(found_array, TrackedObjectSearchResult::SINGLE_T)
       end
 
-      def fetch_by_class(klazz, search_id=nil)
+      def fetch_by_class(klazz, search_ids = nil)
         filter = lambda do |obj|
-          if search_id.nil?
+          if search_ids.nil?
             obj.object.is_a?(klazz)
           else
-            obj.object.is_a?(klazz) && search_id == obj.object.id
+            ids_match = case search_ids
+                          when Hash
+                            ids = klazz.identifier_names.map{ |id| search_ids[id] }
+                            Repository.for(klazz).key?(*ids)
+                          else
+                            search_ids == obj.object.id
+                        end
+            obj.object.is_a?(klazz) && ids_match
           end
         end
+
         found_array = @tracker.select {|to| filter.call(to) }
 
-        if search_id.nil?
+        if search_ids.nil?
           TrackedObjectSearchResult.factory(found_array)
         else
           TrackedObjectSearchResult.factory(found_array, TrackedObjectSearchResult::SINGLE_T)
