@@ -92,7 +92,7 @@ module Dilithium
         end
       end
 
-      private
+      protected
 
       def self.check_uow_transaction(base_entity)
         #TODO In the case where base_entity is not a root, should we also check that its root HAS a transaction?
@@ -140,7 +140,6 @@ module Dilithium
           end
         end
       end
-
       private_class_method(:insert_in_intermediate_table)
 
       def self.delete_in_intermediate_table(dependee, dependent, ref_attr)
@@ -151,7 +150,6 @@ module Dilithium
             where(column_dependee => dependee.id).delete
         end
       end
-
       private_class_method(:delete_in_intermediate_table)
 
       def self.intermediate_table_descriptor(dependee, dependent, ref_attr)
@@ -164,7 +162,6 @@ module Dilithium
         column_dependent = :"#{table_dependent.to_s.singularize}_id"
         return column_dependee, column_dependent, intermediate_table_name
       end
-
       private_class_method(:intermediate_table_descriptor)
 
       class ClassTableInheritance
@@ -247,7 +244,6 @@ module Dilithium
             memo
           end
         end
-
         private_class_method(:split_row)
       end
 
