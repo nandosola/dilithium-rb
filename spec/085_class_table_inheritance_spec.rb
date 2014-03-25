@@ -3,33 +3,42 @@ require 'fixtures/class_table_inheritance'
 
 describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheritance' do
   before(:all) do
-    SchemaUtils::Sequel.create_tables(VehicleC,
-                                RegisteredVehicleC,
-                                FleetC,
-                                GroundVehicleC,
-                                CarC,
-                                DeliveryVanC,
-                                AssignedOwnerC,
-                                SmallCompanyC)
+    SchemaUtils::Sequel.create_tables(PersonC,
+                                      VehicleC,
+                                      RegisteredVehicleC,
+                                      FleetC,
+                                      GroundVehicleC,
+                                      CarC,
+                                      DeliveryVanC,
+                                      AssignedOwnerC,
+                                      SmallCompanyC)
   end
 
   it 'should create a table per subclass with the correct columns' do
     $database.table_exists?(:vehicle_cs).should be_true
     $database.table_exists?(:registered_vehicle_cs).should be_true
+    $database.table_exists?(:registered_vehicle_cs_previous_owners).should be_true
 
-    schema = $database.schema(:vehicle_cs).inject({}) { |memo, s| memo[s[0]] = s[1][:db_type]; memo }
+    schema = SchemaUtils::Sequel.get_schema(:vehicle_cs)
     expect(schema).to eq(
-                        :id => 'integer',
-                        :active => 'boolean',
-                        :_type => 'varchar(255)',
-                        :_version_id => 'integer',
-                        :name => 'varchar(255)'
+                        id: { type: 'integer', primary_key: true},
+                        active: { type: 'boolean', primary_key: false},
+                        _type: { type: 'varchar(255)', primary_key: false},
+                        _version_id: { type: 'integer', primary_key: false},
+                        name: { type: 'varchar(255)', primary_key: false}
                       )
 
-    schema = $database.schema(:registered_vehicle_cs).inject({}) { |memo, s| memo[s[0]] = s[1][:db_type]; memo }
+    schema = SchemaUtils::Sequel.get_schema(:registered_vehicle_cs)
     expect(schema).to eq(
-                        :id => 'integer',
-                        :owner => 'varchar(255)'
+                        id: { type: 'integer', primary_key: true},
+                        owner: { type: 'varchar(255)', primary_key: false}
+                      )
+
+    schema = SchemaUtils::Sequel.get_schema(:registered_vehicle_cs_previous_owners)
+    expect(schema).to eq(
+                        id: { type: 'integer', primary_key: true},
+                        registered_vehicle_c_id: { type: 'integer', primary_key: false},
+                        person_c_id: { type: 'integer', primary_key: false}
                       )
   end
 
@@ -50,6 +59,14 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
                              :_version_id => registered_version)
     registered_vehicles.insert(:id => reg_id, :owner => 'The Doctor')
 
+    ['The Doctor', 'Gallifreyan TARDIS Inc.'].each do |name|
+      version_id = versions.insert(:_version => 0, :_version_created_at => DateTime.now)
+      person_id = $database[:person_cs].insert(:active => true, :name => name, :_version_id => version_id)
+      $database[:registered_vehicle_cs_previous_owners].insert(:registered_vehicle_c_id => reg_id,
+                                                               :person_c_id => person_id)
+
+    end
+
     hog = VehicleC.fetch_by_id(v_id)
     tardis = RegisteredVehicleC.fetch_by_id(reg_id)
 
@@ -60,6 +77,9 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
     expect(tardis.class).to eq(RegisteredVehicleC)
     expect(tardis.name).to eq('TARDIS')
     expect(tardis.owner).to eq('The Doctor')
+    expect(tardis.previous_owners.length).to eq(2)
+    expect(tardis.previous_owners[0].resolve.name).to eq('The Doctor')
+    expect(tardis.previous_owners[1].resolve.name).to eq('Gallifreyan TARDIS Inc.')
 
     reg_fetched = VehicleC.fetch_by_id(reg_id)
     expect(reg_fetched.id).to eq(tardis.id)
@@ -68,8 +88,15 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
   end
 
   it 'should save data to the database' do
+    zaphod = PersonC.new(:name => 'Zaphod Beeblebrox')
+    ford = PersonC.new(:name => 'Ford Prefect')
+
     bistromath = RegisteredVehicleC.new({:active => true, :name => 'Bistromath', :owner => 'Slartibartfast'})
+    bistromath.add_previous_owner(zaphod)
+    bistromath.add_previous_owner(ford)
+
     transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
+    transaction.register_new(zaphod)
     transaction.register_new(bistromath)
     transaction.commit
 
@@ -79,6 +106,12 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
 
     r_result = $database[:registered_vehicle_cs].where(id: v_result[:id]).first
     expect(r_result[:owner]).to eq(bistromath.owner)
+
+    i_result = $database[:registered_vehicle_cs_previous_owners].where(registered_vehicle_c_id: bistromath.id)
+    expect(i_result.count).to eq(2)
+    owners = i_result.all.map { |h| h[:id] }
+    expect(owners).to include(zaphod.id)
+    expect(owners).to include(ford.id)
   end
 
   it 'should update data in the database' do

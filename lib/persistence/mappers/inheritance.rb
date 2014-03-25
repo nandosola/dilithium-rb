@@ -67,8 +67,12 @@ module Dilithium
           end
         end
 
-        def self.table_name_for_intermediate(entity)
-          PersistenceService.table_for(PersistenceService.inheritance_root_for(entity))
+        def self.table_name_for_intermediate(entity, attr_name)
+          defining_entity = PersistenceService.superclass_list(entity).find do |klazz|
+            klazz.attribute_names.include?(attr_name) || PersistenceService.is_inheritance_root?(klazz)
+          end
+
+          PersistenceService.table_for(defining_entity)
         end
 
         private
@@ -135,7 +139,7 @@ module Dilithium
           end
         end
 
-        def self.table_name_for_intermediate(entity)
+        def self.table_name_for_intermediate(entity, attr_name)
           PersistenceService.table_for(entity)
         end
       end

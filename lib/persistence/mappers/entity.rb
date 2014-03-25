@@ -136,13 +136,13 @@ module Dilithium
       private_class_method(:delete_in_intermediate_table)
 
       def self.intermediate_table_descriptor(dependee, dependent, ref_attr)
-        table_dependee = InheritanceMapper.for(dependee.class).table_name_for_intermediate(dependee.class)
-        table_dependent = InheritanceMapper.for(dependent._type).table_name_for_intermediate(dependent._type)
-
+        table_dependee = InheritanceMapper.for(dependee.class).table_name_for_intermediate(dependee.class, ref_attr)
         intermediate_table_name = :"#{table_dependee}_#{ref_attr}"
-
         column_dependee = :"#{table_dependee.to_s.singularize}_id"
+
+        table_dependent = InheritanceMapper.for(dependent._type).table_name_for_intermediate(dependent._type, ref_attr)
         column_dependent = :"#{table_dependent.to_s.singularize}_id"
+
         return column_dependee, column_dependent, intermediate_table_name
       end
       private_class_method(:intermediate_table_descriptor)

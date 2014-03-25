@@ -1,10 +1,19 @@
 # -*- encoding : utf-8 -*-
+class PersonC < BaseEntity
+  attribute :name, String
+end
+
 class VehicleC < BaseEntity
   attribute :name, String
 end
 
 class RegisteredVehicleC < VehicleC
   attribute :owner, String
+  reference :previous_owners, PersonC, :multi => true
+end
+
+class OfficialVehicleC < RegisteredVehicleC
+  attribute :immunity_level, Integer
 end
 
 class FleetC < BaseEntity
