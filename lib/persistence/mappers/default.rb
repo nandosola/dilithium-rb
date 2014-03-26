@@ -16,6 +16,9 @@ module Dilithium
 
   end
 
+  module NoOpMapper
+    # no-op: useful for stubbing
+  end
 
   module DefaultMapper  # To be extended by custom repo modules
     module Sequel
