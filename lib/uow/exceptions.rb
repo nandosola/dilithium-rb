@@ -4,7 +4,7 @@ module Dilithium
 
     module TransactionExceptions
 
-      class EntityException < Exception
+      class EntityException < StandardError
         attr_reader :entity_class, :id
         def initialize(entity_class, id)
           @entity_class = entity_class
@@ -13,7 +13,7 @@ module Dilithium
         end
       end
 
-      class IllegalOperationException < Exception; end
+      class IllegalOperationException < StandardError; end
 
       class ObjectNotFoundInTransactionException < EntityException; end
 
@@ -30,11 +30,11 @@ module Dilithium
 
     module ObjectTrackerExceptions
 
-      class InvalidStateException < Exception; end
+      class InvalidStateException < StandardError; end
 
-      class MultipleTrackedObjectsException < Exception; end
+      class MultipleTrackedObjectsException < StandardError; end
 
-      class UntrackedObjectException < Exception; end
+      class UntrackedObjectException < StandardError; end
 
       class UntrackedReferenceException < UntrackedObjectException
         attr_reader :untracked_reference

@@ -1,6 +1,6 @@
 module Dilithium
   module PersistenceService
-    class ConfigurationError < Exception; end
+    class ConfigurationError < StandardError; end
 
     class Configuration
       def initialize
@@ -17,7 +17,7 @@ module Dilithium
           @mappers[k] = v
         end
         
-        raise ConfigurationError 'Must define a :default inheritance_mapper' unless @mappers.key?(:default)
+        raise ConfigurationError, 'Must define a :default inheritance_mapper' unless @mappers.key?(:default)
       end
 
       def find_in(map_sym, klazz, allow_redefines, include_inherited = true)
@@ -27,10 +27,10 @@ module Dilithium
                 when :tables
                   @tables
                 else
-                  raise PersistenceService::ConfigurationError, "Unknown configuration map type #{map_sym}"
+                  raise ConfigurationError, "Unknown configuration map type #{map_sym}"
               end
 
-        raise PersistenceService::ConfigurationError, "The PersistenceService can only be configured for subclasses of BaseEntity or BaseValue. #{klazz} is neither." unless klazz <= BaseEntity || klazz <= BaseValue
+        raise ConfigurationError, "The PersistenceService can only be configured for subclasses of BaseEntity or BaseValue. #{klazz} is neither." unless klazz <= BaseEntity || klazz <= BaseValue
 
         if klazz.superclass == DomainObject || klazz.superclass == ImmutableDomainObject
           map[:default]
@@ -46,7 +46,7 @@ module Dilithium
               klazz.superclass.superclass != ImmutableDomainObject &&
               find_in(map, klazz.superclass, allow_redefines) != sym
 
-              raise PersistenceService::ConfigurationError, "Not allowed to redefine the mapper type for entities that are not direct subclasses of Dilithium::BaseEntity or Dilithium::BaseValue. Offending class: #{klazz}"
+              raise ConfigurationError, "Not allowed to redefine the mapper type for entities that are not direct subclasses of Dilithium::BaseEntity or Dilithium::BaseValue. Offending class: #{klazz}"
             end
 
             map[klazz] = map.delete(sym)
@@ -69,7 +69,7 @@ module Dilithium
 
         unless @tables[klazz].nil? || @tables[klazz] == table and
           @table_classes[table].nil? || @table_classes[table] == klazz
-          raise PersistenceService::ConfigurationError, "Illegal redefinition of table-class association. Old class: #{@table_classes[table]}, table: #{@tables[klazz]}. New class: #{klazz}, table: #{table}"
+          raise ConfigurationError, "Illegal redefinition of table-class association. Old class: #{@table_classes[table]}, table: #{@tables[klazz]}. New class: #{klazz}, table: #{table}"
         end
 
         @tables[klazz] = table

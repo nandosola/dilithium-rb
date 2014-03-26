@@ -2,8 +2,8 @@
 
 module Dilithium
 
-  class VersionAlreadyLockedException < Exception; end
-  class VersionNotFoundException < Exception; end
+  class VersionAlreadyLockedException < StandardError; end
+  class VersionNotFoundException < StandardError; end
 
   class SharedVersion
     INITIAL_SEQUENCE = 0
