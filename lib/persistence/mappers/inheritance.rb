@@ -4,7 +4,7 @@ module Dilithium
   module InheritanceMapper
 
     def self.for(entity_class)
-      case PersistenceService.mapper_for(entity_class)
+      case PersistenceService.inheritance_mapper_for(entity_class)
         when :leaf
           Sequel::LeafTableInheritance
         when :class
@@ -14,7 +14,7 @@ module Dilithium
 
     module Sequel
 
-      class ClassTableInheritance
+      module ClassTableInheritance
         def self.insert(entity, parent_id = nil)
           entity_data = SchemaUtils::Sequel.to_row(entity, parent_id)
           entity_data.delete(:id)
@@ -101,43 +101,8 @@ module Dilithium
         private_class_method(:split_row)
       end
 
-      class LeafTableInheritance
-        def self.insert(domain_object, parent_id = nil)
-          mapper_strategy = SchemaUtils::Sequel::DomainObjectSchema.mapper_schema_for(domain_object.class)
-
-          entity_data = SchemaUtils::Sequel.to_row(domain_object, parent_id)
-          entity_data.delete(:id)
-          entity_data.merge!(_version_id:domain_object._version.id) if mapper_strategy.needs_version?
-
-          Sequel::DB[SchemaUtils::Sequel.to_table_name(domain_object)].insert(entity_data)
-        end
-
-        def self.delete(domain_object)
-          condition = EntityMapper.condition_for(domain_object)
-          Sequel::DB[SchemaUtils::Sequel.to_table_name(domain_object)].where(condition).update(active: false)
-        end
-
-        def self.update(modified_domain_object, original_object, already_versioned = false)
-          raise Dilithium::PersistenceExceptions::ImmutableObjectError, "#{modified_domain_object.class} is immutable - it can't be updated" if (modified_domain_object.is_a? ImmutableDomainObject)
-
-          mapper_strategy = SchemaUtils::Sequel::DomainObjectSchema.mapper_schema_for(modified_domain_object.class)
-          modified_data = SchemaUtils::Sequel.to_row(modified_domain_object)
-          original_data = SchemaUtils::Sequel.to_row(original_object)
-
-          EntityMapper.verify_identifiers_unchanged(modified_domain_object, modified_data, original_data)
-
-          unless modified_data.eql?(original_data)
-            if ! already_versioned && mapper_strategy.needs_version?
-              modified_domain_object._version.increment!
-              already_versioned = true
-            end
-
-            condition = EntityMapper.condition_for(modified_domain_object)
-            Sequel::DB[SchemaUtils::Sequel.to_table_name(modified_domain_object)].where(condition).update(modified_data)
-
-            already_versioned
-          end
-        end
+      module LeafTableInheritance
+        extend DefaultMapper::Sequel
 
         def self.table_name_for_intermediate(entity, attr_name)
           PersistenceService.table_for(entity)

@@ -39,13 +39,9 @@ describe 'A transaction handling a Simple Entity' do
     found_tracked_objects.size.should eq(1)
     found_tracked_objects.first.object.should eq(@a_user)
 
-    u = @a_user.transactions
-    u.length.should eq(1)
-    res = @a_user.transactions[0]
-    res.transaction.should eq(@transaction)
-    res.state.should eq(UnitOfWork::Transaction::STATE_CLEAN)
-
-    @b_user.transactions.should be_empty
+    u = @transaction.fetch_object(@a_user)
+    u.object.should_not be_nil
+    u.state.should eq(UnitOfWork::Transaction::STATE_CLEAN)
   end
 
   it "correctly unregisters an object with a Transaction" do
@@ -65,8 +61,8 @@ describe 'A transaction handling a Simple Entity' do
     @transaction.fetch_object_by_id(@a_user.class, @a_user.id).object.should eq(@a_user)
     @transaction.fetch_object_by_id(@a_user.class, 42).should be_nil
 
-    User.fetch_from_transaction(@transaction.uuid, @a_user.id).object.should eq(@a_user)
-    User.fetch_from_transaction('c0ffeeb4b3', 42).should be_a_kind_of(UnitOfWork::TransactionRegistry::Registry::TransactionNotFound)
+    @transaction.fetch_object(@a_user).object.should eq(@a_user)
+
     reg = UnitOfWork::TransactionRegistry::Registry.instance
     reg['c0ffeeb4b3'].should be_a_kind_of(UnitOfWork::TransactionRegistry::Registry::TransactionNotFound)
   end
@@ -80,9 +76,9 @@ describe 'A transaction handling a Simple Entity' do
     found_tracked_objects.size.should eq(1)
     found_tracked_objects.first.object.should eq(@a_user)
 
-    res = @a_user.transactions
-    res.size.should eq(1)
-    res[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
+    res = @transaction.fetch_object(@a_user)
+    res.should_not be_nil
+    res.state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
   end
 
   it "correctly saves changes to dirty objects when calling commit" do
@@ -92,7 +88,6 @@ describe 'A transaction handling a Simple Entity' do
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DIRTY).length.should eq(1)
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DIRTY)[0].object.should eq(@a_user)
     @transaction.valid.should eq(true)
-    @a_user.transactions[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
 
     @a_user.name.should eq('Andrew')
   end
@@ -103,12 +98,9 @@ describe 'A transaction handling a Simple Entity' do
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DIRTY).length.should eq(0)
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DELETED)[0].object.should eq(@a_user)
 
-    @a_user.transactions[0].state.should eq(UnitOfWork::Transaction::STATE_DELETED)
-
     @transaction.commit
 
     User.fetch_by_id(1).should be_nil
-    @a_user.transactions.length.should eq(0)
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DELETED).length.should eq(0)
   end
 
@@ -120,33 +112,20 @@ describe 'A transaction handling a Simple Entity' do
     found_tracked_objects.size.should eq(1)
     found_tracked_objects.first.object.should eq(@new_user)
 
-    res = @new_user.transactions
-    res.size.should eq(1)
-    res[0].object.should eq(@new_user)
-    res[0].transaction.should eq(@transaction)
-    res[0].state.should eq(UnitOfWork::Transaction::STATE_NEW)
-
     @transaction.commit
     User.fetch_by_name('Danny').should_not be_empty
 
-    res = @new_user.transactions
-    res.size.should eq(1)
-    res[0].object.should eq(@new_user)
-    res[0].transaction.should eq(@transaction)
-    res[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
+    res = @transaction.fetch_object(@new_user)
+    res.should_not be_nil
+    res.object.should eq(@new_user)
+    res.state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
 
-    user = res[0].object
+    user = res.object
     user.name = 'Franny'
     @transaction.commit
 
     User.fetch_by_name('Franny').should_not be_empty
     User.fetch_by_name('Danny').should be_empty
-
-    objs = []
-    User.fetch_from_transaction(@transaction.uuid) do |sr|
-      objs << sr.object
-    end
-    objs.first.should eq(user)
 
   end
 
@@ -156,7 +135,6 @@ describe 'A transaction handling a Simple Entity' do
     User.fetch_by_name('Danny').should be_empty
     found_tracked_object = @transaction.tracked_objects.fetch_object(@new_user)
     found_tracked_object.should be_nil
-    @new_user.transactions.should be_empty
   end
 
   it "does not affect objects when calling rollback" do
@@ -170,7 +148,6 @@ describe 'A transaction handling a Simple Entity' do
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DIRTY).length.should eq(1)
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DIRTY)[0].object.should eq(@a_user)
     @transaction.valid.should eq(true)
-    @a_user.transactions[0].state.should eq(UnitOfWork::Transaction::STATE_DIRTY)
 
     @a_user.name.should eq('Bob')
 

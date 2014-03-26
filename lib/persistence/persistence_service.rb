@@ -99,7 +99,7 @@ module Dilithium
       @configured = true
     end
 
-    def self.mapper_for(klazz)
+    def self.inheritance_mapper_for(klazz)
       @configuration.find_in(:mappers, klazz, false)
     end
 
@@ -116,7 +116,7 @@ module Dilithium
     end
 
     def self.is_inheritance_root?(klazz)
-      klazz.superclass.superclass == DomainObject || mapper_for(klazz) == :leaf
+      klazz.superclass.superclass == DomainObject || inheritance_mapper_for(klazz) == :leaf
     end
 
     def self.inheritance_root_for(klazz)

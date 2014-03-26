@@ -30,6 +30,7 @@ module Dilithium
         #TODO Refactor to have a real BaseEntityRepository and possibly a ReferenceRepository. Not done yet to
         # preserve backwards compatibility and because it should be part of the implementation of #41 (Move all
         # finders from Entities to the Repository)
+        # Sequel::EntityRepository.new
         type
       end
     end

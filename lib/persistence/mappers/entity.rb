@@ -24,13 +24,7 @@ module Dilithium
         DB.transaction &block
       end
 
-      def self.check_uow_transaction(base_entity)
-        #TODO In the case where base_entity is not a root, should we also check that its root HAS a transaction?
-        raise RuntimeError, 'Invalid Transaction' if !base_entity.class.has_parent? && base_entity.transactions.empty?
-      end
-
       def self.insert(entity, parent_id = nil)
-        check_uow_transaction(entity) unless parent_id  # It's the root
 
         # First insert version when persisting the root; no need to lock the row/table
         entity._version.insert! if entity.is_a?(BaseEntity) && parent_id.nil?
@@ -49,10 +43,11 @@ module Dilithium
         entity.each_multi_reference(true) do |ref, ref_attr|
           insert_in_intermediate_table(entity, ref, ref_attr)
         end
+
+        id
       end
 
       def self.delete(entity, already_versioned=false)
-        check_uow_transaction(entity)
 
         if entity.is_a?(BaseEntity) && ! already_versioned
           entity._version.increment!
@@ -67,7 +62,6 @@ module Dilithium
       end
 
       def self.update(modified_entity, original_entity, already_versioned=false)
-        check_uow_transaction(modified_entity)
 
         already_versioned = InheritanceMapper.for(modified_entity.class).update(modified_entity, original_entity, already_versioned)
 

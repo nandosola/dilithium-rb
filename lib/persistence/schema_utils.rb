@@ -165,7 +165,7 @@ module Dilithium
         }
 
         def self.mapper_schema_for(domain_class)
-          ATTRIBUTE_MAPPERS[PersistenceService.mapper_for(domain_class)].new(domain_class)
+          ATTRIBUTE_MAPPERS[PersistenceService.inheritance_mapper_for(domain_class)].new(domain_class)
         end
       end
 

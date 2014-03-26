@@ -5,8 +5,6 @@ module Dilithium
     extend Identifiers::Id
     extend Repository::Sequel::EntityClassBuilders
     include Repository::Sequel::EntityInstanceBuilders
-    extend UnitOfWork::TransactionRegistry::FinderService::ClassMethods
-    include UnitOfWork::TransactionRegistry::FinderService::InstanceMethods
 
     attr_accessor :_version
 

@@ -6,15 +6,15 @@ require_relative 'fixtures/configuration'
 describe 'PersistenceService' do
   describe '#configure' do
     it 'returns the configuration for BaseEntity' do
-      expect(PersistenceService.mapper_for(BaseEntity)).to eq(:leaf)
+      expect(PersistenceService.inheritance_mapper_for(BaseEntity)).to eq(:leaf)
     end
 
     it 'returns the configuration for a specifically-configured class' do
-      expect(PersistenceService.mapper_for(::PersistenceConfigTest::Base)).to eq(:class)
+      expect(PersistenceService.inheritance_mapper_for(::PersistenceConfigTest::Base)).to eq(:class)
     end
 
     it 'returns the configuration for a non-configured subclass' do
-      expect(PersistenceService.mapper_for(::PersistenceConfigTest::Subclass)).to eq(:class)
+      expect(PersistenceService.inheritance_mapper_for(::PersistenceConfigTest::Subclass)).to eq(:class)
     end
 
     it 'doesn\'t allow changing the configuration it has been set' do
@@ -28,7 +28,7 @@ describe 'PersistenceService' do
     end
 
     it 'doesn\'t allow getting the configuration for a non-BaseEntity' do
-      expect {PersistenceService.mapper_for(Object)}.to raise_error(PersistenceService::ConfigurationError)
+      expect {PersistenceService.inheritance_mapper_for(Object)}.to raise_error(PersistenceService::ConfigurationError)
     end
 
     it 'doesn\'t allow setting an invalid Mapper type' do

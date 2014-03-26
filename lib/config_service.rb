@@ -27,6 +27,7 @@ module Dilithium
     module Sequel
       def self.db=(db)
         SchemaUtils::Sequel.const_set(:DB, db)
+        DefaultMapper::Sequel.const_set(:DB, db)
         EntityMapper::Sequel.const_set(:DB, db)
         InheritanceMapper::Sequel.const_set(:DB, db)
         Repository::Sequel.const_set(:DB, db)

@@ -8,15 +8,6 @@ describe 'A BasicEntity with a many to many relationship' do
   before(:all) do
     SchemaUtils::Sequel.create_tables(Employee, Department, Building)
     insert_test_employees_depts_and_buildings
-
-    module EntityMapper
-      module Sequel
-        # TESTING PURPOSES ONLY: eliminates dependencies with Transaction
-        def self.check_uow_transaction(base_entity)
-        end
-      end
-    end
-
   end
 
   it 'must have an intermediate table in the database' do

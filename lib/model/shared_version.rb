@@ -82,7 +82,7 @@ module Dilithium
 
     def self.resolve(klazz, obj_id)
       # TODO: file a bug report: Sequel's natural_join returns the previous value in SQLite
-      version_class = case PersistenceService.mapper_for(klazz)
+      version_class = case PersistenceService.inheritance_mapper_for(klazz)
                         when :leaf
                           klazz
                         when :class
