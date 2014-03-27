@@ -9,10 +9,6 @@ GEM
   specs:
     bcrypt (3.1.7)
     bcrypt (3.1.7-java)
-    bcrypt-ruby (3.1.5)
-      bcrypt (>= 3.1.3)
-    bcrypt-ruby (3.1.5-java)
-      bcrypt (>= 3.1.3)
     diff-lcs (1.2.5)
     rake (10.1.1)
     rspec (2.14.1)
@@ -31,7 +27,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  bcrypt-ruby (~> 3.1.2)
+  bcrypt (~> 3.1.7)
   dilithium!
   rake (~> 10.1.0)
   rspec (~> 2.14.1)
