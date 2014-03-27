@@ -1,0 +1,80 @@
+# -*- encoding : utf-8 -*-
+require_relative 'spec_base'
+require 'lib/model/base_value'
+require 'lib/model/phantom_id'
+
+describe 'PhantomIdentifier class' do
+  let(:value){
+    Class.new(BaseValue) do
+      include Dilithium::PhantomIdentifier
+      attribute :code, String
+      attribute :description, String
+      identified_by :code
+    end
+  }
+  let(:entity) {
+    Class.new(BaseEntity) do
+      attribute :name, String
+    end
+  }
+
+  it 'cannot be embedded in a BaseEntity' do
+    expect{entity.send(:include, Dilithium::PhantomIdentifier)}.to raise_error(ArgumentError)
+  end
+
+  it 'adds the _phantomid attribute to a BaseValue' do
+    a_value = value.new({code:'foo', description:'A Foo'})
+    expect(a_value).to respond_to(:_phantomid)
+  end
+end
+
+describe 'BaseValue with PhantomIdentifier' do
+
+  before(:all) do
+    class Value < BaseValue
+      include Dilithium::PhantomIdentifier
+      attribute :code, String
+      attribute :description, String
+      identified_by :code
+    end
+    SchemaUtils::Sequel.create_tables(Value)
+  end
+  after(:all) do
+    $database.drop_table :values
+  end
+
+  describe 'SchemaUtils::Sequel' do
+    it '::create_tables' do
+      $database.table_exists?(:values).should be_true
+    end
+    it '::get_schema' do
+      schema = SchemaUtils::Sequel.get_schema(:values)
+      expect(schema.key?(:_phantomid)).to be_true
+      expect(schema[:_phantomid][:type]).to eq('integer')
+    end
+  end
+
+  describe 'ValueMapper' do
+    it '::insert' do
+      a_value = Value.new({code:'foo', description:'A serious foo'})
+      Mapper.for(Value).insert(a_value)
+
+      a_value = Value.new({code:'bar', description:'A merry bar'})
+      Mapper.for(Value).insert(a_value)
+
+      foo = $database[:values].where(code:'foo').first
+      bar = $database[:values].where(code:'bar').first
+
+      expect(foo[:_phantomid]).to eq(1)
+      expect(bar[:_phantomid]).to eq(2)
+    end
+  end
+
+  describe 'ValueRepository' do
+    it '#fetch_by_id' do
+      Mapper.for(Value).insert(Value.new({code:'baz', description:'A sad baz'}))
+      Repository.for(Value).fetch_by_id('baz')
+    end
+  end
+
+end

@@ -121,7 +121,6 @@ module Dilithium
           end
 
           raise ArgumentError, "Attribute #{k} is not allowed in #{self.class}" unless attr_keys.include?(attribute_name)
-
           attributes[base_name].check_constraints(v)
         end
       end

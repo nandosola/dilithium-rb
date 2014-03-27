@@ -4,6 +4,15 @@ module Dilithium
   module ValueMapper
     module Sequel
       extend DefaultMapper::Sequel
+
+      self.singleton_class.send(:alias_method, :__insert, :insert)
+      def self.insert(domain_object, parent_id = nil)
+        klazz = domain_object.class
+        phantom_id = IntegerSequence.get_next(domain_object)
+        domain_object._phantomid = phantom_id.to_i if klazz.include?(PhantomIdentifier)
+        __insert(domain_object, parent_id)
+      end
+
     end
   end
 end

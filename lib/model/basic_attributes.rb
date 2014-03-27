@@ -4,6 +4,52 @@ module Dilithium
 
     GENERIC_TYPES = [String, Integer, Float, DateTime, TrueClass, FalseClass]
 
+    # Numerics in Ruby are immediates, meaning that they don't represent
+    # a heap-allocated object. Since you can’t allocate them, you can’t
+    # create a subclass and allocate instances of the subclass.
+    # See: http://devblog.avdi.org/2011/08/17/you-cant-subclass-integers-in-ruby/
+
+    # This is a proxy object so that end users can "subclass" Integers.
+    # CAVEAT: Case equality with Integer will *never* be satisfied w/o monkeypatching Integer itself.
+    # Before using a WrappedInteger inside a 'case' clause, please coerce it to Integer using #to_i
+    class WrappedInteger < BasicObject
+
+      def initialize(integer)
+        @value = integer
+      end
+
+      def to_i
+        @value
+      end
+      alias_method :to_int, :to_i
+
+      def respond_to?(method)
+        super or @value.respond_to?(method)
+      end
+
+      def method_missing(m, *args, &b)
+        super unless @value.respond_to?(m)
+
+        unwrapped_args = args.collect do |arg|
+          arg.is_a?(::Dilithium::BasicAttributes::WrappedInteger) ? arg.to_i : arg
+        end
+
+        ret = @value.send(m, *unwrapped_args, &b)
+
+        return ret if :coerce == m
+
+        if ret.is_a?(::Integer)
+          ::Dilithium::BasicAttributes::WrappedInteger.new(ret)
+        elsif ret.is_a?(::Array)
+          ret.collect do |element|
+            element.is_a?(::Integer) ? ::Dilithium::BasicAttributes::WrappedInteger.new(element) : element
+          end
+        else
+          ret
+        end
+      end
+    end
+
     class GenericAttribute
       attr_reader :name, :type, :default, :mandatory
       def initialize(name, type, mandatory=false, default=nil)
@@ -39,12 +85,24 @@ module Dilithium
 
     class ExtendedGenericAttribute < GenericAttribute
       def initialize(name, type, mandatory=false, default=nil)
-        raise ArgumentError, "The attribute #{name} does not extend a Ruby generic type" unless \
-       BasicAttributes::GENERIC_TYPES.include?(type.superclass)
+        raise ArgumentError, "The attribute #{name} does not extend a Ruby generic type" unless
+            ExtendedGenericAttribute.extends_generic_type?(type)
         @name = name
         @type = type
         @mandatory = mandatory
         @default = default  # TODO extra check for default value type
+      end
+
+      def self.extends_generic_type?(type)
+        (GENERIC_TYPES + [::Dilithium::BasicAttributes::WrappedInteger]).include?(type.superclass)
+      end
+
+      def check_constraints(value)
+        unless @type < ::Dilithium::BasicAttributes::WrappedInteger
+          super
+        else
+          raise ArgumentError, "#{@name} must be an Integer - got: #{value.class}" unless value.nil? || value.is_a?(Integer)
+        end
       end
 
       def generic_type
@@ -55,7 +113,7 @@ module Dilithium
         case value
           when String
             value.to_s
-          when Integer
+          when Integer, ::Dilithium::BasicAttributes::WrappedInteger
             value.to_i
           when Float
             value.to_f

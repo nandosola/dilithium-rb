@@ -20,7 +20,7 @@ module Dilithium
       #
       def attribute(name, type, opts = {})
         raise ArgumentError, "Attribute #{name} is a BaseEntity. Use reference instead of attribute" if self.is_a_base_entity?(type)
-        descriptor = if BasicAttributes::GENERIC_TYPES.include?(type.superclass)
+        descriptor = if BasicAttributes::ExtendedGenericAttribute.extends_generic_type?(type)
                        BasicAttributes::ExtendedGenericAttribute.new(name, type, opts[:mandatory], opts[:default])
                      elsif BasicAttributes::GENERIC_TYPES.include?(type)
                        BasicAttributes::GenericAttribute.new(name, type, opts[:mandatory], opts[:default])
@@ -42,7 +42,7 @@ module Dilithium
       def is_a_base_entity?(type)
         if type == BaseEntity
           true
-        elsif type == Object
+        elsif [Object, BasicObject].include?(type)
           false
         else
           self.is_a_base_entity?(type.superclass)

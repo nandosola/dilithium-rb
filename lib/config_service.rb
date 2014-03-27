@@ -29,9 +29,11 @@ module Dilithium
         SchemaUtils::Sequel.const_set(:DB, db)
         DefaultMapper::Sequel.const_set(:DB, db)
         EntityMapper::Sequel.const_set(:DB, db)
+        ValueMapper::Sequel.const_set(:DB, db)
         InheritanceMapper::Sequel.const_set(:DB, db)
         Repository::Sequel.const_set(:DB, db)
         SharedVersion.const_set(:DB, db)
+        IntegerSequence.const_set(:DB, db)
       end
     end
   end

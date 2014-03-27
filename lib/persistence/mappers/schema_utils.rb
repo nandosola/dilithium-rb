@@ -242,7 +242,10 @@ module Dilithium
           mapper_strategy = DomainObjectSchema.mapper_schema_for(domain_class)
 
           DB.create_table(table_name) do
-            mapper_strategy.define_schema{ |type,opts| eval("#{type} #{opts}") }
+            mapper_strategy.define_schema do |type,opts|
+              actual_type = ('Dilithium::BasicAttributes::WrappedInteger' == type) ? 'Integer' : type
+              eval("#{actual_type} #{opts}")
+            end
           end
 
           SharedVersion.add_to_table(table_name) if mapper_strategy.needs_version?
