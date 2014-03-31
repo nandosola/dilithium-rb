@@ -86,4 +86,13 @@ describe 'BaseValue with PhantomIdentifier' do
     end
   end
 
+  describe 'EntitySerializer' do
+    it '::to_hash shoud return _phantom_id coerced to Integer' do
+      qux_value = Value.new({code:'qux', description:'A calm qux'})
+      Mapper.for(Value).insert(qux_value)
+      res = Repository.for(Value).fetch_by_id('qux')
+      expect(Fixnum === EntitySerializer.to_hash(res)[:_phantomid]).to be_true
+    end
+  end
+
 end

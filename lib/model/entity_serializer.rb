@@ -12,10 +12,15 @@ module Dilithium
         else
           entity.class.attribute_names.each do |attr|
             attr_value = entity.send(attr.to_sym)
+            if entity.class.attributes.find{|x| attr.to_sym == x.name && x.type < Dilithium::BasicAttributes::WrappedInteger}
+              attr_value = attr_value.to_i
+            end
+
             next if !skip_class.nil? && attr_value.is_a?(skip_class)
             # TODO: uncomment when BasicEntityBuilder is ready
             # attr_type = model.class.attribute_descriptor[attr_name]
             # attr_value = attr_type.to_generic_type(attr_value) if attr_type.instance_of?(BasicAttributes::ExtendedGenericAttribute)
+
             h[attr] =  attr_value
           end
       end
