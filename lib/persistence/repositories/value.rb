@@ -2,6 +2,21 @@ module Dilithium
   module Repository
     module Sequel
 
+      module BuilderHelpers
+        def self.normalize_value_references(klazz, in_h)
+          klazz.value_references.each do |ref|
+            attr = klazz.attribute_descriptors[ref]
+            in_h[ref] = {}
+            attr.type.identifier_names.each do |identifier|
+              value_key = "#{ref}_#{identifier}".to_sym
+              value_val = in_h[value_key]
+              in_h[ref][identifier] = value_val
+              in_h.delete(value_key)
+            end
+          end
+        end
+      end
+
       module ValueClassBuilders
         def self.extended(base)
           base.instance_eval do

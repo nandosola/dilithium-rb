@@ -25,8 +25,7 @@ module Dilithium
               Association::LazyEntityReference.new(id, self)
             end
 
-
-            def resolve_references(in_h)
+            def resolve_entity_references(in_h)
               self.immutable_references.each do |ref|
                 attr = self.attribute_descriptors[ref]
                 ref_name = SchemaUtils::Sequel.to_reference_name(attr)
@@ -59,7 +58,8 @@ module Dilithium
               unless in_h.nil?
                 version = SharedVersion.resolve(self, in_h[:id])
                 in_h.delete(:_version_id)
-                resolve_references(in_h)
+                resolve_entity_references(in_h)
+                BuilderHelpers.normalize_value_references(self, in_h)
                 BuilderHelpers.resolve_extended_generic_attributes(self, in_h)
                 parent = resolve_parent(in_h)
                 root_obj = self.new(in_h, parent, version)
@@ -99,7 +99,7 @@ module Dilithium
 
             def attach_child(parent_obj, child_name, child_h)
               child_class = parent_obj.class.attribute_descriptors[child_name].inner_type
-              child_class.resolve_references(child_h)
+              child_class.resolve_entity_references(child_h)
               child_h.delete_if{|k,v| k.to_s.end_with?('_id')}
               method = "make_#{child_name.to_s.singularize}"
               child_obj = parent_obj.send(method.to_sym, child_h)

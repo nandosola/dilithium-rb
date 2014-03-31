@@ -526,6 +526,10 @@ describe 'BaseValue infrastructure' do
           result_h = $database[:species].where(id: id).first
           expect(result_h[:leader_race]).to eq(dalek_emperor.race)
           expect(result_h[:leader_subrace]).to eq(dalek_emperor.subrace)
+
+          res = Repository.for(Species).fetch_by_id(id)
+          expect(res.leader.race).to eq(dalek_emperor.race)
+          expect(res.leader.subrace).to eq(dalek_emperor.subrace)
         end
 
         it 'raises an exception when trying to update with a nonpersisted BaseValue' do

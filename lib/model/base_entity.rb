@@ -215,6 +215,10 @@ module Dilithium
       self.get_attributes_by_type(BasicAttributes::ImmutableReference)
     end
 
+    def self.value_references
+      self.get_attributes_by_type(BasicAttributes::ValueReference)
+    end
+
     def self.child_references
       self.get_attributes_by_type(BasicAttributes::ChildReference)
     end
