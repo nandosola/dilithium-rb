@@ -222,7 +222,7 @@ module Dilithium
               when BasicAttributes::ValueReference
                 key_values = attr_type.type.identifier_names.map do |id|
                   key = SchemaUtils::Sequel.to_value_ref_name(attr_type, id)
-                  row[key] = value.send(id)
+                  row[key] = value.nil? ? nil : value.send(id)  # TODO or set to default; maybe a NullReference object?
                 end
 
                 raise PersistenceExceptions::NotFound unless Repository.for(attr_type.type).key?(*key_values)

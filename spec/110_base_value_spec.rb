@@ -453,6 +453,13 @@ describe 'BaseValue infrastructure' do
                         leader: {race: 'Cyberman', subrace: 'Cyber controller'})
           }.to raise_error(PersistenceExceptions::NotFound)
         end
+
+        it 'Can be constructed with empty values' do
+          borg = species.new(name: 'Borg')
+
+          expect(borg.origin).to eq(nil)
+          expect(borg.leader).to eq(nil)
+        end
       end
     end
 
@@ -515,6 +522,15 @@ describe 'BaseValue infrastructure' do
           expect {
             Mapper.for(Species).insert(renegade_dalek)
           }.to raise_error(PersistenceExceptions::NotFound)
+        end
+
+        it 'inserts a BaseEntity with empty values' do
+          borg = Species.new(name: 'Borg')
+          id = Mapper.for(Species).insert(borg)
+          res = Repository.for(Species).fetch_by_id(id)
+          expect(res.origin.iso2).to be_nil
+          expect(res.leader.race).to be_nil
+          expect(res.leader.subrace).to be_nil
         end
       end
 

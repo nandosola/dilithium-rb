@@ -43,6 +43,13 @@ describe 'BaseValue with PhantomIdentifier' do
     $database.drop_table :values
   end
 
+  describe 'Empty BaseValue' do
+    it 'sets _phantomid to nil' do
+      empty_value = Value.new
+      expect(empty_value._phantomid).to be_nil
+    end
+  end
+
   describe 'SchemaUtils::Sequel' do
     it '::create_tables' do
       $database.table_exists?(:values).should be_true
@@ -87,11 +94,17 @@ describe 'BaseValue with PhantomIdentifier' do
   end
 
   describe 'EntitySerializer' do
-    it '::to_hash shoud return _phantom_id coerced to Integer' do
-      qux_value = Value.new({code:'qux', description:'A calm qux'})
-      Mapper.for(Value).insert(qux_value)
-      res = Repository.for(Value).fetch_by_id('qux')
-      expect(Fixnum === EntitySerializer.to_hash(res)[:_phantomid]).to be_true
+    describe '::to_hash' do
+      it 'should return _phantom_id coerced to Integer' do
+        qux_value = Value.new({code:'qux', description:'A calm qux'})
+        Mapper.for(Value).insert(qux_value)
+        res = Repository.for(Value).fetch_by_id('qux')
+        expect(Fixnum === EntitySerializer.to_hash(res)[:_phantomid]).to be_true
+      end
+      it 'serializes empty BaseValue _phantomid as nil' do
+        empty_value = Value.new
+        expect(EntitySerializer.to_hash(empty_value)[:_phantomid]).to be_nil
+      end
     end
   end
 

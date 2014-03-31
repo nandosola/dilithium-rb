@@ -13,7 +13,7 @@ module Dilithium
           entity.class.attribute_names.each do |attr|
             attr_value = entity.send(attr.to_sym)
             if entity.class.attributes.find{|x| attr.to_sym == x.name && x.type < Dilithium::BasicAttributes::WrappedInteger}
-              attr_value = attr_value.to_i
+              attr_value = attr_value.nil? ? nil : attr_value.to_i
             end
 
             next if !skip_class.nil? && attr_value.is_a?(skip_class)

@@ -37,7 +37,9 @@ module Dilithium
           raise ArgumentError, "wrong number of arguments (#{args.length} for #{@type.identifier_names.length})" unless args.length == @type.identifier_names.length
 
           condition_h = Hash[@type.identifier_names.zip(args)]
-          DefaultFinders.fetch_by_id(@type, condition_h)
+          condition_h.delete_if{|k,v| nil == v}
+          condition_h.empty? ? @type.new : DefaultFinders.fetch_by_id(@type, condition_h)
+          # TODO NullReference.new(@type) is definitely a good idea
         end
 
         def fetch_by_phantomid(phantom_id)
@@ -54,7 +56,12 @@ module Dilithium
           raise ArgumentError, "wrong number of arguments (#{args.length} for #{@type.identifier_names.length})" unless args.length == @type.identifier_names.length
 
           condition_h = Hash[@type.identifier_names.zip(args)]
-          DefaultFinders.key?(@type, condition_h)
+          DefaultFinders.key?(@type, condition_h) ||
+              # handle all values for *all* composite PK attributes set to nil
+              @type.identifiers.reduce(true) do |m,attr|
+                id = attr[:identifier]
+                m && condition_h[id].nil? && condition_h.include?(id)
+              end
         end
 
         private

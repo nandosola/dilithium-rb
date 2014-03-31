@@ -15,6 +15,7 @@ module Dilithium
     class WrappedInteger < BasicObject
 
       def initialize(integer)
+        raise ArgumentError, "This constructor takes an Integer" unless integer.class < ::Integer
         @value = integer
       end
 
