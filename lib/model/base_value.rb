@@ -57,7 +57,9 @@ module Dilithium
     def ==(other)
       self.class.attribute_names.inject(true) do |memo, attr_name|
         var_name = "@#{attr_name}".to_sym
-        memo && instance_variable_get(var_name) == other.instance_variable_get(var_name)
+        this_attr = instance_variable_get(var_name)
+        other_attr = other.instance_variable_get(var_name)
+        memo &&  this_attr == other_attr
       end
     end
   end

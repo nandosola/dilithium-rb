@@ -23,6 +23,10 @@ module Dilithium
       end
       alias_method :to_int, :to_i
 
+      def ==(other)
+        @value == other.to_i
+      end
+
       def respond_to?(method)
         super or @value.respond_to?(method)
       end

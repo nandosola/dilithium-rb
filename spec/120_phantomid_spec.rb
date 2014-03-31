@@ -72,8 +72,17 @@ describe 'BaseValue with PhantomIdentifier' do
 
   describe 'ValueRepository' do
     it '#fetch_by_id' do
-      Mapper.for(Value).insert(Value.new({code:'baz', description:'A sad baz'}))
-      Repository.for(Value).fetch_by_id('baz')
+      a_baz = Value.new({code:'baz', description:'A sad baz'})
+      Mapper.for(Value).insert(a_baz)
+      res = Repository.for(Value).fetch_by_id('baz')
+      expect(a_baz).to eq(res)
+    end
+    it '#fetch_by_phantomid' do
+      bat_value = Value.new({code:'bat', description:'A bewildered bat'})
+      Mapper.for(Value).insert(bat_value)
+      phantom_id = Repository.for(Value).fetch_by_id('bat')._phantomid
+      res = Repository.for(Value).fetch_by_phantomid(phantom_id)
+      expect(bat_value).to eq(res)
     end
   end
 

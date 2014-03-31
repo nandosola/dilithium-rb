@@ -25,6 +25,12 @@ module Dilithium
           DefaultFinders.fetch_by_id(@type, condition_h)
         end
 
+        def fetch_by_phantomid(phantom_id)
+          table = PersistenceService.table_for(@type)
+          res_h = DB[table].select(*@type.identifier_names).where(:_phantomid=>phantom_id.to_i).first
+          fetch_by_id(res_h.values)
+        end
+
         def fetch_all
           DefaultFinders.fetch_all(@type)
         end
