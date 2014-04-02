@@ -451,7 +451,11 @@ describe 'BaseValue infrastructure' do
             species.new(name: 'Dalek',
                         origin: {iso2: 'MO'},
                         leader: {race: 'Cyberman', subrace: 'Cyber controller'})
-          }.to raise_error(PersistenceExceptions::NotFound)
+          }.to raise_error { |error|
+            expect(error).to be_a PersistenceExceptions::NotFound
+            expect(error.id).to eq({iso2: 'MO'})
+            expect(error.type).to eq(Planet)
+          }
         end
 
         it 'Can be constructed with empty values' do

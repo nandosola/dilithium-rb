@@ -35,7 +35,7 @@ describe 'A Simple Entity' do
     expect {User.new({reference:'not a reference'})}.to raise_error(ArgumentError)
   end
 
-  it "has repository finders" do
+  it 'has repository finders' do
     a_user = User.fetch_by_id(1)
     a_user.class.should eq(User)
     a_user.name.should eq('Alice')
@@ -48,7 +48,11 @@ describe 'A Simple Entity' do
   end
 
   it 'raises an exception if fetch_by_id is called with a nonexistent key' do
-    expect { User.fetch_by_id(42) }.to raise_error(PersistenceExceptions::NotFound)
+    expect { User.fetch_by_id(42) }.to raise_error { |error|
+      expect(error).to be_a PersistenceExceptions::NotFound
+      expect(error.id).to eq(id: 42)
+      expect(error.type).to eq(User)
+    }
   end
 
   it 'fetches references' do
