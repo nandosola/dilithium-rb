@@ -1,149 +1,178 @@
 # -*- encoding : utf-8 -*-
 require_relative 'spec_base'
 
-describe 'A Simple Entity' do
+describe 'BaseEntity' do
 
   before(:all) do
     SchemaUtils::Sequel.create_tables(Reference, User)
     insert_test_users
   end
 
-  it "is not messed with by another entities" do
-    before_attrs = User.attributes
+  describe 'infrastructure' do
+    it 'is not messed with by another entities' do
+      before_attrs = User.attributes
 
-    class AnotherThing < BaseEntity
-      attribute :my_thing, String, mandatory:true
+      class AnotherThing < BaseEntity
+        attribute :my_thing, String, mandatory:true
+      end
+
+      expect(User.attributes).to eq(before_attrs)
+
+      a_user = User.new
+      expect(a_user).to respond_to(:id)
+      expect(a_user).to respond_to(:id=)
+      expect(a_user).to respond_to(:name)
+      expect(a_user).to respond_to(:name=)
+      expect(a_user).to respond_to(:email)
+      expect(a_user).to respond_to(:email=)
+      expect(a_user.instance_variables.include?(:'@my_thing')).to be_false
+      expect(a_user).to_not respond_to(:my_thing)
+      expect(a_user).to_not respond_to(:my_thing=)
     end
 
-    User.attributes.should eq(before_attrs)
-
-    a_user = User.new()
-    a_user.respond_to?(:id).should be_true
-    a_user.respond_to?(:id=).should be_true
-    a_user.respond_to?(:name).should be_true
-    a_user.respond_to?(:name=).should be_true
-    a_user.respond_to?(:email).should be_true
-    a_user.respond_to?(:email=).should be_true
-    a_user.instance_variables.include?(:'@my_thing').should be_false
-    a_user.respond_to?(:my_thing).should be_false
-    a_user.respond_to?(:my_thing=).should be_false
-  end
-
-  it "does not allow to be initialized with bogus attributes or values" do
-    expect {User.new({funny:false})}.to raise_error(ArgumentError)
-    expect {User.new({name:1337})}.to raise_error(ArgumentError)
-    expect {User.new({reference:'not a reference'})}.to raise_error(ArgumentError)
-  end
-
-  it 'has repository finders' do
-    a_user = User.fetch_by_id(1)
-    a_user.class.should eq(User)
-    a_user.name.should eq('Alice')
-    all_users = User.fetch_all
-    all_users.each do |u|
-      u.class.should eq(User)
+    it 'does not allow to be initialized with bogus attributes or values' do
+      expect {User.new({funny:false})}.to raise_error(ArgumentError)
+      expect {User.new({name:1337})}.to raise_error(ArgumentError)
+      expect {User.new({reference:'not a reference'})}.to raise_error(ArgumentError)
     end
-    User.fetch_by_email('bob@example.net').first.name.should eq('Bob')
-    User.fetch_by_name('Charly').first.id.should eq(3)
   end
 
-  it 'raises an exception if fetch_by_id is called with a nonexistent key' do
-    expect { User.fetch_by_id(42) }.to raise_error { |error|
-      expect(error).to be_a PersistenceExceptions::NotFound
-      expect(error.id).to eq(id: 42)
-      expect(error.type).to eq(User)
-    }
+  describe 'finders' do
+    describe '#fetch_by_id' do
+      it 'retrieves an entity given its ID' do
+        a_user = User.fetch_by_id(1)
+        expect(a_user.class).to eq(User)
+        expect(a_user.name).to eq('Alice')
+      end
+
+      it 'raises an error if the ID doesn\'t exist' do
+        expect {User.fetch_by_id(42)}.to raise_error { |error|
+          expect(error).to be_a PersistenceExceptions::NotFound
+          expect(error.id).to eq({id: 42})
+          expect(error.type).to eq(User)
+        }
+      end
+    end
+
+    describe '#fetch_all' do
+      it 'retrieves all entities of a given type' do
+        users = $database[:users].all
+
+        all_users = User.fetch_all
+
+        all_users.each_with_index do |u, i|
+          expect(u).to be_a(User)
+          expect(u.name).to eq(users[i][:name])
+          expect(u.email).to eq(users[i][:email])
+          expect(u.title).to eq(users[i][:title])
+        end
+      end
+    end
+
+    describe 'custom finders' do
+      it 'fetches by arbitrary attributes' do
+        expect(User.fetch_by_email('bob@example.net').first.name).to eq('Bob')
+        expect(User.fetch_by_name('Charly').first.id).to eq(3)
+      end
+    end
+
+
+    describe 'references' do
+      it 'fetches references' do
+        duke = User.fetch_by_email('duke@example.net').first
+        expect(duke.reference).to be_a(Association::ImmutableEntityReference)
+        expect(duke.reference._type).to eq(Reference)
+        expect(duke.reference.id).to eq(1)
+        duke.reference.resolve
+        expect(duke.reference.resolved_entity.name).to eq('Duke ref')
+
+        expect(duke.refers_to).to be_a(Association::ImmutableEntityReference)
+        expect(duke.refers_to._type).to eq(Reference)
+        expect(duke.refers_to.id).to eq(2)
+      end
+
+      it 'has not parent reference' do
+        user = User.fetch_by_id(1)
+        expect(user.class.parent_reference).to eq(nil)
+      end
+    end
   end
 
-  it 'fetches references' do
-    duke = User.fetch_by_email('duke@example.net').first
-    duke.reference.should be_a(Association::ImmutableEntityReference)
-    duke.reference._type.should eq(Reference)
-    duke.reference.id.should eq(1)
-    duke.reference.resolve
-    duke.reference.resolved_entity.name.should eq('Duke ref')
+  describe '.new' do
+    it 'accepts empty or full-hash constructors and validates its attributes' do
 
-    duke.refers_to.should be_a(Association::ImmutableEntityReference)
-    duke.refers_to._type.should eq(Reference)
-    duke.refers_to.id.should eq(2)
+      norbert = {:name => 'Norbert', :email => 'norb@example.net'}
+      dilbert = {:name => 'Dilbert', :email => 'dilbert@example.net'}
+
+      new_user = User.new(norbert)
+      another_user= User.new
+
+      expect(new_user).to respond_to(:id)
+      expect(new_user).to respond_to(:id=)
+      expect(new_user).to respond_to(:name)
+      expect(new_user).to respond_to(:name=)
+      expect(new_user).to respond_to(:email)
+      expect(new_user).to respond_to(:email=)
+
+      my_reference = Reference.new({name:'test'})
+      expect(new_user).to respond_to(:reference)
+      expect(new_user).to respond_to(:reference=)
+      expect(my_reference.name).to eq('test')
+      expect(new_user.reference).to be_nil
+      expect {new_user.reference = 'foo'}.to raise_error(ArgumentError)
+      new_user.reference = my_reference
+
+      expect {another_user.email = 42}.to raise_error(ArgumentError)
+      expect {another_user.name = 1337}.to raise_error(ArgumentError)
+      expect {User.new({:name => 'Catbert', :email => 1337})}.to raise_error(ArgumentError)
+      expect {User.new({:name => nil, :email => 'catbert@example.net'})}.to raise_error(ArgumentError)
+
+      another_user.make(dilbert)
+
+      expect(another_user.id).to eq(nil)
+      expect(another_user.name).to eq('Dilbert')
+      expect(another_user.email).to eq('dilbert@example.net')
+
+      expect(new_user.id).to eq(nil)
+      expect(new_user.name).to eq('Norbert')
+      expect(new_user.email).to eq('norb@example.net')
+
+      expect(another_user.id).to eq(nil)
+      expect(another_user.name).to eq('Dilbert')
+      expect(another_user.email).to eq('dilbert@example.net')
+
+      transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
+
+      transaction.register_new(new_user)
+      transaction.register_new(another_user)
+      transaction.commit
+      transaction.complete
+      norb = User.fetch_by_name('Norbert')
+      expect(norb.first.email).to eq('norb@example.net')
+      expect(norb.first.reference).to_not be_nil
+      expect(User.fetch_by_name('Dilbert').first.email).to eq('dilbert@example.net')
+    end
   end
 
-  it 'has not parent reference' do
-    user = User.fetch_by_id(1)
-    user.class.parent_reference.should eq(nil)
-  end
+  describe '.full_update' do
+    it 'can be fully updated' do
+      user = User.fetch_by_name('Dilbert').first
+      id = user.id
+      user.full_update({id:id, :name => 'Dogbert', :email => 'dogbert@example.net'})
+      expect(user.name).to eq('Dogbert')
+      expect(user.email).to eq('dogbert@example.net')
 
-  it 'accepts empty or full-hash constructors and validates its attributes' do
+      user.full_update({id:id, :name => 'Catbert'})
+      expect(user.name).to eq('Catbert')
+      expect(user.email).to be_nil
 
-    norbert = {:name => 'Norbert', :email => 'norb@example.net'}
-    dilbert = {:name => 'Dilbert', :email => 'dilbert@example.net'}
+      user.full_update({id:id, :name => 'Ratbert', :email => nil})
+      expect(user.name).to eq('Ratbert')
+      expect(user.email).to be_nil
 
-    new_user = User.new(norbert)
-    another_user= User.new()
+      expect {user.full_update({:email => 'ratbert@example.net'}) }.to raise_error(ArgumentError)
 
-    new_user.respond_to?(:id).should be_true
-    new_user.respond_to?(:id=).should be_true
-    new_user.respond_to?(:name).should be_true
-    new_user.respond_to?(:name=).should be_true
-    new_user.respond_to?(:email).should be_true
-    new_user.respond_to?(:email=).should be_true
-
-    my_reference = Reference.new({name:'test'})
-    new_user.respond_to?(:reference).should be_true
-    new_user.respond_to?(:reference=).should be_true
-    my_reference.name.should eq('test')
-    new_user.reference.should be_nil
-    expect {new_user.reference = 'foo'}.to raise_error(ArgumentError)
-    new_user.reference = my_reference
-
-    expect {another_user.email = 42}.to raise_error(ArgumentError)
-    expect {another_user.name = 1337}.to raise_error(ArgumentError)
-    expect {User.new({:name => 'Catbert', :email => 1337})}.to raise_error(ArgumentError)
-    expect {User.new({:name => nil, :email => 'catbert@example.net'})}.to raise_error(ArgumentError)
-
-    another_user.make(dilbert)
-
-    another_user.id.should eq(nil)
-    another_user.name.should eq('Dilbert')
-    another_user.email.should eq('dilbert@example.net')
-
-    new_user.id.should eq(nil)
-    new_user.name.should eq('Norbert')
-    new_user.email.should eq('norb@example.net')
-
-    another_user.id.should eq(nil)
-    another_user.name.should eq('Dilbert')
-    another_user.email.should eq('dilbert@example.net')
-
-    transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
-
-    transaction.register_new(new_user)
-    transaction.register_new(another_user)
-    transaction.commit
-    transaction.complete
-    norb = User.fetch_by_name('Norbert')
-    norb.first.email.should eq('norb@example.net')
-    norb.first.reference.should_not be_nil
-    User.fetch_by_name('Dilbert').first.email.should eq('dilbert@example.net')
-  end
-
-  it 'can be fully updated' do
-    user = User.fetch_by_name('Dilbert').first
-    id = user.id
-    user.full_update({id:id, :name => 'Dogbert', :email => 'dogbert@example.net'})
-    user.name.should eq('Dogbert')
-    user.email.should eq('dogbert@example.net')
-
-    user.full_update({id:id, :name => 'Catbert'})
-    user.name.should eq('Catbert')
-    user.email.should be_nil
-
-    user.full_update({id:id, :name => 'Ratbert', :email => nil})
-    user.name.should eq('Ratbert')
-    user.email.should be_nil
-
-    expect {user.full_update({:email => 'ratbert@example.net'}) }.to raise_error(ArgumentError)
-
+    end
   end
 
   pending 'Implement BasicEntityBuilder'
@@ -163,32 +192,34 @@ describe 'A Simple Entity' do
                     _locked_by: nil, _locked_at: nil}
     }
 
-    EntitySerializer.to_nested_hash(a_user).each { |k, v| test_hash[k].should eq(v) }
+    EntitySerializer.to_nested_hash(a_user).each { |k, v| expect(test_hash[k]).to eq(v) }
   end
 
-  it 'can return an immutable copy of itself' do
+  describe '.immutable' do
+    it 'can return an immutable copy of itself' do
 
-    a_user = User.fetch_by_email('zaphod@example.net').first
-    an_immutable_user = a_user.immutable
+      a_user = User.fetch_by_email('zaphod@example.net').first
+      an_immutable_user = a_user.immutable
 
-    an_immutable_user.should be_a(User::Immutable)
+      expect(an_immutable_user).to be_a(User::Immutable)
 
-    an_immutable_user.respond_to?(:id).should be_true
-    an_immutable_user.respond_to?(:id=).should be_false
-    an_immutable_user.respond_to?(:name).should be_true
-    an_immutable_user.respond_to?(:name=).should be_false
-    an_immutable_user.respond_to?(:email).should be_true
-    an_immutable_user.respond_to?(:email=).should be_false
-    an_immutable_user.respond_to?(:reference).should be_false
-    an_immutable_user.respond_to?(:reference=).should be_false
-    an_immutable_user.respond_to?(:refers_to).should be_false
-    an_immutable_user.respond_to?(:refers_to=).should be_false
+      expect(an_immutable_user).to respond_to(:id)
+      expect(an_immutable_user).to_not respond_to(:id=)
+      expect(an_immutable_user).to respond_to(:name)
+      expect(an_immutable_user).to_not respond_to(:name=)
+      expect(an_immutable_user).to respond_to(:email)
+      expect(an_immutable_user).to_not respond_to(:email=)
+      expect(an_immutable_user).to_not respond_to(:reference)
+      expect(an_immutable_user).to_not respond_to(:reference=)
+      expect(an_immutable_user).to_not respond_to(:refers_to)
+      expect(an_immutable_user).to_not respond_to(:refers_to=)
 
-    an_immutable_user.respond_to?(:my_thing).should be_false
+      expect(an_immutable_user).to_not respond_to(:my_thing)
 
-    an_immutable_user.id.should eq(a_user.id)
-    an_immutable_user.name.should eq(a_user.name)
-    an_immutable_user.email.should eq(a_user.email)
+      expect(an_immutable_user.id).to eq(a_user.id)
+      expect(an_immutable_user.name).to eq(a_user.name)
+      expect(an_immutable_user.email).to eq(a_user.email)
+    end
   end
 
   after(:all) do
