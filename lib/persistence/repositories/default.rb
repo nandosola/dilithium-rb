@@ -8,15 +8,6 @@ module Dilithium
     # TODO caching layer
     # TODO get map inside Repository
 
-    class NotFound < StandardError
-      attr_accessor :id, :type
-      def initialize(id, type)
-        super("#{type} with ID #{id} not found")
-        @id = id
-        @type = type
-      end
-    end
-
     # Repository factory
     # Returns a repository for the given type. The repository should at the very least support fetch_by_id and
     # fetch_all
@@ -45,7 +36,7 @@ module Dilithium
           root_db = DB[root_table]
           root_h = root_db.where(id_h).first
 
-          raise PersistenceExceptions::NotFound, "#{domain_class} with IDs #{id_h} not found" if root_h.nil?
+          raise PersistenceExceptions::NotFound.new(id_h, domain_class), "#{domain_class} with IDs #{id_h} not found" if root_h.nil?
 
           type = if root_h.nil? || root_h[:_type].nil?
                    domain_class

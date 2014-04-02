@@ -225,7 +225,7 @@ module Dilithium
                   row[key] = value.nil? ? nil : value.send(id)  # TODO or set to default; maybe a NullReference object?
                 end
 
-                raise PersistenceExceptions::NotFound unless Repository.for(attr_type.type).key?(*key_values)
+                raise PersistenceExceptions::NotFound.new(key_values, attr_type.type) unless Repository.for(attr_type.type).key?(*key_values)
               else
                 row[attr] = value
             end
