@@ -25,6 +25,23 @@ describe 'BaseValue class' do
 
   let(:another_planet_h) { {iso2:'GY', iso3:'GFY', name:'Gallifrey', type:'M'} }
 
+  describe '.build' do
+    it 'can be constructed using a builder' do
+      a_planet = planet.build do |p|
+        p.iso2 = 'VL'
+        p.iso3 = 'VLC'
+        p.name = 'Vulcan'
+        p.type = 'M'
+      end
+
+      expect(a_planet.class).to eq(planet)
+      expect(a_planet.iso2).to eq('VL')
+      expect(a_planet.iso3).to eq('VLC')
+      expect(a_planet.name).to eq('Vulcan')
+      expect(a_planet.type).to eq('M')
+    end
+  end
+
   describe '::identified_by' do
 
     it 'accepts any type of previously defined attributes' do

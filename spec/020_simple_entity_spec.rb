@@ -160,6 +160,38 @@ describe 'BaseEntity' do
     end
   end
 
+  describe '.build' do
+    it 'creates a new entity' do
+      a_user = User.build do |u|
+        u.name = 'Catbert'
+        u.email = 'catbert@example.net'
+        u.reference = Reference.build do |r|
+          r.name = 'Reference'
+        end
+      end
+
+      expect(a_user).to be_a(User)
+      expect(a_user.name).to eq('Catbert')
+      expect(a_user.email).to eq('catbert@example.net')
+      expect(a_user.reference).to be_a(Association::LazyEntityReference)
+      expect(a_user.reference.resolved_entity).to be_a(Reference::Immutable)
+      expect(a_user.reference.resolved_entity.name).to eq('Reference')
+    end
+
+    it 'validates attribute types' do
+      User.build do |u|
+        expect {u.email = 1337}.to raise_error(ArgumentError)
+      end
+    end
+
+    it 'validates reference types' do
+      User.build do |u|
+        expect {u.reference = 'Reference'}.to raise_error(ArgumentError)
+      end
+    end
+  end
+
+
   describe '.full_update' do
     it 'can be fully updated' do
       user = User.fetch_by_name('Norbert').first
