@@ -525,7 +525,11 @@ describe 'BaseValue infrastructure' do
         it 'raises an exception when trying to insert a nonpersisted BaseValue' do
           expect {
             Mapper.for(Species).insert(renegade_dalek)
-          }.to raise_error(PersistenceExceptions::NotFound)
+          }.to raise_error { |error|
+            expect(error).to be_a PersistenceExceptions::NotFound
+            expect(error.id).to eq({race: dalek_emperor.race, subrace: dalek_emperor.subrace})
+            expect(error.type).to eq(Alien)
+          }
         end
 
         it 'inserts a BaseEntity with empty values' do
@@ -558,7 +562,11 @@ describe 'BaseValue infrastructure' do
 
           expect {
             Mapper.for(Species).insert(renegade_dalek)
-          }.to raise_error(PersistenceExceptions::NotFound)
+          }.to raise_error { |error|
+            expect(error).to be_a PersistenceExceptions::NotFound
+            expect(error.id).to eq({race: supreme_dalek.race, subrace: supreme_dalek.subrace})
+            expect(error.type).to eq(Alien)
+          }
         end
       end
     end
