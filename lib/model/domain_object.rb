@@ -74,9 +74,7 @@ module Dilithium
     end
 
     def self.get_attributes_by_type(type)
-      attrs = self.attributes
-      refs = attrs.reduce([]){|m,attr| attr.instance_of?(type) ? m<<attr.name : m }
-      refs
+      self.attributes.reduce([]){|m,attr| attr.instance_of?(type) ? m<<attr.name : m }
     end
 
     def self.extended_generic_attributes
@@ -92,6 +90,12 @@ module Dilithium
       load_attributes(in_h)
     end
 
+    def self.build
+      new_object = self.new
+      yield new_object
+      #TODO Validate invariants
+      new_object
+    end
 
     protected
 
