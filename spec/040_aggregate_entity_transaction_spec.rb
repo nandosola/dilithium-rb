@@ -125,20 +125,26 @@ describe 'A Transaction handling an Aggregate Entity' do
 
   end
 
-  it "creates a new aggregate, retrieves it and performs updates" do
-    company2_h = {
-      name: 'Smarty Pants, Inc.',
-      local_offices: [
-        {
-          description: 'foo del 1',
-          addresses: [{description: 'foo dir 1'},
-                      {description: 'foo dir 2'}]
-        }
-      ]
-    }
+  it 'creates a new aggregate, retrieves it and performs updates' do
+    b_company = Company.build do |c|
+      c.name = 'Smarty Pants, Inc.'
+      c.add_local_office(
+        LocalOffice.build do |l|
+          l.description = 'foo del 1'
+          l.add_address(
+            Address.build do |a|
+              a.description = 'foo dir 1'
+            end
+          )
+          l.add_address(
+            Address.build do |a|
+              a.description = 'foo dir 2'
+            end
+          )
+        end
+      )
+    end
 
-    b_company = Company.new()
-    b_company.make(company2_h)
     @transaction.register_new(b_company)
 
     @transaction.commit

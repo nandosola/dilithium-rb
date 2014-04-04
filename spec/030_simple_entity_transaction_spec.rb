@@ -92,7 +92,7 @@ describe 'A transaction handling a Simple Entity' do
     @a_user.name.should eq('Andrew')
   end
 
-  it "deletes objects registered for deletion when calling commit" do
+  it 'deletes objects registered for deletion when calling commit' do
     @transaction.register_deleted(@a_user)
 
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DIRTY).length.should eq(0)
@@ -104,9 +104,10 @@ describe 'A transaction handling a Simple Entity' do
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DELETED).length.should eq(0)
   end
 
-  it "saves new objects and marks them as dirty when calling commit" do
+  it 'saves new objects and marks them as dirty when calling commit' do
     @transaction.register_new(@new_user)
-    @new_user.make({name:'Danny', email:'danny@example.net' })
+    @new_user.name = 'Danny'
+    @new_user.email = 'danny@example.net'
 
     found_tracked_objects = @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_NEW)
     found_tracked_objects.size.should eq(1)
@@ -129,7 +130,7 @@ describe 'A transaction handling a Simple Entity' do
 
   end
 
-  it "removes deleted objects from the transaction when calling commit" do
+  it 'removes deleted objects from the transaction when calling commit' do
     @transaction.register_deleted(@new_user)
     @transaction.commit
     User.fetch_by_name('Danny').should be_empty
@@ -137,7 +138,7 @@ describe 'A transaction handling a Simple Entity' do
     found_tracked_object.should be_nil
   end
 
-  it "does not affect objects when calling rollback" do
+  it 'does not affect objects when calling rollback' do
     @a_user = User.fetch_by_id(2)
     @transaction.register_dirty(@a_user)
     @a_user.name = 'Bartley'

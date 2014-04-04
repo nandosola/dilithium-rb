@@ -107,11 +107,6 @@ module Dilithium
       load_attributes(unversioned_h)
     end
 
-    def make(in_h)
-      check_input_h(in_h)
-      load_attributes(in_h)
-    end
-
     # Executes a proc for each child, passing child as parameter to proc
     def each_child
       self.class.child_references.each do |child_attr|
@@ -357,7 +352,7 @@ module Dilithium
         if parent_entity == instance_variable_get("@#{parent_attr}".to_sym)
           instance_variable_set("@#{parent_attr}".to_sym, nil)
         else
-          raise RuntimeError, "Child parent does not match"
+          raise RuntimeError, "Child parent does not match. Self: #{self}, parent: #{parent_entity}, expected parent: #{instance_variable_get("@#{parent_attr}".to_sym)}"
         end
       end
     end
