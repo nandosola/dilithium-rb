@@ -27,24 +27,55 @@ describe 'A Transaction handling an Aggregate Entity' do
     a_company.name.should eq('Abstra.cc S.A')
   end
 
+  it 'creates a new Aggregate with children' do
+    a_company = Company.build do |c|
+      c.name = 'Abstra.cc, S.A.'
+      c.add_local_office(
+        LocalOffice.build do |l|
+          l.description = 'branch1'
+          l.add_address(
+            Address.build do |a|
+              a.description = 'addr1'
+            end
+          )
+          l.add_address(
+            Address.build do |a|
+              a.description = 'addr2'
+            end
+          )
+        end
+      )
+    end
+
+    expect(a_company.local_offices.size).to eq(1)
+
+    office = a_company.local_offices.first
+    expect(office.company).to eq(a_company)
+
+    expect(office.addresses.size).to eq(2)
+    office.addresses.each do |a|
+      expect(a.local_office).to eq(office)
+    end
+  end
+
   it 'creates a new Aggregate in the database and retrieves it correctly' do
     company1_h = {
-        name: 'Abstra.cc S.A',
-        local_offices: [
-            {
-                description: 'branch1',
-                addresses: [{description: 'addr1'}]
-            }
-        ]
+      name: 'Abstra.cc S.A',
+      local_offices: [
+        {
+          description: 'branch1',
+          addresses: [{description: 'addr1'}]
+        }
+      ]
     }
 
     a_company = Company.new(company1_h)
     @transaction.register_new(a_company)
 
     a_company.make_local_office({
-                            description: 'branch2',
-                            addresses: [{description: 'addr2.1'}]
-                        })
+                                  description: 'branch2',
+                                  addresses: [{description: 'addr2.1'}]
+                                })
 
     a_company.class.should eq(Company)
     a_company.name.should eq('Abstra.cc S.A')
@@ -66,14 +97,14 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.commit
 
     expect {a_company.make_local_office({
-                                    description: 'branch3',
-                                    company: 1
-                                })}.to raise_error(RuntimeError)
+                                          description: 'branch3',
+                                          company: 1
+                                        })}.to raise_error(RuntimeError)
 
     expect {a_company.make_local_office({
-                                    description: 'branch4',
-                                    addresses: [1,2,3]
-                                })}.to raise_error(ArgumentError)
+                                          description: 'branch4',
+                                          addresses: [1,2,3]
+                                        })}.to raise_error(ArgumentError)
 
     abstra =  Company.fetch_by_id(1)
 
@@ -96,14 +127,14 @@ describe 'A Transaction handling an Aggregate Entity' do
 
   it "creates a new aggregate, retrieves it and performs updates" do
     company2_h = {
-        name: 'Smarty Pants, Inc.',
-        local_offices: [
-            {
-                description: 'foo del 1',
-                addresses: [{description: 'foo dir 1'},
-                              {description: 'foo dir 2'}]
-            }
-        ]
+      name: 'Smarty Pants, Inc.',
+      local_offices: [
+        {
+          description: 'foo del 1',
+          addresses: [{description: 'foo dir 1'},
+                      {description: 'foo dir 2'}]
+        }
+      ]
     }
 
     b_company = Company.new()
@@ -130,10 +161,10 @@ describe 'A Transaction handling an Aggregate Entity' do
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: [
-                               {
-                                   description: 'nhp del 1',
-                                   addresses: [{description: 'nhp dir 1'}]
-                               }
+                             {
+                               description: 'nhp del 1',
+                               addresses: [{description: 'nhp dir 1'}]
+                             }
                            ]})
     @transaction.commit
 
@@ -153,10 +184,10 @@ describe 'A Transaction handling an Aggregate Entity' do
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: [
-                               {
-                                   description: 'nhp del 1',
-                                   addresses: []
-                               }
+                             {
+                               description: 'nhp del 1',
+                               addresses: []
+                             }
                            ]})
 
     @transaction.commit
@@ -182,10 +213,10 @@ describe 'A Transaction handling an Aggregate Entity' do
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: [
-                               {
-                                   description: 'nhp del 1',
-                                   addresses: [{description: 'nhp dir 1'}]
-                               }
+                             {
+                               description: 'nhp del 1',
+                               addresses: [{description: 'nhp dir 1'}]
+                             }
                            ]})
     @transaction.commit
 
@@ -208,10 +239,10 @@ describe 'A Transaction handling an Aggregate Entity' do
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: [
-                               {
-                                   description: 'nhp del 1',
-                                   addresses: [{description: 'nhp dir 1'}]
-                               }
+                             {
+                               description: 'nhp del 1',
+                               addresses: [{description: 'nhp dir 1'}]
+                             }
                            ]})
     @transaction.commit
 
@@ -290,27 +321,27 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                     :_version_created_at=>a_foo._version._version_created_at,
                                                                     :_locked_by=>nil, :_locked_at=>nil},
                                                         :bars=>
-                                                           [{:id=>nil,
-                                                             :active=>true,
-                                                             :_version=>{:id=>nil,
-                                                                         :_version=>0,
-                                                                         :_version_created_at=>a_foo.bars[0]._version._version_created_at,
-                                                                         :_locked_by=>nil, :_locked_at=>nil},
-                                                             :bar=>"bar",
-                                                             :baz=>baz_ref
-                                                            },
-                                                            {:id=>nil,
-                                                             :active=>true,
-                                                             :_version=>{:id=>nil,
-                                                                         :_version=>0,
-                                                                         :_version_created_at=>a_foo.bars[1]._version._version_created_at,
-                                                                         :_locked_by=>nil, :_locked_at=>nil},
-                                                             :bar=>"bar2",
-                                                             :baz=>baz_ref
-                                                            }],
+                                                          [{:id=>nil,
+                                                            :active=>true,
+                                                            :_version=>{:id=>nil,
+                                                                        :_version=>0,
+                                                                        :_version_created_at=>a_foo.bars[0]._version._version_created_at,
+                                                                        :_locked_by=>nil, :_locked_at=>nil},
+                                                            :bar=>"bar",
+                                                            :baz=>baz_ref
+                                                           },
+                                                           {:id=>nil,
+                                                            :active=>true,
+                                                            :_version=>{:id=>nil,
+                                                                        :_version=>0,
+                                                                        :_version_created_at=>a_foo.bars[1]._version._version_created_at,
+                                                                        :_locked_by=>nil, :_locked_at=>nil},
+                                                            :bar=>"bar2",
+                                                            :baz=>baz_ref
+                                                           }],
                                                         :foo=>"foo",
                                                         :baz=>baz_ref
-                                                        })
+      })
 
 
 
@@ -323,24 +354,24 @@ describe 'A Transaction handling an Aggregate Entity' do
       EntitySerializer.to_nested_hash(persisted_foo).should==({:id=>1,
                                                                :active=>true,
                                                                :bars=>
-                                                                   [{:id=>1,
-                                                                     :active=>true,
-                                                                     :bar=>"bar",
-                                                                     :baz=>baz_ref,
-                                                                     :_version=>{:id=>4,
-                                                                                 :_version=>0,
-                                                                                 :_version_created_at=>a_foo.bars[0]._version._version_created_at,
-                                                                                 :_locked_by=>nil, :_locked_at=>nil}
-                                                                    },
-                                                                    {:id=>2,
-                                                                     :active=>true,
-                                                                     :bar=>"bar2",
-                                                                     :baz=>baz_ref,
-                                                                     :_version=>{:id=>4,
-                                                                                 :_version=>0,
-                                                                                 :_version_created_at=>a_foo.bars[1]._version._version_created_at,
-                                                                                 :_locked_by=>nil, :_locked_at=>nil}
-                                                                    }],
+                                                                 [{:id=>1,
+                                                                   :active=>true,
+                                                                   :bar=>"bar",
+                                                                   :baz=>baz_ref,
+                                                                   :_version=>{:id=>4,
+                                                                               :_version=>0,
+                                                                               :_version_created_at=>a_foo.bars[0]._version._version_created_at,
+                                                                               :_locked_by=>nil, :_locked_at=>nil}
+                                                                  },
+                                                                  {:id=>2,
+                                                                   :active=>true,
+                                                                   :bar=>"bar2",
+                                                                   :baz=>baz_ref,
+                                                                   :_version=>{:id=>4,
+                                                                               :_version=>0,
+                                                                               :_version_created_at=>a_foo.bars[1]._version._version_created_at,
+                                                                               :_locked_by=>nil, :_locked_at=>nil}
+                                                                  }],
                                                                :foo=>"foo",
                                                                :baz=>baz_ref,
                                                                :_version=>{:id=>4,
@@ -348,17 +379,17 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                            :_version_created_at=>a_foo._version._version_created_at,
                                                                            :_locked_by=>nil, :_locked_at=>nil}})
 
-  # children: delete with [] or nil
-  # references: delete with nil
-  # always create value references
+      # children: delete with [] or nil
+      # references: delete with nil
+      # always create value references
 
       a_foo.full_update({:id=>1,
                          :active=>true,
                          :bars=>
-                             [{:id=>1,
-                               :active=>true,
-                               :bar=>"bar",
-                               :baz=>a_baz}],
+                           [{:id=>1,
+                             :active=>true,
+                             :bar=>"bar",
+                             :baz=>a_baz}],
                          :foo=>"foo",
                          :baz=>nil})
       tr.commit
@@ -367,13 +398,13 @@ describe 'A Transaction handling an Aggregate Entity' do
       EntitySerializer.to_nested_hash(updated_foo).should ==( {:id=>1,
                                                                :active=>true,
                                                                :bars=>
-                                                                   [{:id=>1,
-                                                                     :active=>true,
-                                                                     :bar=>"bar",
-                                                                     :baz=>baz_ref,
-                                                                     :_version=>{:id=>4, :_version=>1,
-                                                                                 :_version_created_at=>updated_foo._version._version_created_at,
-                                                                                 :_locked_by=>nil, :_locked_at=>nil}}],
+                                                                 [{:id=>1,
+                                                                   :active=>true,
+                                                                   :bar=>"bar",
+                                                                   :baz=>baz_ref,
+                                                                   :_version=>{:id=>4, :_version=>1,
+                                                                               :_version_created_at=>updated_foo._version._version_created_at,
+                                                                               :_locked_by=>nil, :_locked_at=>nil}}],
                                                                :foo=>"foo",
                                                                :baz=>nil,
                                                                :_version=>{:id=>4, :_version=>1,

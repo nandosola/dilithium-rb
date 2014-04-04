@@ -185,7 +185,7 @@ module Dilithium
 
     def self.parent_reference
       parent = self.get_attributes_by_type(BasicAttributes::ParentReference)
-      raise RuntimeError, "found multiple parents" unless parent.size < 2
+      raise RuntimeError, 'found multiple parents' unless parent.size < 2
       parent.first
     end
 
@@ -423,6 +423,8 @@ module Dilithium
               attribute_descriptor.check_assignment_constraints(new_value)
               new_value._version = self._version
               instance_variable_get("@#{__attr_name}".to_sym) << new_value
+              parent_name = new_value.class.parent_reference
+              new_value.instance_variable_set("@#{parent_name}".to_sym, self)
             }
           when BasicAttributes::MultiReference
             define_method(add_to_collection){ |new_value|
