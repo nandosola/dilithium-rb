@@ -23,7 +23,11 @@ describe 'PhantomIdentifier class' do
   end
 
   it 'adds the _phantomid attribute to a BaseValue' do
-    a_value = value.new({code:'foo', description:'A Foo'})
+    a_value = value.build do |v|
+      v.code = 'foo'
+      v.description = 'A Foo'
+    end
+
     expect(a_value).to respond_to(:_phantomid)
   end
 end
@@ -45,7 +49,7 @@ describe 'BaseValue with PhantomIdentifier' do
 
   describe 'Empty BaseValue' do
     it 'sets _phantomid to nil' do
-      empty_value = Value.new
+      empty_value = Value.build
       expect(empty_value._phantomid).to be_nil
     end
   end
@@ -63,10 +67,18 @@ describe 'BaseValue with PhantomIdentifier' do
 
   describe 'ValueMapper' do
     it '::insert' do
-      a_value = Value.new({code:'foo', description:'A serious foo'})
+      a_value = Value.build do |v|
+        v.code = 'foo'
+        v.description = 'A serious foo'
+      end
+
       Mapper.for(Value).insert(a_value)
 
-      a_value = Value.new({code:'bar', description:'A merry bar'})
+      a_value = Value.build do |v|
+        v.code = 'bar'
+        v.description = 'A merry bar'
+      end
+
       Mapper.for(Value).insert(a_value)
 
       foo = $database[:values].where(code:'foo').first
@@ -79,13 +91,21 @@ describe 'BaseValue with PhantomIdentifier' do
 
   describe 'ValueRepository' do
     it '#fetch_by_id' do
-      a_baz = Value.new({code:'baz', description:'A sad baz'})
+      a_baz = Value.build do |v|
+        v.code = 'baz'
+        v.description = 'A sad baz'
+      end
+
       Mapper.for(Value).insert(a_baz)
       res = Repository.for(Value).fetch_by_id('baz')
       expect(a_baz).to eq(res)
     end
     it '#fetch_by_phantomid' do
-      bat_value = Value.new({code:'bat', description:'A bewildered bat'})
+      bat_value = Value.build do |v|
+        v.code = 'bat'
+        v.description = 'A bewildered bat'
+      end
+
       Mapper.for(Value).insert(bat_value)
       phantom_id = Repository.for(Value).fetch_by_id('bat')._phantomid
       res = Repository.for(Value).fetch_by_phantomid(phantom_id)
@@ -96,13 +116,17 @@ describe 'BaseValue with PhantomIdentifier' do
   describe 'EntitySerializer' do
     describe '::to_hash' do
       it 'should return _phantom_id coerced to Integer' do
-        qux_value = Value.new({code:'qux', description:'A calm qux'})
+        qux_value = Value.build do |v|
+          v.code = 'qux'
+          v.description = 'A calm qux'
+        end
+
         Mapper.for(Value).insert(qux_value)
         res = Repository.for(Value).fetch_by_id('qux')
         expect(Fixnum === EntitySerializer.to_hash(res)[:_phantomid]).to be_true
       end
       it 'serializes empty BaseValue _phantomid as nil' do
-        empty_value = Value.new
+        empty_value = Value.build
         expect(EntitySerializer.to_hash(empty_value)[:_phantomid]).to be_nil
       end
     end

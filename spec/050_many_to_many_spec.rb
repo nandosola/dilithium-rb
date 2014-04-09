@@ -48,14 +48,14 @@ describe 'A BasicEntity with a many to many relationship' do
   end
 
   it 'has its instance attribute accessors' do
-    employee = Employee.new({name:'Beppe'})
-    dept1 = Department.new({name:'Evil'})
-    dept2 = Department.new({name:'Hell'})
-    dept3 = Department.new({name:'Mad Science'})
-    dept4 = Department.new({name:'Apocalypse'})
+    employee = Employee.build { |e| e.name = 'Beppe' }
+    dept1 = Department.build { |d| d.name = 'Evil' }
+    dept2 = Department.build { |d| d.name = 'Hell' }
+    dept3 = Department.build { |d| d.name = 'Mad Science' }
+    dept4 = Department.build { |d| d.name = 'Apocalypse' }
 
-    bld1 = Building.new({name:'Marquee'})
-    bld2 = Building.new({name:'Fawlty Towers'})
+    bld1 = Building.build { |d| d.name = 'Marquee' }
+    bld2 = Building.build { |d| d.name = 'Fawlty Towers' }
 
     employee.add_department(dept1)
     employee.add_department(dept2)
@@ -70,14 +70,14 @@ describe 'A BasicEntity with a many to many relationship' do
   end
 
   it 'has a way to traverse the relationship' do
-    employee = Employee.new({name:'Beppe'})
-    dept1 = Department.new({name:'Evil'})
-    dept2 = Department.new({name:'Hell'})
-    dept3 = Department.new({name:'Mad Science'})
-    dept4 = Department.new({name:'Apocalypse'})
+    employee = Employee.build { |e| e.name = 'Beppe' }
+    dept1 = Department.build { |d| d.name = 'Evil' }
+    dept2 = Department.build { |d| d.name = 'Hell' }
+    dept3 = Department.build { |d| d.name = 'Mad Science' }
+    dept4 = Department.build { |d| d.name = 'Apocalypse' }
 
-    bld1 = Building.new({name:'Marquee'})
-    bld2 = Building.new({name:'Fawlty Towers'})
+    bld1 = Building.build { |d| d.name = 'Marquee' }
+    bld2 = Building.build { |d| d.name = 'Fawlty Towers' }
 
     employee.add_department(dept1)
     employee.add_department(dept2)
@@ -95,14 +95,14 @@ describe 'A BasicEntity with a many to many relationship' do
   end
 
   it 'is ignored when generating the immutable version of an model' do
-    employee = Employee.new({name:'Beppe'})
-    dept1 = Department.new({name:'Evil'})
-    dept2 = Department.new({name:'Hell'})
-    dept3 = Department.new({name:'Mad Science'})
-    dept4 = Department.new({name:'Apocalypse'})
+    employee = Employee.build { |e| e.name = 'Beppe' }
+    dept1 = Department.build { |d| d.name = 'Evil' }
+    dept2 = Department.build { |d| d.name = 'Hell' }
+    dept3 = Department.build { |d| d.name = 'Mad Science' }
+    dept4 = Department.build { |d| d.name = 'Apocalypse' }
 
-    bld1 = Building.new({name:'Marquee'})
-    bld2 = Building.new({name:'Fawlty Towers'})
+    bld1 = Building.build { |d| d.name = 'Marquee' }
+    bld2 = Building.build { |d| d.name = 'Fawlty Towers' }
 
     employee.add_department(dept1)
     employee.add_department(dept2)
@@ -119,11 +119,11 @@ describe 'A BasicEntity with a many to many relationship' do
   end
 
   it 'is correctly serialized' do
-    emp = Employee.new({name:'Oscar'})
-    dept = Department.new({name:'Evil'})
-    dept2 = Department.new({name:'Mad Science'})
+    emp = Employee.build { |e| e.name = 'Oscar' }
+    dept = Department.build { |d| d.name = 'Evil' }
+    dept2 = Department.build { |d| d.name = 'Mad Science' }
 
-    emp2 = Employee.new({name:'Mayer'})
+    emp2 = Employee.build { |e| e.name = 'Mayer' }
     ref_dept = Association::LazyEntityReference.new(2, Department)
 
     emp.add_department dept
@@ -152,7 +152,7 @@ describe 'A BasicEntity with a many to many relationship' do
   end
 
   it 'is persisted in two tables (accessor initialization)' do
-    emp = Employee.new({name:'Beppe'})
+    emp = Employee.build { |e| e.name = 'Beppe' }
     dept = Department.fetch_by_id(1)
     dept2 = Department.fetch_by_id(2)
     dept3 = Department.fetch_by_id(3)
@@ -184,7 +184,13 @@ describe 'A BasicEntity with a many to many relationship' do
     dept3 = Department.fetch_by_id(3)
     dept4 = Department.fetch_by_id(4)
 
-    emp = Employee.new({name:'Grillo', departments:[dept, dept2], managed_departments:[dept3, dept4]})
+    emp = Employee.build do |e|
+      e.name ='Grillo'
+      e.add_department(dept)
+      e.add_department(dept2)
+      e.add_managed_department(dept3)
+      e.add_managed_department(dept4)
+    end
 
     EntityMapper::Sequel.insert(emp)
 
@@ -213,7 +219,14 @@ describe 'A BasicEntity with a many to many relationship' do
     # Likewise: AggregateRepository.fetch_by_id(Department, 1)
     # #=> <Department 0xf00b45: @id=1 ... BaseEntity attrs...>
 
-    emp = Employee.new({name:'Kenneth', departments:[dept, dept2], managed_departments:[dept3, dept4]})
+    emp = Employee.build do |e|
+      e.name ='Grillo'
+      e.add_department(dept)
+      e.add_department(dept2)
+      e.add_managed_department(dept3)
+      e.add_managed_department(dept4)
+    end
+
 
     EntityMapper::Sequel.insert(emp)
     found_depts = $database[:employees_departments].where(employee_id:emp.id).all
@@ -231,7 +244,7 @@ describe 'A BasicEntity with a many to many relationship' do
 
   it 'is persisted even when the dependent side doesn\'t exist anymore' do
     pending 'Corner case: soft deletes should be handled by the application'
-    emp = Employee.new({name:'Avi'})
+    emp = Employee.build { |e| e.name = 'Avi' }
     dept = Department.fetch_by_id(1)
     emp.add_departmentdept
 
@@ -242,7 +255,7 @@ describe 'A BasicEntity with a many to many relationship' do
   end
 
   it 'is correctly recovered from the database' do
-    emp = Employee.new({name:'Katrina'})
+    emp = Employee.build { |e| e.name = 'Katrina' }
     dept = Department.fetch_by_id(1)
     dept2 = Department.fetch_by_id(2)
     dept3 = Department.fetch_by_id(3)

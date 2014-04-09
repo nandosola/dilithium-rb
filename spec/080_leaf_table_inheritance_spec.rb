@@ -56,7 +56,11 @@ describe 'A single-inheritance hierarchy of BaseEntities with Leaf Table Inherit
   end
 
   it 'should save data to the database' do
-    bistromath = RegisteredVehicleL.new({:active => true, :name => 'Bistromath', :owner => 'Slartibartfast'})
+    bistromath = RegisteredVehicleL.build do |v|
+      v.active = true
+      v.name = 'Bistromath'
+      v.owner = 'Slartibartfast'
+    end
     transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_new(bistromath)
     transaction.commit
@@ -66,27 +70,37 @@ describe 'A single-inheritance hierarchy of BaseEntities with Leaf Table Inherit
   end
 
   it 'should manage the parent and child references correctly' do
-    fleet = FleetL.new(:name => 'Test fleet')
-    #TODO This should change, the parent should have a factory for its children
-    car = CarL.new({:seats => 4}, fleet)
-    van = DeliveryVanL.new({:capacity => 1000}, fleet)
-    fleet.add_ground_vehicle_l car
-    fleet.add_ground_vehicle_l van
+    fleet = FleetL.build do |f|
+      f.name = 'Test fleet'
+      f.make_ground_vehicle_l(CarL) do |v|
+        v.seats = 4
+      end
+      f.make_ground_vehicle_l(DeliveryVanL) do |v|
+        v.capacity = 1000
+      end
+    end
 
+    car = fleet.ground_vehicle_ls[0]
+    car.should be_a(CarL)
     car.fleet_l.should eq(fleet)
-    van.fleet_l.should eq(fleet)
+    car.seats.should eq(4)
 
-    fleet.ground_vehicle_ls.should include(car)
-    fleet.ground_vehicle_ls.should include(van)
+    van = fleet.ground_vehicle_ls[1]
+    van.should be_a(DeliveryVanL)
+    van.fleet_l.should eq(fleet)
+    van.capacity.should eq(1000)
   end
 
   it 'should serialize correctly into Hashes' do
-    fleet = FleetL.new(:name => 'Test fleet')
-    #TODO This should change, the parent should have a factory for its children
-    car = CarL.new({:seats => 4}, fleet)
-    van = DeliveryVanL.new({:capacity => 1000}, fleet)
-    fleet.add_ground_vehicle_l car
-    fleet.add_ground_vehicle_l van
+    fleet = FleetL.build do |f|
+      f.name = 'Test fleet'
+      f.make_ground_vehicle_l(CarL) do |v|
+        v.seats = 4
+      end
+      f.make_ground_vehicle_l(DeliveryVanL) do |v|
+        v.capacity = 1000
+      end
+    end
 
     fleet_h = EntitySerializer.to_nested_hash(fleet)
     fleet_h.should eq({:id => nil,
@@ -107,34 +121,6 @@ describe 'A single-inheritance hierarchy of BaseEntities with Leaf Table Inherit
                           :name=>nil, :wheels=>nil, :capacity=>1000}],
                        :name => "Test fleet"
                       })
-  end
-
-  it 'should deserialize correctly into a Hash without polymorphism' do
-    hash = {
-      :name => 'HHGTTG',
-      :company_car => { :id => 1 },
-      :company_van => { :id => 2 }
-    }
-
-    company = SmallCompanyL.new(hash)
-    company.name.should eq('HHGTTG')
-
-    company.company_car.class.should eq(Association::ImmutableEntityReference)
-    company.company_car.resolve
-    company.company_car.resolved_entity.class.should eq(RegisteredVehicleL::Immutable)
-    company.company_car.resolved_entity.name.should eq('TARDIS')
-    company.company_car.resolved_entity.owner.should eq('The Doctor')
-
-    company.company_van.class.should eq(Association::ImmutableEntityReference)
-    company.company_van.resolve
-    company.company_van.resolved_entity.class.should eq(RegisteredVehicleL::Immutable)
-    company.company_van.resolved_entity.name.should eq('Bistromath')
-    company.company_van.resolved_entity.owner.should eq('Slartibartfast')
-  end
-
-  pending 'Implement deserialization with polymorphism in LTI'
-  it 'should deserialize correctly into a Hash with polymorphism' do
-
   end
 
   after :all do

@@ -3,17 +3,14 @@ require_relative 'spec_base'
 
 describe 'An aggregate model' do
   it 'should create an immutable copy of itself' do
-    company1_h = {
-      name: 'Abstra.cc S.A',
-      local_offices: [
-        {
-          description: 'branch1',
-          addresses: [{description: 'addr1'}]
-        }
-      ]
-    }
+    a_company = Company.build do |c|
+      c.name = 'Abstra.cc S.A'
+      c.make_local_office do |l|
+        l.description = 'branch1'
+        l.make_address { |a| a.description = 'addr1' }
+      end
+    end
 
-    a_company = Company.new(company1_h)
     immutable = a_company.immutable
     immutable.should be_a(Company::Immutable)
     immutable.id.should eq(a_company.id)

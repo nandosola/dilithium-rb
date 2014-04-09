@@ -74,7 +74,7 @@ module Dilithium
           when BaseEntity
             Association::ImmutableEntityReference.new(nil, nil, nil, entity)
           else
-            raise ArgumentError, 'Assignment of a non-BaseEntity to a Reference'
+            raise ArgumentError, "Assignment of a #{entity.class} which is not a BaseEntity to a Reference"
         end
       end
 

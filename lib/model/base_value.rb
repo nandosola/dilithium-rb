@@ -9,6 +9,10 @@ module Dilithium
 
     def self.inherited(base)
       base.instance_eval do
+
+        # You should use the .build method to create DomainObjects and their subclasses
+        base.private_class_method :new
+
         @attributes = {}
         @identifiers = []
 

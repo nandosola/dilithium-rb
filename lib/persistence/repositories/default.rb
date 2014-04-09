@@ -62,7 +62,7 @@ module Dilithium
 
           merged_h.delete(:_type) unless merged_h.nil?
 
-          type.create_object(merged_h)
+          type.send(:load_object, merged_h)
         end
 
         def self.fetch_all(domain_class)

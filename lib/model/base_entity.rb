@@ -20,6 +20,9 @@ module Dilithium
 
       def self.inherited(base)
         base.instance_eval do
+          # You should use the .build method to create DomainObjects and their subclasses
+          base.private_class_method :new
+
           def attribute_descriptors
             attribute_names.inject({}) do |memo, name|
               memo[name] = MUTABLE_CLASS.attribute_descriptors[name]
@@ -63,8 +66,12 @@ module Dilithium
       names.each do |child|
         # TODO pass type
         self.add_attribute(BasicAttributes::ChildReference.new(child, self))
-        self.define_aggregate_method(child)
+        self._define_aggregate_method(child)
       end
+    end
+
+    def initialize
+      self._set_version_attribute(nil, nil) if self.class.parent_reference.nil?
     end
 
     # Explicitly creates a parent reference to the aggregate root.
@@ -87,10 +94,14 @@ module Dilithium
       self.add_attribute(BasicAttributes::ParentReference.new(parent, self))
     end
 
-    def initialize(in_h={}, parent=nil, aggregate_version=nil)
-      check_input_h(in_h)
-      set_version_attribute(aggregate_version, parent)
-      load_attributes(in_h)
+    def self.build(parent_version = nil, &block)
+      obj = self.send(:new)
+      is_root = self.parent_reference.nil?
+      raise ArgumentError, 'Must provide parent version if a BaseEntity is not an aggregate root' if parent_version.nil? && ! is_root
+      obj.send(:_set_version_attribute, parent_version, nil)
+      obj.active = true
+
+      finish_build(obj, &block)
     end
 
     def full_update(in_h)
@@ -102,9 +113,9 @@ module Dilithium
       end
 
       check_input_h(unversioned_h)
-      detach_children
-      detach_multi_references
-      load_attributes(unversioned_h)
+      _detach_children
+      _detach_multi_references
+      _update_attributes(unversioned_h)
     end
 
     # Executes a proc for each child, passing child as parameter to proc
@@ -167,7 +178,7 @@ module Dilithium
     # Note that the id of the snapshot may be nil (and will never be updated) if you call this method on an Entity that
     # hasn't been persisted.
     def immutable
-      obj = self.class.const_get(:Immutable).new
+      obj = self.class.const_get(:Immutable).send(:new)
       self.class.attribute_descriptors.each do |name, attr|
         if attr.is_attribute?
           value = self.instance_variable_get(:"@#{name}")
@@ -230,10 +241,9 @@ module Dilithium
       !self.parent_reference.nil?
     end
 
-    private
     protected
 
-    def set_version_attribute(aggregate_version, parent)
+    def _set_version_attribute(aggregate_version, parent)
       if parent.nil?
         if aggregate_version.nil?
           @_version = SharedVersion.create(self) # Shared version among all the members of the aggregate
@@ -250,31 +260,35 @@ module Dilithium
       end
     end
 
-    def load_attributes(in_h)
+    def _update_attributes(in_h)
       super
 
       unless in_h.empty?
-        load_immutable_references(in_h)
-        load_child_attributes(in_h)
-        load_multi_reference_attributes(in_h)
+        _update_immutable_references(in_h)
+        _update_children(in_h)
+        _update_multi_references(in_h)
       end
     end
 
-    def load_child_attributes(in_h)
+    def _update_children(in_h)
       self.class.each_attribute(BasicAttributes::ChildReference) do |attr|
-        __attr_name = attr.name
-        value = if in_h[__attr_name].nil?
-                  attr.default
-                else
-                  in_h[__attr_name]
-                end
+        child_name = attr.name
+        children_h = if in_h[child_name].nil?
+                       attr.default
+                     else
+                       in_h[child_name]
+                     end
 
-        send("make_#{__attr_name}".to_sym, value) unless value.empty?
+        children_h.each do | child_h |
+          self.send("make_#{child_name.to_s.singularize}") do | child |
+            child._update_attributes(child_h)
+          end
+        end
       end
     end
 
     # TODO refactor the frak out of here: make generic for any ListReference
-    def load_multi_reference_attributes(in_h)
+    def _update_multi_references(in_h)
       self.class.each_attribute(BasicAttributes::MultiReference) do |attr|
         __attr_name = attr.name
         value = if in_h[__attr_name].nil?
@@ -287,7 +301,7 @@ module Dilithium
       end
     end
 
-    def load_immutable_references(in_h)
+    def _update_immutable_references(in_h)
       self.class.each_attribute(BasicAttributes::ImmutableReference) do |attr|
         __attr_name = attr.name
         in_value = in_h[__attr_name]
@@ -330,23 +344,23 @@ module Dilithium
       end
     end
 
-    def detach_children
+    def _detach_children
       each_child do |child|
         child_attr = child.class.to_s.split('::').last.underscore.downcase.pluralize
-        child.detach_parent(self)
-        child.detach_children
+        child._detach_parent(self)
+        child._detach_children
         instance_variable_get("@#{child_attr}".to_sym).clear
       end
     end
 
-    def detach_multi_references
+    def _detach_multi_references
       each_multi_reference do |ref, ref_attr|
         # TODO: ref.type!! See Mapper::Sequel.to_table_name
         instance_variable_get("@#{ref_attr}".to_sym).clear
       end
     end
 
-    def detach_parent(parent_entity)
+    def _detach_parent(parent_entity)
       unless self.class.parent_reference.nil?
         parent_attr = parent_entity.class.to_s.split('::').last.underscore.downcase
         if parent_entity == instance_variable_get("@#{parent_attr}".to_sym)
@@ -357,7 +371,7 @@ module Dilithium
       end
     end
 
-    def self.define_aggregate_method(plural_child_name)
+    def self._define_aggregate_method(plural_child_name)
       self.class_eval do
 
         singular_name = plural_child_name.to_s.singularize
@@ -366,9 +380,14 @@ module Dilithium
 
         # Single-model methods:
 
-        define_method(singular_make_method_name) do |in_h|
+        define_method(singular_make_method_name) do |type = nil, &b|
           child_class = self.class.attribute_descriptors[plural_child_name].inner_type
-          a_child = child_class.new(in_h, self)
+          unless type.nil?
+            raise IllegalArgumentException "#{type} is not a subclass of #{child_class}" unless type <= child_class
+            child_class = type
+          end
+
+          a_child = child_class.build(self._version, &b)
           send("add_#{singular_name}".to_sym, a_child)
           a_child
         end
@@ -376,6 +395,7 @@ module Dilithium
         # Collection methods:
 
         define_method(plural_make_method_name) do |in_a|
+          #TODO What exactly does this method do? How do we changeit to Builder syntax?
           children = []
           in_a.each {|in_h| children<< send(singular_make_method_name, in_h)}
           children
@@ -441,6 +461,5 @@ module Dilithium
         end
       end
     end
-
   end
 end

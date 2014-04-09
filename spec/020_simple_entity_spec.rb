@@ -19,8 +19,70 @@ describe 'BaseEntity' do
       expect(User.attributes).to eq(before_attrs)
     end
 
+    it 'can be fully serialized' do
+      a_user = User.fetch_by_id(1)
+      test_hash ={
+        :id => 1,
+        :name => 'Alice',
+        :email => 'alice@example.net',
+        :tstamp=> DateTime.strptime('2013-09-23T18:42:14+02:00', '%Y-%m-%dT%H:%M:%S%z'),
+        :active=>true,
+        :reference => nil,
+        :refers_to => nil,
+        :title => 'Esq.',
+        :_version => {id:1, _version:0, _version_created_at:DateTime.parse('2013-09-23T18:42:14+02:00'),
+                      _locked_by: nil, _locked_at: nil}
+      }
+
+      user_h = EntitySerializer.to_nested_hash(a_user)
+      test_hash.each do |k, v|
+        expect(user_h[k]).to eq(v)
+      end
+
+      expect(a_user.password.to_s).to eq('$2a$10$hqlENYeHZYy9eYHnZ2ONH.5N9qnXV9uzXA/h27XCMq5HBytCLo6bm')
+    end
+  end
+
+  describe '.build' do
+    it 'creates a new entity' do
+      a_user = User.build do |u|
+        u.name = 'Catbert'
+        u.email = 'catbert@example.com'
+      end
+
+      expect(a_user).to be_a(User)
+      expect(a_user.name).to eq('Catbert')
+      expect(a_user.email).to eq('catbert@example.com')
+    end
+
+    it 'validates its attributes' do
+      User.build do |u|
+        u.name = 'Leet'
+        expect {u.email = 1337}.to raise_error(ArgumentError)
+      end
+    end
+
+    it 'validates reference types' do
+      User.build do |u|
+        u.name = 'PHB'
+        expect {u.reference = 'Reference'}.to raise_error(ArgumentError)
+      end
+    end
+
+    it 'validates invariants' do
+      expect {
+        User.build do |u|
+          u.email = 'ratbert@example.com'
+        end
+      }.to raise_error(DomainObjectExceptions::ValidationFailed)
+    end
+  end
+
+  describe 'accessors and mutators' do
     it 'has the proper methods' do
-      a_user = User.new
+      a_user = User.build { |u| u.name = 'Wally' }
+
+      expect(a_user).to be_a(User)
       expect(a_user).to respond_to(:id)
       expect(a_user).to respond_to(:id=)
       expect(a_user).to respond_to(:name)
@@ -30,11 +92,12 @@ describe 'BaseEntity' do
       expect(a_user.instance_variables.include?(:'@my_thing')).to be_false
       expect(a_user).to_not respond_to(:my_thing)
       expect(a_user).to_not respond_to(:my_thing=)
+
     end
 
     it 'validates its attributes' do
-      new_user = User.new
-      my_reference = Reference.new({name:'test'})
+      new_user = User.build { |u| u.name = 'Dilbert '}
+      my_reference = Reference.build { |r| r.name ='test' }
 
       expect(my_reference.name).to eq('test')
       expect(new_user.reference).to be_nil
@@ -44,24 +107,6 @@ describe 'BaseEntity' do
       expect {new_user.name = 1337}.to raise_error(ArgumentError)
     end
 
-    it 'can be fully serialized' do
-      a_user = User.fetch_by_id(1)
-      test_hash ={
-        :id => 1,
-        :name => 'Alice',
-        :email => 'alice@example.net',
-        :tstamp=> DateTime.strptime('2013-09-23T18:42:14+02:00', '%Y-%m-%dT%H:%M:%S%z'),
-        :password=>'$2a$10$hqlENYeHZYy9eYHnZ2ONH.5N9qnXV9uzXA/h27XCMq5HBytCLo6bm',
-        :active=>true,
-        :reference => nil,
-        :refers_to => nil,
-        :title => 'Esq.',
-        :_version => {id:1, _version:0, _version_created_at:DateTime.parse('2013-09-23T18:42:14+02:00'),
-                      _locked_by: nil, _locked_at: nil}
-      }
-
-      EntitySerializer.to_nested_hash(a_user).each { |k, v| expect(test_hash[k]).to eq(v) }
-    end
   end
 
   describe 'finders' do
@@ -125,87 +170,27 @@ describe 'BaseEntity' do
     end
   end
 
-  describe '.new' do
-    describe 'with full-hash constructor' do
-      let(:norbert) { {:name => 'Norbert', :email => 'norb@example.net'} }
-      subject(:new_user) { User.new(norbert) }
-
-      it 'validates the attribute types' do
-        expect {User.new({:name => 'Catbert', :email => 1337})}.to raise_error(ArgumentError)
-        expect {User.new({:name => nil, :email => 'catbert@example.net'})}.to raise_error(ArgumentError)
-        expect {User.new({funny:false})}.to raise_error(ArgumentError)
-        expect {User.new({name:1337})}.to raise_error(ArgumentError)
-        expect {User.new({reference:'not a reference'})}.to raise_error(ArgumentError)
-      end
-
-      it 'assigns values correctly' do
-        expect(new_user.id).to eq(nil)
-        expect(new_user.name).to eq('Norbert')
-        expect(new_user.email).to eq('norb@example.net')
-      end
-
-      it 'is persisted correctly' do
-        new_user.reference = Reference.new(name: 'test')
-
-        transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
-        transaction.register_new(new_user)
-        transaction.commit
-        transaction.complete
-
-        norb = User.fetch_by_name('Norbert').first
-        expect(norb.email).to eq('norb@example.net')
-        expect(norb.reference).to be_a(Association::LazyEntityReference)
-        expect(norb.reference.resolved_entity.name).to eq('test')
-      end
-    end
-  end
-
-  describe '.build' do
-    it 'creates a new entity' do
-      a_user = User.build do |u|
-        u.name = 'Catbert'
-        u.email = 'catbert@example.net'
-        u.reference = Reference.build do |r|
-          r.name = 'Reference'
-        end
-      end
-
-      expect(a_user).to be_a(User)
-      expect(a_user.name).to eq('Catbert')
-      expect(a_user.email).to eq('catbert@example.net')
-      expect(a_user.reference).to be_a(Association::LazyEntityReference)
-      expect(a_user.reference.resolved_entity).to be_a(Reference::Immutable)
-      expect(a_user.reference.resolved_entity.name).to eq('Reference')
-    end
-
-    it 'validates attribute types' do
-      User.build do |u|
-        expect {u.email = 1337}.to raise_error(ArgumentError)
-      end
-    end
-
-    it 'validates reference types' do
-      User.build do |u|
-        expect {u.reference = 'Reference'}.to raise_error(ArgumentError)
-      end
-    end
-  end
-
-
   describe '.full_update' do
     it 'can be fully updated' do
-      user = User.fetch_by_name('Norbert').first
-      id = user.id
+      user = User.build do |u|
+        u.id = 42
+        u.name = 'PHB'
+        u.email = 'phb@example.net'
+      end
 
-      user.full_update({id:id, :name => 'Dogbert', :email => 'dogbert@example.net'})
+      user.full_update({id:42, :name => 'Dogbert', :email => 'dogbert@example.net'})
+      expect(user.id).to eq(42)
       expect(user.name).to eq('Dogbert')
       expect(user.email).to eq('dogbert@example.net')
 
-      user.full_update({id:id, :name => 'Catbert'})
+      user.full_update({id:42, :name => 'Catbert'})
+      expect(user.id).to eq(42)
       expect(user.name).to eq('Catbert')
       expect(user.email).to be_nil
 
-      user.full_update({id:id, :name => 'Ratbert', :email => nil})
+      user.full_update({id:42, :name => 'Ratbert', :email => nil})
+      expect(user.id).to eq(42)
+      expect(user.id).to eq(42)
       expect(user.name).to eq('Ratbert')
       expect(user.email).to be_nil
 
