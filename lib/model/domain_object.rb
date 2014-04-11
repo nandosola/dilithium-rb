@@ -74,7 +74,7 @@ module Dilithium
     end
 
     def self.get_attributes_by_type(type)
-      self.attributes.reduce([]){|m,attr| attr.instance_of?(type) ? m<<attr.name : m }
+      self.attributes.reduce([]){|m,attr| attr.is_a?(type) ? m<<attr.name : m }
     end
 
     def self.extended_generic_attributes
@@ -85,21 +85,30 @@ module Dilithium
       !self.extended_generic_attributes.empty?
     end
 
-    def initialize(in_h={})
-      check_input_h(in_h)
-      load_attributes(in_h)
+    def self.build(&b)
+      obj = self.send(:new)
+      finish_build(obj, &b)
     end
 
-    def self.build
-      new_object = self.new
-      yield new_object
-      #TODO Validate invariants
-      new_object
+    # Extract this to another method so we can do stuff after creating the object and before assembling
+    # it (i.e. _version in BaseEntity)
+    def self.finish_build(obj)
+      obj.send(:_add_collections)
+      yield obj if block_given?
+      obj.send(:_add_default_attributes)
+      obj.send(:_validate)
+      obj
+    end
+
+    def update!(&b)
+      b.call(obj) unless b.nil?
+      _validate
+      self
     end
 
     protected
 
-    def load_attributes(in_h)
+    def _update_attributes(in_h)
       #TODO This loads the default attributes for each type (i.e. an empty Array for children). This should actually
       # be done in each load_xxx method instead of here
       self.class.attribute_descriptors.each do |k,v|
@@ -154,5 +163,33 @@ module Dilithium
         in_h.delete(attr_name)
       end
     end
+
+    def _validate
+      #TODO Invariants
+      self.class.attributes.each do |attr|
+        if attr.respond_to?(:mandatory) && attr.mandatory && self.send(attr.name).nil?
+          raise DomainObjectExceptions::ValidationFailed, "Attribute #{attr.name} is mandatory"
+        end
+      end
+    end
+
+    def _add_default_attributes
+      self.class.attributes.each do |attr|
+        if attr.respond_to?(:default) && ! attr.default.nil? && instance_variable_get("@#{attr.name}".to_sym).nil?
+          instance_variable_set("@#{attr.name}".to_sym, attr.default)
+        end
+      end
+    end
+
+    def _add_collections
+      self.class.get_attributes_by_type(BasicAttributes::ListReference).each do |attr|
+        attr_name = "@#{attr}".to_sym
+        current = instance_variable_get(attr_name)
+        instance_variable_set(attr_name, Array.new) if current.nil?
+      end
+    end
+
+    # You should use the .build method to create DomainObjects and their subclasses
+    private_class_method :new
   end
 end

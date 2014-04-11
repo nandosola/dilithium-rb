@@ -22,29 +22,18 @@ describe 'A Transaction handling an Aggregate Entity' do
   end
 
   it 'creates a new Aggregate without children' do
-    company1_h = { name: 'Abstra.cc S.A' }
-    a_company = Company.new(company1_h)
+    a_company = Company.build { |c| c.name = 'Abstra.cc S.A'}
     a_company.name.should eq('Abstra.cc S.A')
   end
 
   it 'creates a new Aggregate with children' do
     a_company = Company.build do |c|
       c.name = 'Abstra.cc, S.A.'
-      c.add_local_office(
-        LocalOffice.build do |l|
-          l.description = 'branch1'
-          l.add_address(
-            Address.build do |a|
-              a.description = 'addr1'
-            end
-          )
-          l.add_address(
-            Address.build do |a|
-              a.description = 'addr2'
-            end
-          )
-        end
-      )
+      c.make_local_office do |l|
+        l.description = 'branch1'
+        l.make_address { |a| a.description = 'addr1' }
+        l.make_address { |a| a.description = 'addr2' }
+      end
     end
 
     expect(a_company.local_offices.size).to eq(1)
@@ -59,23 +48,19 @@ describe 'A Transaction handling an Aggregate Entity' do
   end
 
   it 'creates a new Aggregate in the database and retrieves it correctly' do
-    company1_h = {
-      name: 'Abstra.cc S.A',
-      local_offices: [
-        {
-          description: 'branch1',
-          addresses: [{description: 'addr1'}]
-        }
-      ]
-    }
-
-    a_company = Company.new(company1_h)
+    a_company = Company.build do |c|
+      c.name = 'Abstra.cc S.A'
+      c.make_local_office do |l|
+        l.description = 'branch1'
+        l.make_address { |a| a.description = 'addr1' }
+      end
+    end
     @transaction.register_new(a_company)
 
-    a_company.make_local_office({
-                                  description: 'branch2',
-                                  addresses: [{description: 'addr2.1'}]
-                                })
+    a_company.make_local_office do |l|
+      l.description = 'branch2'
+      l.make_address { |a| a.description = 'addr2.1' }
+    end
 
     a_company.class.should eq(Company)
     a_company.name.should eq('Abstra.cc S.A')
@@ -96,17 +81,7 @@ describe 'A Transaction handling an Aggregate Entity' do
 
     @transaction.commit
 
-    expect {a_company.make_local_office({
-                                          description: 'branch3',
-                                          company: 1
-                                        })}.to raise_error(RuntimeError)
-
-    expect {a_company.make_local_office({
-                                          description: 'branch4',
-                                          addresses: [1,2,3]
-                                        })}.to raise_error(ArgumentError)
-
-    abstra =  Company.fetch_by_id(1)
+    abstra = Company.fetch_by_id(1)
 
     abstra.class.should eq(Company)
     abstra.name.should eq('Abstra.cc S.A')
@@ -125,20 +100,16 @@ describe 'A Transaction handling an Aggregate Entity' do
 
   end
 
-  it "creates a new aggregate, retrieves it and performs updates" do
-    company2_h = {
-      name: 'Smarty Pants, Inc.',
-      local_offices: [
-        {
-          description: 'foo del 1',
-          addresses: [{description: 'foo dir 1'},
-                      {description: 'foo dir 2'}]
-        }
-      ]
-    }
+  it 'creates a new aggregate, retrieves it and performs updates' do
+    b_company = Company.build do |c|
+      c.name = 'Smarty Pants, Inc.'
+      c.make_local_office do |l|
+        l.description = 'foo del 1'
+        l.make_address { |a| a.description = 'foo dir 1' }
+        l.make_address { |a| a.description = 'foo dir 2' }
+      end
+    end
 
-    b_company = Company.new()
-    b_company.make(company2_h)
     @transaction.register_new(b_company)
 
     @transaction.commit
@@ -251,7 +222,7 @@ describe 'A Transaction handling an Aggregate Entity' do
 
   end
 
-  it "From a new transaction: retrieves an aggregate, registers it as dirty, and rollbacks it " do
+  it 'From a new transaction: retrieves an aggregate, registers it as dirty, and rollbacks it ' do
     tr = UnitOfWork::Transaction.new(EntityMapper::Sequel)
 
     company = Company.fetch_by_id(2)
@@ -264,7 +235,7 @@ describe 'A Transaction handling an Aggregate Entity' do
 
   end
 
-  it "From a new transaction: retrieves an aggregate, registers it as dirty and deletes it" do
+  it 'From a new transaction: retrieves an aggregate, registers it as dirty and deletes it' do
     tr = UnitOfWork::Transaction.new(EntityMapper::Sequel)
 
     company = Company.fetch_by_id(2)
@@ -272,7 +243,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     tr.register_deleted(company)
     tr.commit
     company = Company.fetch_by_id(2)
-    company.should be_nil
+    company.active.should be_false
 
     ct = Company.attribute_descriptors[:local_offices].inner_type
     (ct < BaseEntity).should be_true
@@ -311,7 +282,22 @@ describe 'A Transaction handling an Aggregate Entity' do
       tr = UnitOfWork::Transaction.new(EntityMapper::Sequel)
 
       a_baz = Baz.fetch_by_id(1)
-      a_foo = Foo.new({foo:'foo', bars:[{bar:'bar', baz:a_baz}, {bar:'bar2', baz:a_baz}], baz:a_baz})
+      a_foo = Foo.build do |f|
+
+        f.foo ='foo'
+        f.baz = a_baz
+
+        f.make_bar do |b|
+          b.bar = 'bar'
+          b.baz = a_baz
+        end
+
+        f.make_bar do |b|
+          b.bar = 'bar2'
+          b.baz = a_baz
+        end
+      end
+
       baz_ref = Association::ImmutableEntityReference.create(a_baz)
 
       EntitySerializer.to_nested_hash(a_foo).should ==({:id=>nil,
@@ -433,54 +419,47 @@ describe 'A Transaction handling an Aggregate Entity' do
   end
 
   it 'Correctly handles references between different roots' do
-    company_h = {
-      name: 'Gallifreyan Sonic Widgets, Inc.',
-      local_offices: [
-        {
-          description: 'Head Office',
-          addresses: [{description: 'Gallifrey'}]
-        }
-      ]
-    }
+    a_company = Company.build do |c|
+      c.name = 'Gallifreyan Sonic Widgets, Inc.'
+      c.make_local_office do |l|
+        l.description = 'Head Office'
+        l.make_address { |a| a.description = 'Gallifrey'}
+      end
+    end
 
-    a_company = Company.new(company_h)
     @transaction.register_new(a_company)
     @transaction.commit
 
     a_company = Company.fetch_by_id(a_company.id)
     office = a_company.local_offices[0]
 
-    contractor_h = {
-      local_office: office,
-      name: 'Romana I',
-      email: 'romana@timelords.com'
-    }
+    contractor = Contractor.build do |c|
+      c.local_office = office
+      c.name = 'Romana'
+      c.email = 'romana@timelords.com'
+    end
 
-    contractor = Contractor.new(contractor_h)
     @transaction.register_new(contractor)
     @transaction.commit
 
     romana = Contractor.fetch_by_id(contractor.id)
 
     romana.local_office.id.should eq(office.id)
-    romana.name.should eq('Romana I')
+    romana.name.should eq('Romana')
     romana.local_office._type.should eq(LocalOffice)
   end
 
   it 'Correctly persists an intermediate root' do
     name = 'TARDIS Console Repair, Inc.'
 
-    company_h = {
-      name: name,
-      local_offices: [
-        {
-          description: 'HQ',
-          addresses: [{description: 'Warehouse District'}]
-        }
-      ]
-    }
+    a_company = Company.build do |c|
+      c.name = name
+      c.make_local_office do |l|
+        l.description = 'HQ'
+        l.make_address { |a| a.description = 'Warehouse District'}
+      end
+    end
 
-    a_company = Company.new(company_h)
     @transaction.register_new(a_company)
     @transaction.commit
     @transaction.register_clean(a_company)
@@ -490,7 +469,9 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.register_dirty(office)
 
     office.description = 'Headquarters'
-    office.add_address Address.new({description: 'Timelord Palace'})
+    office.make_address do |a|
+      a.description = 'Timelord Palace'
+    end
     @transaction.commit
 
     a_company = Company.fetch_by_name(name)[0]

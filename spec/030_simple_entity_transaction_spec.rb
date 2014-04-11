@@ -15,10 +15,10 @@ describe 'A transaction handling a Simple Entity' do
     @transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     @a_user = User.fetch_by_id(1)
     @b_user = User.fetch_by_id(2)
-    @new_user = User.new
+    @new_user = User.build { |u| u.name = 'Foo' }
   end
 
-  it "has a unique identifier" do
+  it 'has a unique identifier' do
     @transaction.uuid.should =~ /^[0-9a-f]{32}$/
   end
 
@@ -92,7 +92,7 @@ describe 'A transaction handling a Simple Entity' do
     @a_user.name.should eq('Andrew')
   end
 
-  it "deletes objects registered for deletion when calling commit" do
+  it 'deletes objects registered for deletion when calling commit' do
     @transaction.register_deleted(@a_user)
 
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DIRTY).length.should eq(0)
@@ -100,13 +100,15 @@ describe 'A transaction handling a Simple Entity' do
 
     @transaction.commit
 
-    User.fetch_by_id(1).should be_nil
+    User.fetch_by_id(1).active.should be_false
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DELETED).length.should eq(0)
   end
 
-  it "saves new objects and marks them as dirty when calling commit" do
+  it 'saves new objects and marks them as dirty when calling commit' do
     @transaction.register_new(@new_user)
-    @new_user.make({name:'Danny', email:'danny@example.net' })
+    @new_user.name = 'Danny'
+    @new_user.email = 'danny@example.net'
+    $database[:users].where(name: @new_user.name).count.should eq(0)
 
     found_tracked_objects = @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_NEW)
     found_tracked_objects.size.should eq(1)
@@ -129,7 +131,7 @@ describe 'A transaction handling a Simple Entity' do
 
   end
 
-  it "removes deleted objects from the transaction when calling commit" do
+  it 'removes deleted objects from the transaction when calling commit' do
     @transaction.register_deleted(@new_user)
     @transaction.commit
     User.fetch_by_name('Danny').should be_empty
@@ -137,7 +139,7 @@ describe 'A transaction handling a Simple Entity' do
     found_tracked_object.should be_nil
   end
 
-  it "does not affect objects when calling rollback" do
+  it 'does not affect objects when calling rollback' do
     @a_user = User.fetch_by_id(2)
     @transaction.register_dirty(@a_user)
     @a_user.name = 'Bartley'
@@ -153,7 +155,7 @@ describe 'A transaction handling a Simple Entity' do
 
   end
 
-  it "registers objects in the glabal Registry and allows them to be found" do
+  it 'registers objects in the glabal Registry and allows them to be found' do
     a=[]
     reg = UnitOfWork::TransactionRegistry::Registry.instance
     reg.each_entity(@transaction.uuid) do |e|
@@ -166,31 +168,27 @@ describe 'A transaction handling a Simple Entity' do
     b[0].object.should eq(a[0].object)
   end
 
-  it "cannot register an model that already exists in the transaction" do
+  it 'cannot register an model that already exists in the transaction' do
     user = User.fetch_by_id(2)
     expect {@transaction.register_dirty(user)}.to raise_error(ArgumentError)
 
     new_tr = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     expect {new_tr.register_new(user)}.to raise_error(ArgumentError)
 
-    new_user = User.new
+    new_user = User.build { |u| u.name = 'Ratbert' }
     new_tr.register_new(new_user)
     expect {new_tr.register_new(new_user)}.to raise_error(ArgumentError)
-
-    another_user = User.new
-    new_tr.register_new(another_user)
-
   end
 
-  it "sets deleted objects to dirty and reloads dirty and deleted objects when calling rollback" do
+  it 'sets deleted objects to dirty and reloads dirty and deleted objects when calling rollback' do
     pending
   end
 
-  it "does not allow calling complete if there are pending commits or rollbacks" do
+  it 'does not allow calling complete if there are pending commits or rollbacks' do
     pending
   end
 
-  it "empties, invalidates and unregisters the Transaction when calling complete" do
+  it 'empties, invalidates and unregisters the Transaction when calling complete' do
     pending
   end
 

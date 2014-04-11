@@ -21,24 +21,38 @@ describe 'BaseValue class' do
     end
   }
 
-  let(:planet_h) { {iso2:'NU', iso3:'NRU', name:'Nibiru', type:'Y'} }
+  def create_planet(planet_class)
+    planet_class.build do |p|
+      p.iso2 = 'NU'
+      p.iso3 = 'NRU'
+      p.name = 'Nibiru'
+      p.type = 'Y'
+    end
+  end
 
-  let(:another_planet_h) { {iso2:'GY', iso3:'GFY', name:'Gallifrey', type:'M'} }
+  def create_another_planet(planet_class)
+    planet_class.build do |p|
+      p.iso2 = 'GY'
+      p.iso3 = 'GFY'
+      p.name = 'Gallifrey'
+      p.type = 'M'
+    end
+  end
 
   describe '.build' do
     it 'can be constructed using a builder' do
-      a_planet = planet.build do |p|
-        p.iso2 = 'VL'
-        p.iso3 = 'VLC'
-        p.name = 'Vulcan'
-        p.type = 'M'
-      end
+      a_planet = create_planet(planet)
+
+      expect(a_planet).to respond_to(:iso2)
+      expect(a_planet).to respond_to(:iso3)
+      expect(a_planet).to respond_to(:name)
+      expect(a_planet).to respond_to(:type)
 
       expect(a_planet.class).to eq(planet)
-      expect(a_planet.iso2).to eq('VL')
-      expect(a_planet.iso3).to eq('VLC')
-      expect(a_planet.name).to eq('Vulcan')
-      expect(a_planet.type).to eq('M')
+      expect(a_planet.iso2).to eq('NU')
+      expect(a_planet.iso3).to eq('NRU')
+      expect(a_planet.name).to eq('Nibiru')
+      expect(a_planet.type).to eq('Y')
     end
   end
 
@@ -65,33 +79,19 @@ describe 'BaseValue class' do
 
   describe '#==' do
     it 'Compares objects by their values' do
-      a_planet = planet.new(planet_h.dup)
-      the_same_planet = planet.new(planet_h)
-      another_planet = planet.new(another_planet_h)
+      a_planet = create_planet(planet)
+      the_same_planet = create_planet(planet)
+      another_planet = create_another_planet(planet)
 
       expect(a_planet).to eq(the_same_planet)
       expect(a_planet).to_not eq(another_planet)
     end
   end
 
-  describe 'accessors' do
-    it 'Has the proper accessors' do
-      a_planet = planet.new(planet_h.dup)
-
-      expect(a_planet).to respond_to(:iso2)
-      expect(a_planet).to respond_to(:iso3)
-      expect(a_planet).to respond_to(:name)
-      expect(a_planet).to respond_to(:type)
-
-      expect(a_planet.iso2).to eq(planet_h[:iso2])
-      expect(a_planet.iso3).to eq(planet_h[:iso3])
-      expect(a_planet.name).to eq(planet_h[:name])
-      expect(a_planet.type).to eq(planet_h[:type])
-    end
-
+  describe 'mutators' do
     it 'Has mutators that throw an exception' do
       #TODO See comments for Issue #49: It should really not have mutators but they are needed to load data initially
-      a_planet = planet.new(planet_h.dup)
+      a_planet = create_planet(planet)
 
       expect(a_planet).to respond_to(:iso2=)
       expect(a_planet).to respond_to(:iso3=)
@@ -173,33 +173,52 @@ describe 'BaseValue infrastructure' do
           $database.drop_table :planets
         end
 
-        let(:planet_h) { {iso2: 'NU', iso3:'NRU', name:'Nibiru', type:'Y', active:true} }
-
-        let(:a_planet) { Planet.new(planet_h.dup) }
+        let(:a_planet) {
+          Planet.build do |p|
+            p.iso2 = 'NU'
+            p.iso3 = 'NRU'
+            p.name = 'Nibiru'
+            p.type = 'Y'
+          end
+        }
 
         let(:planet_mapper) { Mapper.for(Planet) }
 
         describe '#insert' do
           it 'Inserts a new BaseValue' do
-            result_h = $database[:planets].where(iso2: planet_h[:iso2]).first
-            expect(result_h).to eq(planet_h)
+            result_h = $database[:planets].where(iso2: a_planet.iso2).first
+            expect(result_h).to eq({
+                                     iso2: a_planet.iso2,
+                                     iso3: a_planet.iso3,
+                                     name: a_planet.name,
+                                     type: a_planet.type,
+                                     active: true
+                                   })
           end
 
           it 'Doesn\'t allow inserting a BaseValue with the same identifier value, ' do
-            another_planet_h = planet_h.merge({iso3: 'NBU', type:'y'})
-            another_planet = Planet.new(another_planet_h)
+            another_planet = Planet.build do |p|
+              p.iso2 = 'NU'
+              p.iso3 = 'NXU'
+              p.name = 'Nixiru'
+              p.type = 'M'
+            end
+
             expect { planet_mapper.insert(another_planet) }.to raise_error(Sequel::UniqueConstraintViolation)
           end
         end
 
         describe '#update' do
           it 'Updates the fields in a BaseValue' do
-            planet_h[:iso3] = 'NBU'
-            planet_h[:name] = 'Nibiru 2'
-            planet_h[:type] = 'X'
+            updated_planet = Planet.build do |p|
+              iso2 = a_planet.iso2
+              iso3 = a_planet.iso3
+              name = 'Nibiru Prime'
+              type = 'X'
+            end
 
             expect {
-              planet_mapper.update(Planet.new(planet_h.dup), a_planet)
+              planet_mapper.update(updated_planet, a_planet)
             }.to raise_error(Dilithium::PersistenceExceptions::ImmutableObjectError)
           end
         end
@@ -208,7 +227,7 @@ describe 'BaseValue infrastructure' do
           it 'Deletes a BaseValue from the DB' do
             planet_mapper.delete(a_planet)
 
-            modified_h = $database[:planets].where(iso2: planet_h[:iso2]).first
+            modified_h = $database[:planets].where(iso2: a_planet.iso2).first
             expect(modified_h[:active]).to be_false
           end
         end
@@ -226,7 +245,14 @@ describe 'BaseValue infrastructure' do
 
         let(:alien_h) { {race: 'Dalek', subrace: 'Davros', hostility_level: 100, active:true} }
 
-        let(:an_alien) { Alien.new(alien_h.dup) }
+        let(:an_alien) {
+          Alien.build do |a|
+            a.race = 'Dalek'
+            a.subrace = 'Davros'
+            a.hostility_level = 100
+            a.active = true
+          end
+        }
 
         let(:alien_mapper) { Mapper.for(Alien) }
 
@@ -238,7 +264,12 @@ describe 'BaseValue infrastructure' do
 
           it 'Doesn\'t allow inserting a BaseValue with the same identifier values' do
             another_alien_h = alien_h.merge({hostility_level: 90})
-            another_alien = Alien.new(another_alien_h)
+            another_alien = Alien.build do |a|
+              a.race = 'Dalek'
+              a.subrace = 'Davros'
+              a.hostility_level = 90
+              a.active = true
+            end
             #TODO We should be getting a Sequel::ConstraintViolation or something similar, but constraint violations on multiple keys get mapped as generic Sequel::DatabaseErrors. See https://github.com/jeremyevans/sequel/issues/782
             expect { alien_mapper.insert(another_alien) }.to raise_error(Sequel::DatabaseError)
           end
@@ -247,9 +278,15 @@ describe 'BaseValue infrastructure' do
         describe '#update' do
           it 'Does not allow updating the fields in a BaseValue' do
             alien_h[:hostility_level] = 110
+            updated_alien = Alien.build do |a|
+              a.race = an_alien.race
+              a.subrace = an_alien.subrace
+              a.hostility_level = 110
+              a.active = true
+            end
 
             expect {
-              alien_mapper.update(Alien.new(alien_h.dup), an_alien)
+              alien_mapper.update(updated_alien, an_alien)
             }.to raise_error(Dilithium::PersistenceExceptions::ImmutableObjectError)
           end
         end
@@ -277,21 +314,42 @@ describe 'BaseValue infrastructure' do
         $database.drop_table :planets
       end
 
-      let(:planet_h) { {iso2: 'NU', iso3:'NRU', name:'Nibiru', type:'Y', active:true} }
+      let(:a_planet) {
+        Planet.build do |p|
+          p.iso2 = 'NU'
+          p.iso3 = 'NRU'
+          p.name = 'Nibiru'
+          p.type = 'Y'
+          p.active = true
+        end
+      }
 
-      let(:alien_h) { {race: 'Dalek', subrace: 'Soldier', hostility_level: 85, active:true} }
+      let(:an_alien) {
+        Alien.build do |a|
+          a.race = 'Dalek'
+          a.subrace = 'Soldier'
+          a.hostility_level = 85
+          a.active = true
+        end
+      }
 
-      let(:another_alien_h) { {race: 'Cyberman', subrace: 'Soldier', hostility_level: 80, active:true} }
+      let(:another_alien) {
+        Alien.build do |a|
+          a.race = 'Cyberman'
+          a.subrace = 'Soldier'
+          a.hostility_level = 85
+          a.active = true
+        end
+      }
 
-      let(:inactive_alien_h) { {race: 'Cyberman', subrace: 'Original', hostility_level: 60, active:false} }
-
-      let(:a_planet) { Planet.new(planet_h.dup) }
-
-      let(:an_alien) { Alien.new(alien_h.dup) }
-
-      let(:another_alien) { Alien.new(another_alien_h.dup) }
-
-      let(:inactive_alien) { Alien.new(inactive_alien_h.dup) }
+      let(:inactive_alien) {
+        Alien.build do |a|
+          a.race = 'Cyberman'
+          a.subrace = 'Original'
+          a.hostility_level = 60
+          a.active = false
+        end
+      }
 
       let(:all_aliens) { [an_alien, another_alien, inactive_alien] }
 
@@ -317,7 +375,9 @@ describe 'BaseValue infrastructure' do
             alien = alien_repo.fetch_by_id('Dalek', 'Soldier')
             expect(alien).to eq(an_alien)
           end
+        end
 
+        describe '#fetch_all' do
           it 'retrieves all instances of the given BaseValue' do
             aliens = alien_repo.fetch_all
             expect(aliens).to eq(all_aliens)
@@ -329,7 +389,13 @@ describe 'BaseValue infrastructure' do
     describe 'In a transaction' do
       let(:transaction) { UnitOfWork::Transaction.new(EntityMapper::Sequel) }
 
-      let(:davros) { Alien.new(race: 'Kaled', subrace: 'Dalek hybrid', hostility_level: 100) }
+      let(:davros) {
+        Alien.build do |a|
+          a.race = 'Kaled'
+          a.subrace = 'Dalek hybrid'
+          a.hostility_level = 100
+        end
+      }
 
       before(:each) do
         SchemaUtils::Sequel.create_tables(Alien, Planet)
@@ -364,7 +430,7 @@ describe 'BaseValue infrastructure' do
         transaction.register_deleted(davros)
         transaction.commit
 
-        expect(Repository.for(Alien).fetch_by_id(davros.race, davros.subrace)).to be_nil
+        expect(Repository.for(Alien).fetch_by_id(davros.race, davros.subrace).active).to be_false
 
         transaction.complete
       end
@@ -376,11 +442,30 @@ describe 'BaseValue infrastructure' do
   end
 
   describe 'as a BaseEntity attribute' do
-    let(:skaro) { Planet.new(iso2: 'SK', iso3: 'SKR', name: 'Skaro', type: 'K') }
+    let(:skaro) {
+      Planet.build do |p|
+        p.iso2 = 'SK'
+        p.iso3 = 'SKR'
+        p.name = 'Skaro'
+        p.type = 'K'
+      end
+    }
 
-    let(:davros) { Alien.new(race: 'Kaled', subrace: 'Dalek hybrid', hostility_level: 100) }
+    let(:davros) {
+      Alien.build do |a|
+        a.race = 'Kaled'
+        a.subrace = 'Dalek hybrid'
+        a.hostility_level = 100
+      end
+    }
 
-    let(:dalek_emperor) { Alien.new(race: 'Dalek', subrace: 'Emperor', hostility_level: 95) }
+    let(:dalek_emperor) {
+      Alien.build do |a|
+        a.race = 'Dalek'
+        a.subrace = 'Emperor'
+        a.hostility_level = 95
+      end
+    }
 
     describe 'BaseEntity#attribute' do
       let(:species) {
@@ -391,7 +476,12 @@ describe 'BaseValue infrastructure' do
         end
       }
 
-      let(:dalek) { species.new(name: 'Dalek', origin: skaro, leader: davros) }
+      let(:dalek) { species.build do |s|
+        s.name = 'Dalek'
+        s.origin = skaro
+        s.leader = davros
+      end
+      }
 
       it 'Creates a new attribute entry in the BaseEntity' do
         expect(species.attribute_descriptors).to include(:origin, :leader)
@@ -441,47 +531,6 @@ describe 'BaseValue infrastructure' do
                        )
         end
       end
-
-      describe '#initialize' do
-        before(:each) do
-          SchemaUtils::Sequel.create_tables(Planet, Alien)
-          Mapper.for(Planet).insert(skaro)
-          Mapper.for(Alien).insert(davros)
-        end
-
-        after(:each) do
-          $database.drop_table(:planets)
-          $database.drop_table(:aliens)
-        end
-
-        it 'Is constructed from a Hash, retrieving the BaseValue\'s attributes from the DB' do
-          dalek2 = species.new(name: 'Dalek',
-                               origin: {iso2: 'SK'},
-                               leader: {race: 'Kaled', subrace: 'Dalek hybrid'})
-
-          expect(dalek2.origin).to eq(skaro)
-          expect(dalek2.leader).to eq(davros)
-        end
-
-        it 'Raises an exception if a nonpersisted BaseValue is referenced from the constructing Hash' do
-          expect {
-            species.new(name: 'Dalek',
-                        origin: {iso2: 'MO'},
-                        leader: {race: 'Cyberman', subrace: 'Cyber controller'})
-          }.to raise_error { |error|
-            expect(error).to be_a PersistenceExceptions::NotFound
-            expect(error.id).to eq({iso2: 'MO'})
-            expect(error.type).to eq(Planet)
-          }
-        end
-
-        it 'Can be constructed with empty values' do
-          borg = species.new(name: 'Borg')
-
-          expect(borg.origin).to eq(nil)
-          expect(borg.leader).to eq(nil)
-        end
-      end
     end
 
     describe 'persistence' do
@@ -493,9 +542,21 @@ describe 'BaseValue infrastructure' do
         end
       end
 
-      let(:dalek) { Species.new(name: 'Dalek', origin: skaro, leader: davros) }
+      let(:dalek) {
+        Species.build do |s|
+          s.name = 'Dalek'
+          s.origin = skaro
+          s.leader = davros
+        end
+      }
 
-      let(:renegade_dalek) { Species.new(name: 'Renegade dalek', origin: skaro, leader: dalek_emperor) }
+      let(:renegade_dalek) {
+        Species.build do |s|
+          s.name = 'Renegade dalek'
+          s.origin = skaro
+          s.leader = dalek_emperor
+        end
+      }
 
       before(:each) do
         SchemaUtils::Sequel.create_tables(Planet, Alien, Species)
@@ -550,12 +611,11 @@ describe 'BaseValue infrastructure' do
         end
 
         it 'inserts a BaseEntity with empty values' do
-          borg = Species.new(name: 'Borg')
+          borg = Species.build { |s| s.name = 'Borg' }
           id = Mapper.for(Species).insert(borg)
           res = Repository.for(Species).fetch_by_id(id)
-          expect(res.origin.iso2).to be_nil
-          expect(res.leader.race).to be_nil
-          expect(res.leader.subrace).to be_nil
+          expect(res.origin).to be_nil
+          expect(res.leader).to be_nil
         end
       end
 
@@ -574,7 +634,12 @@ describe 'BaseValue infrastructure' do
         end
 
         it 'raises an exception when trying to update with a nonpersisted BaseValue' do
-          supreme_dalek = Alien.new(race: 'Dalek', subrace: 'Supreme Dalek', hostility_level: 99)
+          supreme_dalek = Alien.build do |a|
+            a.race = 'Dalek'
+            a.subrace = 'Supreme Dalek'
+            a.hostility_level = 99
+          end
+
           renegade_dalek.leader = supreme_dalek
 
           expect {

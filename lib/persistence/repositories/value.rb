@@ -6,13 +6,12 @@ module Dilithium
         def self.normalize_value_references(klazz, in_h)
           klazz.value_references.each do |ref|
             attr = klazz.attribute_descriptors[ref]
-            in_h[ref] = {}
-            attr.type.identifier_names.each do |identifier|
-              value_key = "#{ref}_#{identifier}".to_sym
-              value_val = in_h[value_key]
-              in_h[ref][identifier] = value_val
-              in_h.delete(value_key)
+            keys = attr.type.identifier_names.map do |identifier|
+              key = "#{ref}_#{identifier}".to_sym
+              in_h.delete(key)
             end
+
+            in_h[ref] = Repository.for(attr.type).fetch_by_id(*keys)
           end
         end
       end
@@ -20,12 +19,24 @@ module Dilithium
       module ValueClassBuilders
         def self.extended(base)
           base.instance_eval do
-            def create_object(in_h)
+            def load_object(in_h)
               if in_h.nil?
                 nil
               else
+                #TODO Uncomment when values can have references
+                #resolve_entity_references(in_h)
+                #BuilderHelpers.normalize_value_references(self, in_h)
                 BuilderHelpers.resolve_extended_generic_attributes(self, in_h)
-                self.new(in_h)
+
+                obj = self.build do |obj|
+                  in_h.each do |k, v|
+                    obj.send("#{k}=", v) unless self.attribute_descriptors[k].is_a? BasicAttributes::ListReference
+                  end
+                end
+
+                #TODO Uncomment when values can have references
+                #obj.send(:attach_multi_references)
+                obj
               end
             end
           end
@@ -38,7 +49,7 @@ module Dilithium
 
           condition_h = Hash[@type.identifier_names.zip(args)]
           condition_h.delete_if{|k,v| nil == v}
-          condition_h.empty? ? @type.new : DefaultFinders.fetch_by_id(@type, condition_h)
+          condition_h.empty? ? nil : DefaultFinders.fetch_by_id(@type, condition_h)
           # TODO NullReference.new(@type) is definitely a good idea
         end
 
@@ -57,11 +68,11 @@ module Dilithium
 
           condition_h = Hash[@type.identifier_names.zip(args)]
           DefaultFinders.key?(@type, condition_h) ||
-              # handle all values for *all* composite PK attributes set to nil
-              @type.identifiers.reduce(true) do |m,attr|
-                id = attr[:identifier]
-                m && condition_h[id].nil? && condition_h.include?(id)
-              end
+            # handle all values for *all* composite PK attributes set to nil
+            @type.identifiers.reduce(true) do |m,attr|
+              id = attr[:identifier]
+              m && condition_h[id].nil? && condition_h.include?(id)
+            end
         end
 
         private

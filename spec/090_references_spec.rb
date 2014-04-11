@@ -2,34 +2,42 @@
 require_relative 'spec_base'
 require_relative 'fixtures/references'
 
-describe 'An model with references' do
+describe 'An entity with references' do
+
+  let (:a_shipment) {
+    Shipment.build do |s|
+      s.name = 'A referenced shipment'
+
+      s.make_container do |c|
+        c.kind = 'Large'
+        c.make_package { |p| p.contents = 'Widgets'}
+        c.make_package { |p| p.contents = 'Doohickeys'}
+      end
+
+      s.make_container do |c|
+        c.kind = 'Small'
+        c.make_package { |p| p.contents = 'Thingamabobs'}
+        c.make_package { |p| p.contents = 'Stuff'}
+      end
+    end
+  }
+
+  let (:a_location) {
+    Location.build { |l| l.name = 'tumbolia' }
+  }
+
+  let (:a_shipyard) { Shipyard.build do |s|
+    s.name = 'The shipyard'
+    s.location = a_location
+    a_shipment.containers.each { |c| s.add_container(c) }
+  end
+  }
+
   before(:all) do
-    a_shipment = Shipment.new({
-                                :name => 'A referenced shipment',
-                                :containers => [
-                                  {
-                                    :kind => 'Large',
-                                    :packages => [
-                                      {:contents => 'Widgets'},
-                                      {:contents => 'Doohickeys'}
-                                    ]
-                                  },{
-                                    :kind => 'Small',
-                                    :packages => [
-                                      {:contents => 'Thingamabobs'},
-                                      {:contents => 'Stuff'}
-                                    ]
-                                  }
-                                ]
-                              })
-
-    a_location = Location.new({:name => 'tumbolia'})
-
     transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_new(a_shipment)
     transaction.register_new(a_location)
     transaction.commit
-
   end
 
   it 'should have the correct attribute descriptors' do
@@ -38,18 +46,6 @@ describe 'An model with references' do
   end
 
   it 'should have the correct methods' do
-    a_shipment = Shipment.fetch_by_name('A referenced shipment').first
-    a_location = Location.fetch_by_name('tumbolia').first
-
-    a_shipyard = Shipyard.new({
-                                :name => 'The shipyard',
-                                :location => { :id => a_location.id },
-                                :containers => [
-                                  { :id => a_shipment.containers[0].id },
-                                  { :id => a_shipment.containers[1].id }
-                                ]
-                              })
-
     a_shipyard.respond_to?(:location).should be_true
     a_shipyard.respond_to?(:containers).should be_true
     a_shipyard.respond_to?(:location=).should be_true
@@ -70,18 +66,6 @@ describe 'An model with references' do
   end
 
   it 'should save to and load from the database' do
-    a_shipment = Shipment.fetch_by_name('A referenced shipment').first
-    a_location = Location.fetch_by_name('tumbolia').first
-
-    a_shipyard = Shipyard.new({
-                                :name => 'The shipyard',
-                                :location => a_location,
-                                :containers => [
-                                  { :id => a_shipment.containers[0].id },
-                                  { :id => a_shipment.containers[1].id }
-                                ]
-                              })
-
     transaction = UnitOfWork::Transaction.new(EntityMapper::Sequel)
     transaction.register_new(a_shipyard)
     transaction.commit
@@ -105,55 +89,7 @@ describe 'An model with references' do
     matched_containers.each { |match| match[0].id.should eq(match[1].id) }
   end
 
-  it 'should deserialize correctly from a Hash' do
-    a_shipment = Shipment.fetch_by_name('A referenced shipment').first
-    a_location = Location.fetch_by_name('tumbolia').first
-
-    shipyard_h = {
-      :name => 'The shipyard',
-      :location => { :id => a_location.id },
-      :containers => [
-        { :id => a_shipment.containers[0].id },
-        { :id => a_shipment.containers[1].id }
-      ]
-    }
-
-    a_shipyard = Shipyard.new(shipyard_h)
-    location = a_shipyard.location
-    location.class.should eq(Association::ImmutableEntityReference)
-    #TODO Resolve automatically when calling resolved_entity (and rename resolve to resolve!)
-    location.resolve
-    location.resolved_entity.class.should eq(Location::Immutable)
-    location.resolved_entity.name.should eq('tumbolia')
-
-    containers = a_shipyard.containers
-    containers.class.should eq(Array)
-
-    containers.each_with_index do |container, i|
-      container.class.should eq(Association::ImmutableEntityReference)
-      container.resolve
-      container.resolved_entity.class.should eq(Container::Immutable)
-      container.resolved_entity.kind.should eq(a_shipment.containers[i].kind)
-    end
-
-    #TODO Add test for modifying the array (add/delete/update)
-  end
-
   it 'should serialize correctly to a Hash' do
-    a_shipment = Shipment.fetch_by_name('A referenced shipment').first
-    a_location = Location.fetch_by_name('tumbolia').first
-
-    shipyard_h = {
-      :name => 'The shipyard',
-      :location => { :id => a_location.id },
-      :containers => [
-        { :id => a_shipment.containers[0].id },
-        { :id => a_shipment.containers[1].id }
-      ]
-    }
-
-    a_shipyard = Shipyard.new(shipyard_h.clone)
-
     serialized = EntitySerializer.to_nested_hash(a_shipyard)
 
     serialized[:name].should eq('The shipyard')

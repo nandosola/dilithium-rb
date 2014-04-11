@@ -4,14 +4,14 @@ module Repository
     module ShipmentCustomFinders
       def fetch_by_name name
         result_list = DB[:shipments].where(name:name).where(active: true).all
-        result_list.map {|shipment_h| create_object(shipment_h) }
+        result_list.map {|shipment_h| load_object(shipment_h) }
       end
     end
 
     module LocationCustomFinders
       def fetch_by_name name
         result_list = DB[:locations].where(name:name).where(active: true).all
-        result_list.map {|location_h| create_object(location_h) }
+        result_list.map {|location_h| load_object(location_h) }
       end
     end
   end

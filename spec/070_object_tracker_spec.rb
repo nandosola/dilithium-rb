@@ -33,10 +33,21 @@ describe 'The object tracker' do
 
     st_new = UnitOfWork::States::Default::STATE_NEW
 
-    a_bat = OtBat.new(name:'Bat')
-    a_baz = OtBaz.new(name:'Baz', ot_bat:a_bat)
-    a_bar = OtBar.new(name:'Bar', ot_baz:a_baz)
-    a_foo = OtFoo.new(name:'Foo', ot_bar:a_bar)
+    a_bat = OtBat.build { |b| b.name = 'Bat' }
+    a_baz = OtBaz.build do |b|
+      b.name = 'Baz'
+      b.ot_bat = a_bat
+    end
+
+    a_bar = OtBar.build do |b|
+      b.name = 'Bar'
+      b.ot_baz = a_baz
+    end
+
+    a_foo = OtFoo.build do |b|
+      b.name = 'Foo'
+      b.ot_bar = a_bar
+    end
 
     object_tracker = UnitOfWork::ObjectTracker.new(UnitOfWork::States::Default::ALL_STATES)
     # Do not track in order:
@@ -49,7 +60,7 @@ describe 'The object tracker' do
     results = object_tracker.fetch_in_dependency_order(st_new).map { |sr| sr.object }
     results.should eq(insertion_order)
 
-    a_qux = OtQux.new(name:'Qux')
+    a_qux = OtQux.build { |q| q.name = 'Qux' }
     a_bat.ot_qux = a_qux
     expect {object_tracker.fetch_in_dependency_order(st_new)}.
       to raise_error(UnitOfWork::ObjectTrackerExceptions::UntrackedObjectException)
@@ -60,12 +71,10 @@ describe 'The object tracker' do
 
     st_new = UnitOfWork::States::Default::STATE_NEW
 
-    new_shipment = Shipment.new
-    new_shipment.name = "Test shipment"
-    container_1 = Container.new(kind:'20ft')
-    container_2 = Container.new(kind:'40fthc')
-    new_shipment.add_container container_1
-    new_shipment.add_container container_2
+    new_shipment = Shipment.build do |s|
+      s.make_container { |c| c.kind = '20ft' }
+      s.make_container { |c| c.kind = '40fthc' }
+    end
 
     new_shipment._version.object_id.should eq(new_shipment.containers[0]._version.object_id)
     new_shipment._version.object_id.should eq(new_shipment.containers[1]._version.object_id)
@@ -76,10 +85,10 @@ describe 'The object tracker' do
     new_shipment._version.object_id.should eq(new_shipment.containers[0]._version.object_id)
     new_shipment._version.object_id.should eq(new_shipment.containers[1]._version.object_id)
 
-    a_shipyard = Shipyard.new
-    a_shipyard.name = "Test shipyard"
-    a_shipyard.add_container Association::LazyEntityReference.new(container_1.id, Container, container_1._version)
-    a_shipyard.add_container Association::LazyEntityReference.new(container_2.id, Container, container_2._version)
+    a_shipyard = Shipyard.build do |s|
+      s.name = 'Test shipyard'
+      new_shipment.containers.each { |c| s.add_container(c) }
+    end
 
     object_tracker = UnitOfWork::ObjectTracker.new(UnitOfWork::States::Default::ALL_STATES)
     object_tracker.track(new_shipment, st_new)

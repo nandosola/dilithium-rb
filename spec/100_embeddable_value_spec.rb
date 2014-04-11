@@ -82,7 +82,7 @@ describe 'An model which embeds a value' do
   end
 
   it 'should contain the proper attribute accessors' do
-    resource = Resource.new
+    resource = Resource.build
     attr = AuditInfo.instance_variable_get(:@attributes)
 
     attr.keys.each do |k|
@@ -96,7 +96,7 @@ describe 'An model which embeds a value' do
   end
 
   it "should contain the embeddable's methods" do
-    resource = Resource.new
+    resource = Resource.build
     expect(resource).to respond_to(:updated?)
     expect {
       resource.last_updated_on = DateTime.new(year = 1971)

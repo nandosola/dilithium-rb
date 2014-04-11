@@ -17,9 +17,6 @@ module Dilithium
             end
 
             next if !skip_class.nil? && attr_value.is_a?(skip_class)
-            # TODO: uncomment when BasicEntityBuilder is ready
-            # attr_type = model.class.attribute_descriptor[attr_name]
-            # attr_value = attr_type.to_generic_type(attr_value) if attr_type.instance_of?(BasicAttributes::ExtendedGenericAttribute)
 
             h[attr] =  attr_value
           end
@@ -42,8 +39,12 @@ module Dilithium
           case attr_type
             when BasicAttributes::ParentReference
               entity_h.delete(attr)
-            when BasicAttributes::ImmutableReference, BasicAttributes::ImmutableMultiReference
-              entity_h[attr] = value
+            when BasicAttributes::ImmutableReference
+              entity_h[attr] = Association::ImmutableEntityReference.create(value) unless value.nil?
+            when BasicAttributes::ImmutableMultiReference
+              entity_h[attr] = value.map do |v|
+                Association::ImmutableEntityReference.create(v) unless v.nil?
+              end
             when BasicAttributes::ChildReference, BasicAttributes::MultiReference
               entity_h[attr] = value.map { |ref| to_nested_hash(ref, opts) } unless value.nil?
             when BasicAttributes::ValueReference

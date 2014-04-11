@@ -10,14 +10,14 @@ module Repository
     module CompanyCustomFinders
       def fetch_by_name name
         result_list = DB[:companies].where(name: name).where(active: true).all
-        result_list.map {|company_h| create_object(company_h) }
+        result_list.map {|company_h| load_object(company_h) }
       end
     end
 
     module ContractorCustomFinders
       def fetch_by_name name
         result_list = DB[:contractors].where(name: name).where(active: true).all
-        result_list.map {|contractor_h| create_object(contractor_h) }
+        result_list.map {|contractor_h| load_object(contractor_h) }
       end
     end
   end
