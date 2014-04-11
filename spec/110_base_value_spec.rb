@@ -375,7 +375,9 @@ describe 'BaseValue infrastructure' do
             alien = alien_repo.fetch_by_id('Dalek', 'Soldier')
             expect(alien).to eq(an_alien)
           end
+        end
 
+        describe '#fetch_all' do
           it 'retrieves all instances of the given BaseValue' do
             aliens = alien_repo.fetch_all
             expect(aliens).to eq(all_aliens)
@@ -428,7 +430,7 @@ describe 'BaseValue infrastructure' do
         transaction.register_deleted(davros)
         transaction.commit
 
-        expect(Repository.for(Alien).fetch_by_id(davros.race, davros.subrace)).to be_nil
+        expect(Repository.for(Alien).fetch_by_id(davros.race, davros.subrace).active).to be_false
 
         transaction.complete
       end
@@ -612,9 +614,8 @@ describe 'BaseValue infrastructure' do
           borg = Species.build { |s| s.name = 'Borg' }
           id = Mapper.for(Species).insert(borg)
           res = Repository.for(Species).fetch_by_id(id)
-          expect(res.origin.iso2).to be_nil
-          expect(res.leader.race).to be_nil
-          expect(res.leader.subrace).to be_nil
+          expect(res.origin).to be_nil
+          expect(res.leader).to be_nil
         end
       end
 

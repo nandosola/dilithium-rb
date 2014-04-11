@@ -57,7 +57,7 @@ module Dilithium
                          h["#{root_table}__#{k}".to_sym] = v
                        end
 
-                       query.where(condition_h.merge(active:true)).first
+                       query.where(condition_h).first
                      end
 
           merged_h.delete(:_type) unless merged_h.nil?
@@ -73,10 +73,10 @@ module Dilithium
           if found_h.empty?
             []
           else
-            ids = domain_class.identifier_names
+            id_names = domain_class.identifier_names
             found_h.map do |row|
-              id_h = row.select { |k, v| ids.include? k }
-              fetch_by_id(domain_class, id_h)
+              ids = id_names.map{ |k| row[k]}
+              Repository.for(domain_class).fetch_by_id(*ids)
             end
           end
         end

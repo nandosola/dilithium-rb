@@ -100,7 +100,7 @@ describe 'A transaction handling a Simple Entity' do
 
     @transaction.commit
 
-    User.fetch_by_id(1).should be_nil
+    User.fetch_by_id(1).active.should be_false
     @transaction.tracked_objects.fetch_by_state(UnitOfWork::Transaction::STATE_DELETED).length.should eq(0)
   end
 

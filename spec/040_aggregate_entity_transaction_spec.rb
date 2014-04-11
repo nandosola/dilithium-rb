@@ -243,7 +243,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     tr.register_deleted(company)
     tr.commit
     company = Company.fetch_by_id(2)
-    company.should be_nil
+    company.active.should be_false
 
     ct = Company.attribute_descriptors[:local_offices].inner_type
     (ct < BaseEntity).should be_true

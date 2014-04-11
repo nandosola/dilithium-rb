@@ -80,8 +80,8 @@ module Dilithium
             end
           end
 
-          obj.send(:_load_children)
           obj.send(:attach_multi_references)
+          obj.send(:_load_children)
           obj
         end
       end
