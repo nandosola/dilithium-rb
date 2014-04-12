@@ -77,6 +77,19 @@ describe 'BaseValue class' do
     end
   end
 
+  describe '#identifiers' do
+    it 'returns a hash with the id attributes and their values' do
+      alien.identified_by(:race, :subrace)
+      an_alien = alien.build do |a|
+        a.race = 'Cardassian'
+        a.subrace = 'Humanoid'
+        a.hostility_level = 'Extreme'
+      end
+      expect(an_alien.identifiers).to eq({:race=>"Cardassian", :subrace=>"Humanoid"})
+    end
+  end
+
+
   describe '#==' do
     it 'Compares objects by their values' do
       a_planet = create_planet(planet)

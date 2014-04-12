@@ -43,7 +43,10 @@ module Dilithium
     end
 
     def identifiers
-      @identifiers.each_with_object(Hash.new) { |id, h| h[id] = instance_variable_get("@#{id}".to_sym)}
+      self.class.identifiers.each_with_object(Hash.new) do |id, h|
+        identifier = id[:identifier]
+        h[identifier] = instance_variable_get(:"@#{identifier}")
+      end
     end
 
     def each_reference(include_immutable = false)
