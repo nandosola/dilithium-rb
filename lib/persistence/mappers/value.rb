@@ -13,6 +13,10 @@ module Dilithium
         __insert(domain_object, parent_id)
       end
 
+      def self.update(domain_object)
+        raise Dilithium::PersistenceExceptions::ImmutableObjectError, "#{domain_object.class} is immutable - it can't be updated"
+      end
+
     end
   end
 end

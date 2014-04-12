@@ -231,7 +231,7 @@ describe 'BaseValue infrastructure' do
             end
 
             expect {
-              planet_mapper.update(updated_planet, a_planet)
+              planet_mapper.update(updated_planet)
             }.to raise_error(Dilithium::PersistenceExceptions::ImmutableObjectError)
           end
         end
@@ -299,7 +299,7 @@ describe 'BaseValue infrastructure' do
             end
 
             expect {
-              alien_mapper.update(updated_alien, an_alien)
+              alien_mapper.update(updated_alien)
             }.to raise_error(Dilithium::PersistenceExceptions::ImmutableObjectError)
           end
         end
