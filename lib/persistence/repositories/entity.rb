@@ -55,6 +55,8 @@ module Dilithium
               ret
             end
 
+            # FIXME make private again after issue #41 is solved
+            public
             def load_object(in_h)
               unless in_h.nil?
                 version = SharedVersion.resolve(self, in_h[:id])
@@ -71,12 +73,20 @@ module Dilithium
         def _load_object_helper(in_h, version)
           in_h.delete(:_version_id)
           resolve_entity_references(in_h)
+          resolve_parent(in_h) if self.has_parent?  # FIXME Added as a hotfix until issue #41 is solved
           BuilderHelpers.normalize_value_references(self, in_h)
           BuilderHelpers.resolve_extended_generic_attributes(self, in_h)
 
           obj = self.build(version) do |obj|
             in_h.each do |k, v|
-              obj.send("#{k}=", v) unless self.attribute_descriptors[k].is_a? BasicAttributes::ListReference
+              # FIXME for issue #41
+              #   A(root)--ref-> B <-child--C <-child--D(root)
+              #
+              #   Repository.for(A).where(ref:{id:42})
+              #   > <B instance> without C (pruned parent)?
+              #   > <B instance> with C as parent/ImmutableEntityReference
+              obj.send("#{k}=", v) unless self.attribute_descriptors[k].is_a?(BasicAttributes::ParentReference) ||
+                  self.attribute_descriptors[k].is_a?(BasicAttributes::ListReference)
             end
           end
 
