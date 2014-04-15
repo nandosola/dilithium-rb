@@ -543,6 +543,22 @@ describe 'BaseValue infrastructure' do
                          leader: EntitySerializer.to_hash(dalek.leader)
                        )
         end
+
+        it 'EntitySerializer.to_nested_hash with nil ValueReference' do
+
+          v_ger =  species.build do |s|
+            s.name = "V'Ger"
+            s.origin = nil
+            s.leader = nil
+          end
+
+          h = EntitySerializer.to_nested_hash(v_ger)
+          expect(h).to include(
+                           name: v_ger.name,
+                           origin: nil,
+                           leader: nil
+                       )
+        end
       end
     end
 

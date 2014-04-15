@@ -48,7 +48,7 @@ module Dilithium
             when BasicAttributes::ChildReference, BasicAttributes::MultiReference
               entity_h[attr] = value.map { |ref| to_nested_hash(ref, opts) } unless value.nil?
             when BasicAttributes::ValueReference
-              entity_h[attr] = to_hash(value)
+              entity_h[attr] = to_hash(value) unless value.nil?
           end
         end
       end
