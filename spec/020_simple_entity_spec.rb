@@ -78,6 +78,15 @@ describe 'BaseEntity' do
     end
   end
 
+  describe '#build_empty' do
+    it 'builds an empty entity' do
+      expect{User.build}.to raise_error(DomainObjectExceptions::ValidationFailed)
+      a_user = User.build_empty
+      expect(a_user.email).to be_nil
+      expect(a_user.name).to be_nil
+    end
+  end
+
   describe 'accessors and mutators' do
     it 'has the proper methods' do
       a_user = User.build { |u| u.name = 'Wally' }

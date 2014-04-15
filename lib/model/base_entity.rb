@@ -104,6 +104,17 @@ module Dilithium
       finish_build(obj, &block)
     end
 
+    def self.build_empty(parent_version = nil)
+      obj = self.send(:new)
+      is_root = self.parent_reference.nil?
+      raise ArgumentError, 'Must provide parent version if a BaseEntity is not an aggregate root' if parent_version.nil? && ! is_root
+      obj.send(:_set_version_attribute, parent_version, nil)
+      obj.send(:_add_collections)
+      obj.send(:_add_default_attributes)
+      obj.active = true
+      obj
+    end
+
     def full_update(in_h)
       unversioned_h = EntitySerializer.strip_key_from_hash(in_h, :_version)
 
