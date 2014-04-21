@@ -1,6 +1,7 @@
 module Dilithium
   module PersistenceExceptions
     class IllegalUpdateError < StandardError; end
+    class ValueAlreadyExistsError < StandardError; end
     class ImmutableObjectError < StandardError; end
     class NotImplemented < StandardError; end
 

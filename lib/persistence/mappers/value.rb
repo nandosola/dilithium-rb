@@ -10,7 +10,15 @@ module Dilithium
         klazz = domain_object.class
         phantom_id = IntegerSequence.get_next(domain_object)
         domain_object._phantomid = phantom_id.to_i if klazz.include?(PhantomIdentifier)
-        __insert(domain_object, parent_id)
+
+        unless Dilithium::Repository.for(klazz).exists?(domain_object)
+          __insert(domain_object, parent_id)
+        else
+          # Constraint violations on multiple keys get mapped as generic Sequel::DatabaseErrors.
+          # This exception prevents the API user from relying too much on native DB exceptions
+          # See https://github.com/jeremyevans/sequel/issues/782
+          raise Dilithium::PersistenceExceptions::ValueAlreadyExistsError
+        end
       end
 
       def self.update(domain_object)

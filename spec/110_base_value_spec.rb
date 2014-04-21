@@ -217,7 +217,7 @@ describe 'BaseValue infrastructure' do
               p.type = 'M'
             end
 
-            expect { planet_mapper.insert(another_planet) }.to raise_error(Sequel::UniqueConstraintViolation)
+            expect { planet_mapper.insert(another_planet) }.to raise_error(Dilithium::PersistenceExceptions::ValueAlreadyExistsError)
           end
         end
 
@@ -283,8 +283,7 @@ describe 'BaseValue infrastructure' do
               a.hostility_level = 90
               a.active = true
             end
-            #TODO We should be getting a Sequel::ConstraintViolation or something similar, but constraint violations on multiple keys get mapped as generic Sequel::DatabaseErrors. See https://github.com/jeremyevans/sequel/issues/782
-            expect { alien_mapper.insert(another_alien) }.to raise_error(Sequel::DatabaseError)
+            expect { alien_mapper.insert(another_alien) }.to raise_error(Dilithium::PersistenceExceptions::ValueAlreadyExistsError)
           end
         end
 
