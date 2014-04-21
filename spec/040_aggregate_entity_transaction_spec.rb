@@ -485,7 +485,7 @@ describe 'A Transaction handling an Aggregate Entity' do
   end
 
   after(:all) do
-    %i(contractors addresses local_offices companies bars bazs foos _versions).each do |t|
+    [:contractors, :addresses, :local_offices, :companies, :bars, :bazs, :foos, :_versions].each do |t|
       $database.drop_table t
       $database << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{t}'"
     end

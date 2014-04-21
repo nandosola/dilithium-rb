@@ -324,8 +324,8 @@ describe 'A BasicEntity with a many to many relationship' do
   end
 
   after(:all) do
-    %i(employees_departments employees_buildings employees_managed_departments
-       buildings departments employees _versions).each do |t|
+    [:employees_departments, :employees_buildings, :employees_managed_departments,
+       :buildings, :departments, :employees, :_versions].each do |t|
       $database.drop_table t
       $database << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{t}'"
     end

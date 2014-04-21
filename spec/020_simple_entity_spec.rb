@@ -243,7 +243,7 @@ describe 'BaseEntity' do
   end
 
   after(:all) do
-    %i(users references _versions).each do |t|
+    [:users, :references, :_versions].each do |t|
       $database.drop_table t
       $database << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{t}'"
     end

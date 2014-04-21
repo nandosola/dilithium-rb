@@ -124,7 +124,7 @@ describe 'A single-inheritance hierarchy of BaseEntities with Leaf Table Inherit
   end
 
   after :all do
-    %i(registered_vehicles vehicles _versions).each do |t|
+    [:registered_vehicles, :vehicles, :_versions].each do |t|
       $database.drop_table t
       $database << "DELETE FROM SQLITE_SEQUENCE WHERE NAME = '#{t}'"
     end
