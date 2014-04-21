@@ -390,6 +390,18 @@ describe 'BaseValue infrastructure' do
           end
         end
 
+        describe '#exists?' do
+          it 'retrieves an existing BaseValue identified by a single key' do
+            planet = planet_repo.fetch_by_id('NU')
+            expect(planet_repo.exists?(planet)).to eq(true)
+          end
+
+          it 'retrieves an existing BaseValue identified by a compound key' do
+            alien = alien_repo.fetch_by_id('Dalek', 'Soldier')
+            expect(alien_repo.exists?(alien)).to eq(true)
+          end
+        end
+
         describe '#fetch_all' do
           it 'retrieves all instances of the given BaseValue' do
             aliens = alien_repo.fetch_all

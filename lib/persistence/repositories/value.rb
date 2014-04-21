@@ -63,6 +63,11 @@ module Dilithium
           DefaultFinders.fetch_all(@type)
         end
 
+        def exists?(value_object)
+          identifiers = value_object.class.identifier_names.map{|attr| value_object.send(attr.to_sym)}
+          key?(*identifiers)
+        end
+
         def key?(*args)
           raise ArgumentError, "wrong number of arguments (#{args.length} for #{@type.identifier_names.length})" unless args.length == @type.identifier_names.length
 
