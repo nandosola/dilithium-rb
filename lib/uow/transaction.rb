@@ -250,8 +250,8 @@ module Dilithium
         entity = entity_class.fetch_by_id(id)
         # manual register_dirty
         check_valid(entity, STATE_DIRTY)
-        register_entity(entity, STATE_DIRTY)
-        entity
+        registry_id = register_entity(entity, STATE_DIRTY)
+        return entity, registry_id
       end
 
       def register_deleted(obj)
@@ -263,8 +263,8 @@ module Dilithium
         entity = entity_class.fetch_by_id(id)
         # manual register_deleted
         check_valid(entity, STATE_DELETED)
-        register_entity(entity, STATE_DELETED)
-        entity
+        registry_id = register_entity(entity, STATE_DELETED)
+        return entity, registry_id
       end
 
       def unregister(obj)
