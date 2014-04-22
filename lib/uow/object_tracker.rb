@@ -5,19 +5,20 @@ require 'set'
 module Dilithium
   module UnitOfWork
     class ObjectTracker
-      include ObjectTrackerExceptions
 
       attr_reader :allowed_states
 
       protected
       class TrackedObject
         attr_accessor :object, :state
+        attr_reader :identifier
 
         def initialize(obj, st, outer)
           @object = obj
           @state = st
           @parent = outer
           check_valid_state(st)
+          @identifier = UUIDGenerator.kotoba(obj)
         end
 
         def state=(st)
@@ -27,7 +28,7 @@ module Dilithium
 
         def check_valid_state(st)
           unless @parent.allowed_states.include?(st)
-            raise InvalidStateException,
+            raise ::Dilithium::UnitOfWork::ObjectTrackerExceptions::InvalidStateException,
                   "State is not valid. Allowed states are #{@parent.allowed_states}"
           end
         end
@@ -77,13 +78,12 @@ module Dilithium
 
         def self.check_single_or_empty_result(results)
           if 1 < results.count
-            raise MultipleTrackedObjectsException, "Found same object #{results.count} times!"
+            raise ::Dilithium::UnitOfWork::ObjectTrackerExceptions::MultipleTrackedObjectsException, "Found same object #{results.count} times!"
           end
         end
       end
 
       class ReferenceSorter
-        include ObjectTrackerExceptions
         include TSort
 
         def initialize(results_collection, tracker)
@@ -134,7 +134,7 @@ module Dilithium
         def check_valid_reference(ref)
           sr = @obj_tracker.fetch_object(ref)
           if ref.id.nil? && sr.nil?
-            raise UntrackedReferenceException.new(ref, @obj_tracker)
+            raise ::Dilithium::UnitOfWork::ObjectTrackerExceptions::UntrackedReferenceException.new(ref, @obj_tracker)
           end
         end
       end
@@ -145,7 +145,9 @@ module Dilithium
       end
 
       def track(obj, st)
-        @tracker<< TrackedObject.new(obj, st, self) if fetch_tracked_object(obj).nil?
+        to = TrackedObject.new(obj, st, self) if fetch_tracked_object(obj).nil?
+        @tracker<< to
+        to.identifier
       end
       alias_method :<<, :track
 
@@ -178,6 +180,11 @@ module Dilithium
 
       def fetch_object(obj)
         found_array = @tracker.select {|to| obj == to.object}
+        TrackedObjectSearchResult.factory(found_array, TrackedObjectSearchResult::SINGLE_T)
+      end
+
+      def fetch_by_identifier(kotoba)
+        found_array = @tracker.select {|to| kotoba == to.identifier}
         TrackedObjectSearchResult.factory(found_array, TrackedObjectSearchResult::SINGLE_T)
       end
 
@@ -215,7 +222,7 @@ module Dilithium
 
       def self.check_not_nil(obj)
         if obj.nil?
-          raise UntrackedObjectException, "Object #{obj.inspect} is not tracked!"
+          raise ::Dilithium::UnitOfWork::ObjectTrackerExceptions::UntrackedObjectException, "Object #{obj.inspect} is not tracked!"
         else
           obj
         end

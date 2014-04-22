@@ -29,6 +29,10 @@ module Dilithium
         @object_tracker.fetch_object(obj)
       end
 
+      def fetch_object_by_registry_identifier(reg_id)
+        @object_tracker.fetch_by_identifier(reg_id)
+      end
+
       def fetch_object_by_class(obj_class)
         @object_tracker.fetch_by_class(obj_class)
       end

@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     dilithium (0.0.2)
+      openwferu-kotoba (~> 0.9.9)
       sequel (~> 4.6.0)
 
 GEM
@@ -10,6 +11,7 @@ GEM
     bcrypt (3.1.7)
     bcrypt (3.1.7-java)
     diff-lcs (1.2.5)
+    openwferu-kotoba (0.9.9)
     rake (10.1.1)
     rspec (2.14.1)
       rspec-core (~> 2.14.0)
