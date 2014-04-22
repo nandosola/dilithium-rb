@@ -162,6 +162,7 @@ module Dilithium
         tracked_object = fetch_tracked_object(obj)
         ObjectTracker.check_not_nil(tracked_object)
         tracked_object.state = st
+        tracked_object.identifier
       end
 
       def fetch_by_state(st)

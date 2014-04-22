@@ -29,7 +29,7 @@ module Dilithium
         @object_tracker.fetch_object(obj)
       end
 
-      def fetch_object_by_registry_identifier(reg_id)
+      def fetch_object_by_registry_id(reg_id)
         @object_tracker.fetch_by_identifier(reg_id)
       end
 
@@ -147,14 +147,15 @@ module Dilithium
         check_valid_uow
 
         res = @object_tracker.fetch_object(obj)
-        if res.nil?
-          @object_tracker.track(obj, state)
-        else
-          # TODO validate state transitions (ie. DIRTY-> CLEAN)
-          @object_tracker.change_object_state(res.object, state)
-        end
+        registry_id = if res.nil?
+                      @object_tracker.track(obj, state)
+                    else
+                      # TODO validate state transitions (ie. DIRTY-> CLEAN)
+                      @object_tracker.change_object_state(res.object, state)
+                    end
         @committed = false
         @history << obj
+        registry_id
       end
 
       def move_all_objects(from_state, to_state)
