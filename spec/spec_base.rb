@@ -8,6 +8,7 @@ require 'dilithium'
 include Dilithium
 
 $database = Sequel.sqlite
+Sequel.single_threaded = true
 PersistenceService::Sequel.db = $database
 
 PersistenceService.configure do |config|
