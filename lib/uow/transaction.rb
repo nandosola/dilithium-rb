@@ -236,8 +236,9 @@ module Dilithium
       # Implicit locking
 
       def register_new(obj)
-        super
+        registry_id = super
         obj._version.rw_lock(@uuid)
+        registry_id
       end
 
       def register_dirty(obj)
