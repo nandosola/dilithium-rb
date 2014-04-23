@@ -115,20 +115,6 @@ module Dilithium
       obj
     end
 
-    def full_update(in_h)
-      unversioned_h = EntitySerializer.strip_key_from_hash(in_h, :_version)
-
-      self.class.identifier_names.each do |id|
-        old_id = instance_variable_get(:"@#{id}")
-        raise ArgumentError, "Entity id cannot be changed once defined. Offending key: #{id} new value: '#{unversioned_h[id]}' was: '#{old_id}'" if old_id != unversioned_h[id]
-      end
-
-      check_input_h(unversioned_h)
-      _detach_children
-      _detach_multi_references
-      _update_attributes(unversioned_h)
-    end
-
     # Executes a proc for each child, passing child as parameter to proc
     def each_child
       self.class.child_references.each do |child_attr|
@@ -271,90 +257,6 @@ module Dilithium
       end
     end
 
-    def _update_attributes(in_h)
-      super
-
-      unless in_h.empty?
-        _update_immutable_references(in_h)
-        _update_children(in_h)
-        _update_multi_references(in_h)
-      end
-    end
-
-    def _update_children(in_h)
-      self.class.each_attribute(BasicAttributes::ChildReference) do |attr|
-        child_name = attr.name
-        children_h = if in_h[child_name].nil?
-                       attr.default
-                     else
-                       in_h[child_name]
-                     end
-
-        children_h.each do | child_h |
-          self.send("make_#{child_name.to_s.singularize}") do | child |
-            child._update_attributes(child_h)
-          end
-        end
-      end
-    end
-
-    # TODO refactor the frak out of here: make generic for any ListReference
-    def _update_multi_references(in_h)
-      self.class.each_attribute(BasicAttributes::MultiReference) do |attr|
-        __attr_name = attr.name
-        value = if in_h[__attr_name].nil?
-                  attr.default
-                else
-                  in_h[__attr_name]
-                end
-
-        value.each { |ref| send("add_#{__attr_name.to_s.singularize}".to_sym, ref) }
-      end
-    end
-
-    def _update_immutable_references(in_h)
-      self.class.each_attribute(BasicAttributes::ImmutableReference) do |attr|
-        __attr_name = attr.name
-        in_value = in_h[__attr_name]
-        value = case in_value
-                  #FIXME We should NEVER get a Hash at this level
-                  when Hash
-                    Association::ImmutableEntityReference.new(in_value[:id], attr.type)
-                  when Association::ImmutableEntityReference, BaseEntity, NilClass
-                    in_value
-                  else
-                    raise IllegalArgumentException, "Invalid reference #{__attr_name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
-                end
-
-        send("#{__attr_name}=".to_sym,value)
-      end
-
-      self.class.each_attribute(BasicAttributes::ImmutableMultiReference) do |attr|
-        __attr_name = attr.name
-        in_array = in_h[__attr_name]
-
-        unless in_array.nil?
-          in_array.each do |in_value|
-            value = case in_value
-                      #FIXME We should NEVER get a Hash at this level
-                      when Hash
-                        Association::ImmutableEntityReference.new(in_value[:id], attr.inner_type)
-                      when Association::ImmutableEntityReference, NilClass
-                        in_value
-                      when BaseEntity
-                        in_value.immutable
-                      else
-                        raise IllegalArgumentException, "Invalid reference #{__attr_name}. Should be Hash or ImmutableEntityReference, is #{in_value.class}"
-                    end
-
-            send("add_#{__attr_name.to_s.singularize}".to_sym, value)
-          end
-        end
-
-        in_h.delete(__attr_name)
-      end
-    end
-
     def _detach_children
       each_child do |child|
         child_attr = child.class.to_s.split('::').last.underscore.downcase.pluralize
@@ -403,14 +305,6 @@ module Dilithium
           a_child
         end
 
-        # Collection methods:
-
-        define_method(plural_make_method_name) do |in_a|
-          #TODO What exactly does this method do? How do we changeit to Builder syntax?
-          children = []
-          in_a.each {|in_h| children<< send(singular_make_method_name, in_h)}
-          children
-        end
       end
     end
 

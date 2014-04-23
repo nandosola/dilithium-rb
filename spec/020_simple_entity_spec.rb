@@ -179,35 +179,6 @@ describe 'BaseEntity' do
     end
   end
 
-  describe '.full_update' do
-    it 'can be fully updated' do
-      user = User.build do |u|
-        u.id = 42
-        u.name = 'PHB'
-        u.email = 'phb@example.net'
-      end
-
-      user.full_update({id:42, :name => 'Dogbert', :email => 'dogbert@example.net'})
-      expect(user.id).to eq(42)
-      expect(user.name).to eq('Dogbert')
-      expect(user.email).to eq('dogbert@example.net')
-
-      user.full_update({id:42, :name => 'Catbert'})
-      expect(user.id).to eq(42)
-      expect(user.name).to eq('Catbert')
-      expect(user.email).to be_nil
-
-      user.full_update({id:42, :name => 'Ratbert', :email => nil})
-      expect(user.id).to eq(42)
-      expect(user.id).to eq(42)
-      expect(user.name).to eq('Ratbert')
-      expect(user.email).to be_nil
-
-      expect {user.full_update({:email => 'ratbert@example.net'}) }.to raise_error(ArgumentError)
-
-    end
-  end
-
   describe '.immutable' do
     let(:a_user) { User.fetch_by_email('zaphod@example.net').first }
     subject(:an_immutable_user) { a_user.immutable }

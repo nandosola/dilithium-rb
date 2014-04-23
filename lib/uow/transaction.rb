@@ -68,6 +68,15 @@ module Dilithium
         @history.delete(obj)
       end
 
+      def mass_update(entity, payload)
+        res = fetch_object(entity)
+        if res && [:new, :dirty].include?(res.state)
+          BaseEntityMassUpdater.update(entity, payload)
+        else
+          raise ObjectNotFoundInTransactionException.new(entity.class, entity.id)
+        end
+      end
+
       def rollback
         check_valid_uow
         #TODO handle nested transactions (@history)
@@ -76,8 +85,8 @@ module Dilithium
             working_obj = res.object
             restored_obj = @history[working_obj.object_id].last
             unless restored_obj.nil?
-              restored_payload = EntitySerializer.to_nested_hash(restored_obj)
-              working_obj.full_update(restored_payload)
+              restored_payload = RestoredPayload.new(restored_obj)
+              BaseEntityMassUpdater.new(working_obj, restored_payload).update!
             else
               id = res.object.id
               RuntimeError "Cannot rollback #{res.object.class} with identity (id=#{id.nil? ? 'nil' : id })\n"+

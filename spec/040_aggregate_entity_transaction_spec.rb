@@ -21,6 +21,18 @@ describe 'A Transaction handling an Aggregate Entity' do
     @transaction.finalize
   end
 
+  let(:test_payload){
+    Class.new do
+      include BaseEntityPayload
+      def initialize(in_h)
+        @payload = in_h
+      end
+      def content
+        @payload
+      end
+    end
+  }
+
   it 'creates a new Aggregate without children' do
     a_company = Company.build { |c| c.name = 'Abstra.cc S.A'}
     a_company.name.should eq('Abstra.cc S.A')
@@ -128,7 +140,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     smarty_pants.local_offices[0].addresses[1].description.should eq('foo dir 2')
     Company.fetch_all.size.should eq(2)
 
-    b_company.full_update({id: 2,
+    payload = test_payload.new({id: 2,
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: [
@@ -137,6 +149,8 @@ describe 'A Transaction handling an Aggregate Entity' do
                                addresses: [{description: 'nhp dir 1'}]
                              }
                            ]})
+    BaseEntityMassUpdater.new(b_company, payload).update!
+
     @transaction.commit
 
     new_horizon = Company.fetch_by_id(2)
@@ -151,7 +165,8 @@ describe 'A Transaction handling an Aggregate Entity' do
     new_horizon.local_offices[0].addresses.size.should eq(1)
     new_horizon.local_offices[0].addresses[0].description.should eq('nhp dir 1')
 
-    b_company.full_update({id: 2,
+
+    payload = test_payload.new({id: 2,
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: [
@@ -160,6 +175,7 @@ describe 'A Transaction handling an Aggregate Entity' do
                                addresses: []
                              }
                            ]})
+    BaseEntityMassUpdater.new(b_company, payload).update!
 
     @transaction.commit
 
@@ -169,10 +185,11 @@ describe 'A Transaction handling an Aggregate Entity' do
     new_horizon.local_offices.size.should eq(1)
     new_horizon.local_offices[0].addresses.size.should eq(0)
 
-    b_company.full_update({id: 2,
+    payload = test_payload.new({id: 2,
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: []})
+    BaseEntityMassUpdater.new(b_company, payload).update!
 
     @transaction.commit
 
@@ -180,7 +197,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     new_horizon._version._version.should eq(3)
     new_horizon.local_offices.size.should eq(0)
 
-    b_company.full_update({id: 2,
+    payload = test_payload.new({id: 2,
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: [
@@ -189,16 +206,19 @@ describe 'A Transaction handling an Aggregate Entity' do
                                addresses: [{description: 'nhp dir 1'}]
                              }
                            ]})
+    BaseEntityMassUpdater.new(b_company, payload).update!
+
     @transaction.commit
 
     new_horizon = Company.fetch_by_id(2)
     new_horizon._version._version.should eq(4)
     new_horizon.local_offices.size.should eq(1)
 
-    b_company.full_update({id: 2,
+    payload = test_payload.new({id: 2,
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: nil})
+    BaseEntityMassUpdater.new(b_company, payload).update!
 
     @transaction.commit
 
@@ -206,7 +226,7 @@ describe 'A Transaction handling an Aggregate Entity' do
     new_horizon._version._version.should eq(5)
     new_horizon.local_offices.size.should eq(0)
 
-    b_company.full_update({id: 2,
+    payload = test_payload.new({id: 2,
                            url: 'http://example.net',
                            name: 'New Horizon Partners, Inc.',
                            local_offices: [
@@ -215,6 +235,8 @@ describe 'A Transaction handling an Aggregate Entity' do
                                addresses: [{description: 'nhp dir 1'}]
                              }
                            ]})
+    BaseEntityMassUpdater.new(b_company, payload).update!
+
     @transaction.commit
 
     new_horizon = Company.fetch_by_id(2)
@@ -273,6 +295,16 @@ describe 'A Transaction handling an Aggregate Entity' do
     module BarModule
       include FooModule::Models
       SchemaUtils::Sequel.create_tables(Foo, Bar, Baz)
+      test_payload =
+        Class.new do
+          include BaseEntityPayload
+          def initialize(in_h)
+            @payload = in_h
+          end
+          def content
+            @payload
+          end
+        end
 
       versions = $database[:_versions]
       v_id = versions.insert(:_version => 0, :_version_created_at => DateTime.parse('2013-09-23T18:42:14+02:00'))
@@ -369,7 +401,7 @@ describe 'A Transaction handling an Aggregate Entity' do
       # references: delete with nil
       # always create value references
 
-      a_foo.full_update({:id=>1,
+      payload = test_payload.new({:id=>1,
                          :active=>true,
                          :bars=>
                            [{:id=>1,
@@ -378,6 +410,8 @@ describe 'A Transaction handling an Aggregate Entity' do
                              :baz=>a_baz}],
                          :foo=>"foo",
                          :baz=>nil})
+      BaseEntityMassUpdater.new(a_foo, payload).update!
+
       tr.commit
 
       updated_foo = Foo.fetch_by_id(1)
@@ -397,11 +431,13 @@ describe 'A Transaction handling an Aggregate Entity' do
                                                                            :_version_created_at=>updated_foo._version._version_created_at,
                                                                            :_locked_by=>nil, :_locked_at=>nil}})
 
-      a_foo.full_update({:id=>1,
+      payload = test_payload.new({:id=>1,
                          :active=>true,
                          :bars=>[],
                          :foo=>"foo",
                          :baz=>nil})
+      BaseEntityMassUpdater.new(a_foo, payload).update!
+
       tr.commit
 
       updated_foo = Foo.fetch_by_id(1)

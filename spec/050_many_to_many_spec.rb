@@ -10,6 +10,18 @@ describe 'A BasicEntity with a many to many relationship' do
     insert_test_employees_depts_and_buildings
   end
 
+  let(:test_payload){
+    Class.new do
+      include BaseEntityPayload
+      def initialize(in_h)
+        @payload = in_h
+      end
+      def content
+        @payload
+      end
+    end
+  }
+
   it 'must have an intermediate table in the database' do
     $database.table_exists?(:employees_departments).should be_true
     $database.table_exists?(:employees_managed_departments).should be_true
@@ -305,7 +317,8 @@ describe 'A BasicEntity with a many to many relationship' do
     dept1_id = dept1.id
     dept2_id = dept2.id
 
-    katrina.full_update({id:katrina.id, name:katrina.name, departments:[dept1], managed_departments:[dept2], buildings:[]})
+    payload = test_payload.new({id:katrina.id, name:katrina.name, departments:[dept1], managed_departments:[dept2], buildings:[]})
+    BaseEntityMassUpdater.new(katrina, payload).update!
     katrina.departments.size.should eq(1)
     katrina.managed_departments.size.should eq(1)
     katrina.buildings.size.should eq(0)
