@@ -163,6 +163,38 @@ describe 'BaseEntityMassUpdater' do
 
       end
     end
+
+    context 'Aggregate with polymorphic children and references' do
+      it 'updates the whole aggregate taking care of the polymorphism and the references' do
+        fleet = FleetL.build_empty
+        expect(fleet.ground_vehicle_ls.empty?).to be_true
+
+        phil = User.build do |u|
+          u.name = 'Phil Tremaine'
+          u.email = 'phil@example.net'
+        end
+
+        class CarL < GroundVehicleL
+          reference :owner, User
+        end
+
+        in_h = {:fleet_l=>{ :name=>'6th fleet',
+                            :ground_vehicle_ls=> [
+                                {:seats=>2, :wheels=>4, :name=>'Mazda MX5', :owner=>phil, :_type=>'car_l'},
+                            ]}}
+
+        payload = test_payload.new(in_h[:fleet_l])
+        BaseEntityMassUpdater.new(fleet, payload).update!
+        expect(fleet.ground_vehicle_ls[0]).to be_a(CarL)
+        expect(fleet.ground_vehicle_ls[0].seats).to eq(2)
+        expect(fleet.ground_vehicle_ls[0].wheels).to eq(4)
+        expect(fleet.ground_vehicle_ls[0].name).to eq('Mazda MX5')
+        expect(fleet.ground_vehicle_ls[0].owner.resolve.name).to eq('Phil Tremaine')
+
+      end
+    end
+
+
   end
 
 end
