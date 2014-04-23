@@ -71,7 +71,7 @@ module Dilithium
       def mass_update(entity, payload)
         res = fetch_object(entity)
         if res && [:new, :dirty].include?(res.state)
-          BaseEntityMassUpdater.update(entity, payload)
+          BaseEntityMassUpdater.new(entity, payload).update!
         else
           raise ObjectNotFoundInTransactionException.new(entity.class, entity.id)
         end
