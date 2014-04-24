@@ -86,7 +86,7 @@ module Dilithium
               #   > <B instance> without C (pruned parent)?
               #   > <B instance> with C as parent/ImmutableEntityReference
               obj.send("#{k}=", v) unless self.attribute_descriptors[k].is_a?(BasicAttributes::ParentReference) ||
-                  self.attribute_descriptors[k].is_a?(BasicAttributes::ListReference) || :_type == k
+                  self.attribute_descriptors[k].is_a?(BasicAttributes::ListReference)
             end
           end
 
