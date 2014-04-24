@@ -153,18 +153,6 @@ module Dilithium
         false
       end
 
-      protected
-
-      def get_reference_path(clazz, attr_name)
-        module_path = clazz.to_s.split('::')
-        reference_literal = attr_name.to_s.singularize.camelize
-        module_path.pop
-        module_path.push(reference_literal)
-      end
-
-      def path_to_class(path)
-        path.reduce(Object){ |m,c| m.const_get(c) }
-      end
     end
 
     class ValueReference < Reference
@@ -184,12 +172,7 @@ module Dilithium
     class ListReference < Reference
       def initialize(name, containing_class, type=nil)
         super(name, Array)
-
-        @reference_path = if type.nil?
-                            get_reference_path(containing_class, name)
-                          else
-                            type.to_s.split('::')
-                          end
+        @reference_namespace = type.nil? ? containing_class.ns.append_to_module_path(name) : type.ns.full_path
       end
 
       def default
@@ -197,11 +180,11 @@ module Dilithium
       end
 
       def inner_type
-        @inner_type ||= path_to_class(@reference_path)
+        @inner_type ||= @reference_namespace.to_class
       end
 
       def reference_path
-        Array.new(@reference_path)
+        Array.new(@reference_namespace.to_a)
       end
 
       def check_assignment_constraints(value)  # check invariant constraints, called by setter
@@ -214,8 +197,7 @@ module Dilithium
 
     class ParentReference < Reference
       def initialize(parent_name, child_klazz)
-        reference_path = get_reference_path(child_klazz, parent_name)
-        parent_klazz = path_to_class(reference_path)
+        parent_klazz = child_klazz.ns.append_to_module_path(parent_name, true)
         super(parent_name, parent_klazz)
       end
     end
@@ -244,12 +226,16 @@ module Dilithium
 
     class ImmutableMultiReference < MultiReference
       def check_assignment_constraints(value)  # check invariant constraints, called by setter
-        path = value.class.to_s.split('::').map{|c| c.to_sym}
 
-        clazz = if path.last == :Immutable
-                  Reference.path_to_class(path[0..-2])
+        ns = value._type.ns
+        full_path = ns.full_path
+        container_path = ns.module_path
+
+        clazz = if full_path.to_a.last.to_sym == :Immutable
+                  # FIXME this code has no tests:
+                  container_path.to_class
                 else
-                  value.class
+                  value._type
                 end
         raise RuntimeError, "#{@name} must contain only elements of type #{inner_type} - got: #{value.class}" unless
           value.nil? ||

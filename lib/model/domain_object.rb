@@ -6,6 +6,42 @@ module Dilithium
     extend BaseMethods::Attributes
     extend BaseMethods::References
 
+    #TODO basic_attributes should use these methods
+    class Namespace
+      class Path
+        SEPARATOR = '::'
+        @array = []
+        def initialize(path)
+          @array = path || @array
+        end
+        def parent
+          path = to_a
+          Path.new(path[0..-2])
+        end
+        def to_a
+          @array.dup
+        end
+        def to_class
+          @array.reduce(Object){ |m,c| m.const_get(c) }
+        end
+      end
+
+      attr_reader :full_path, :module_path
+      def initialize(klazz)
+        path = klazz.to_s.split(Path::SEPARATOR)
+        @full_path = Path.new(path)
+        @module_path = @full_path.parent
+      end
+      def append_to_module_path(literal, as_constant=false)
+        path = Path.new(@module_path.to_a + [camelize(literal)])
+        as_constant ? path.to_class : path
+      end
+      private
+      def camelize(literal)
+        literal.to_s.singularize.camelize
+      end
+    end
+
     class << self
       alias_method :base_add_attribute, :add_attribute
     end
@@ -24,6 +60,11 @@ module Dilithium
 
         # TODO Move this into BaseMethods::Attributes
         @attributes = { }
+        @namespace = Namespace.new(self)
+
+        def ns
+          @namespace
+        end
 
         def attributes
           self.attribute_descriptors.values

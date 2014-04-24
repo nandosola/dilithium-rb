@@ -38,11 +38,7 @@ module Dilithium
         if @type.nil?
           nil
         else
-          module_path = parent_class.to_s.split('::')
-          child_literal = @type.to_s.singularize.camelize
-          module_path.pop
-          module_path.push(child_literal)
-          module_path.reduce(Object){ |m,c| m.const_get(c) }
+          parent_class.ns.append_to_module_path(@type, true)
         end
       end
     end
