@@ -2,7 +2,7 @@
 module Dilithium
   module BasicAttributes
 
-    GENERIC_TYPES = [String, Integer, Float, DateTime, TrueClass, FalseClass]
+    GENERIC_TYPES = [String, Integer, Float, BigDecimal, DateTime, TrueClass, FalseClass]
 
     # Numerics in Ruby are immediates, meaning that they don't represent
     # a heap-allocated object. Since you can’t allocate them, you can’t
