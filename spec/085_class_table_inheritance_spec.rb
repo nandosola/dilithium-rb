@@ -255,12 +255,15 @@ describe 'A single-inheritance hierarchy of BaseEntities with Class Table Inheri
                               {
                                 :id => nil, :active => true, :_version => version_h,
                                 :assigned_owner_cs => [],
-                                :name => nil, :wheels => 4, :seats => 4
+                                :name => nil, :wheels => 4, :seats => 4,
+                                :_type => 'car_c'
                               },
                               {
                                 :id => nil, :active => true, :_version => version_h,
                                 :assigned_owner_cs => [],
-                                :name => nil, :wheels => 4, :capacity => 1000
+                                :name => nil, :wheels => 4, :capacity => 1000,
+                                :_type => 'delivery_van_c'
+
                               }
                             ],
                             :name => "Test fleet"

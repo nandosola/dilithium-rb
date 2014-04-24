@@ -331,8 +331,9 @@ describe 'A Transaction handling an Aggregate Entity' do
       end
 
       baz_ref = Association::ImmutableEntityReference.create(a_baz)
+      kk = EntitySerializer.to_nested_hash(a_foo)
 
-      EntitySerializer.to_nested_hash(a_foo).should ==({:id=>nil,
+      kk.should ==({:id=>nil,
                                                         :active=>true,
                                                         :_version=>{:id=>nil,
                                                                     :_version=>0,

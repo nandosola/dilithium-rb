@@ -5,6 +5,7 @@ module Dilithium
     def self.to_hash(entity, opts={})
       h = {}
       skip_class = opts[:without]
+      h[:_type] = opts[:_type].underscore if opts.key?(:_type)
 
       case entity
         when Association::LazyEntityReference
@@ -45,7 +46,12 @@ module Dilithium
               entity_h[attr] = value.map do |v|
                 Association::ImmutableEntityReference.create(v) unless v.nil?
               end
-            when BasicAttributes::ChildReference, BasicAttributes::MultiReference
+            when BasicAttributes::ChildReference
+              (entity_h[attr] = value.map do |child|
+                opts[:_type] = child.class.ns.full_path.to_a.last if child.class < attr_type.inner_type
+                to_nested_hash(child, opts)
+              end) unless value.nil?
+            when BasicAttributes::MultiReference
               entity_h[attr] = value.map { |ref| to_nested_hash(ref, opts) } unless value.nil?
             when BasicAttributes::ValueReference
               entity_h[attr] = to_hash(value) unless value.nil?

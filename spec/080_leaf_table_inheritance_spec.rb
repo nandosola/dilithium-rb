@@ -113,12 +113,12 @@ describe 'A single-inheritance hierarchy of BaseEntities with Leaf Table Inherit
                           :_version=>{:id=>nil, :_version=>0,
                                       :_version_created_at=>fleet._version._version_created_at,
                                       :_locked_by=>nil, :_locked_at=>nil},
-                          :name=>nil, :wheels=>nil, :seats=>4},
+                          :name=>nil, :wheels=>nil, :seats=>4, :_type=>"car_l"},
                          {:id=>nil, :active=>true,
                           :_version=>{:id=>nil, :_version=>0,
                                       :_version_created_at=>fleet._version._version_created_at,
                                       :_locked_by=>nil, :_locked_at=>nil},
-                          :name=>nil, :wheels=>nil, :capacity=>1000}],
+                          :name=>nil, :wheels=>nil, :capacity=>1000, :_type=>"delivery_van_l"}],
                        :name => "Test fleet"
                       })
   end

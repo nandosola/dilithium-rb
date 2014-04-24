@@ -124,8 +124,10 @@ module Dilithium
             def _load_child(parent_obj, child_name, child_h)
               child_class = parent_obj.class.attribute_descriptors[child_name].inner_type
               if child_h.key?(:_type) #Polymorphic children
+                active = child_h[:active]
                 child_class = child_class.ns.append_to_module_path(child_h[:_type], true)
                 child_h = DB[child_h[:_type].to_sym].where(id:child_h[:id]).first
+                child_h[:active] = active
               end
 
               parent_name = child_class.parent_reference
