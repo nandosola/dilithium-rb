@@ -86,7 +86,7 @@ module Dilithium
               #   > <B instance> without C (pruned parent)?
               #   > <B instance> with C as parent/ImmutableEntityReference
               obj.send("#{k}=", v) unless self.attribute_descriptors[k].is_a?(BasicAttributes::ParentReference) ||
-                  self.attribute_descriptors[k].is_a?(BasicAttributes::ListReference)
+                  self.attribute_descriptors[k].is_a?(BasicAttributes::ListReference) || :_type == k
             end
           end
 
@@ -123,10 +123,15 @@ module Dilithium
 
             def _load_child(parent_obj, child_name, child_h)
               child_class = parent_obj.class.attribute_descriptors[child_name].inner_type
+              if child_h.key?(:_type) #Polymorphic children
+                child_class = child_class.ns.append_to_module_path(child_h[:_type], true)
+                child_h = DB[child_h[:_type].to_sym].where(id:child_h[:id]).first
+              end
+
               parent_name = child_class.parent_reference
               parent_reference = "#{parent_name}_id".to_sym
 
-              child_h.delete_if { |k, v| k == parent_reference }
+              child_h.delete_if {|k,v| k == parent_reference }
 
               child = child_class.send(:_load_object_helper, child_h, parent_obj._version)
               parent_obj.send(:"add_#{child_name.to_s.singularize}".to_sym, child)
