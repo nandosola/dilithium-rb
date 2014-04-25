@@ -122,6 +122,8 @@ module Dilithium
             value.to_i
           when Float
             value.to_f
+          when BigDecimal
+            value.to_d
         end
       end
     end
