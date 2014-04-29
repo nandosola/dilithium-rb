@@ -430,37 +430,12 @@ describe 'BaseValue infrastructure' do
         $database.drop_table :planets
       end
 
-      it 'Allows a BaseValue to be registered as clean, which is a no-op' do
-        transaction.register_clean(davros)
-        expect(transaction.fetch_all_objects).to_not include(davros)
-        transaction.abort
-      end
+      it 'Does not allow a BaseValue to be registered in a transaction' do
 
-      it 'Allows a BaseValue to be registered as new and inserts it' do
-        transaction.register_new(davros)
-        expect(transaction.fetch_object(davros).object).to eq(davros)
-        transaction.commit
+        expect{transaction.register_clean(davros)}.to raise_error(ArgumentError)
+        expect{transaction.register_dirty(davros)}.to raise_error(ArgumentError)
+        expect{transaction.register_new(davros)}.to raise_error(ArgumentError)
 
-        expect(Repository.for(Alien).fetch_by_id(davros.race, davros.subrace)).to eq(davros)
-        transaction.complete
-      end
-
-      it 'Does not a BaseValue to be registered as deleted' do
-        transaction.register_new(davros)
-        transaction.commit
-
-        expect(Repository.for(Alien).fetch_by_id(davros.race, davros.subrace).active).to be_true
-
-        transaction.register_deleted(davros)
-        transaction.commit
-
-        expect(Repository.for(Alien).fetch_by_id(davros.race, davros.subrace).active).to be_false
-
-        transaction.complete
-      end
-
-      it 'Does not allow a BaseValue to be registered as dirty' do
-        expect { transaction.register_dirty(davros) }.to raise_error(ArgumentError)
       end
     end
   end

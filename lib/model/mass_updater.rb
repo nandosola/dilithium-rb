@@ -8,17 +8,6 @@ module Dilithium
     end
   end
 
-  class RestoredPayload
-    include BaseEntityPayload
-    def initialize(restored_entity)
-      raise ArgumentError, "Entity #{restored_entity.class} is not a BaseEntity!" unless restored_entity.is_a?(Dilithium::DomainObject)
-      @domain_object = restored_entity
-    end
-    def content
-      EntitySerializer.to_nested_hash(@domain_object)
-    end
-  end
-
   class BaseEntityMassUpdater
     SECURE_KEYS = [:_version]
     

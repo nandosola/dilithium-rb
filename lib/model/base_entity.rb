@@ -5,6 +5,7 @@ module Dilithium
     extend Identifiers::Id
     extend Repository::Sequel::EntityClassBuilders
     include Repository::Sequel::EntityInstanceBuilders
+    include Savepoint
 
     attr_accessor :_version
 
@@ -261,7 +262,6 @@ module Dilithium
       each_child do |child|
         child_attr = child.class.to_s.split('::').last.underscore.downcase.pluralize
         child._detach_parent(self)
-        child._detach_children
         instance_variable_get("@#{child_attr}".to_sym).clear
       end
     end

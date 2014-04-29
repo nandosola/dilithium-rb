@@ -83,10 +83,9 @@ module Dilithium
         @object_tracker.fetch_all.each do |res|
           unless [STATE_CLEAN, STATE_NEW].include?(res.state)
             working_obj = res.object
-            restored_obj = @history[working_obj.object_id].last
-            unless restored_obj.nil?
-              restored_payload = RestoredPayload.new(restored_obj)
-              BaseEntityMassUpdater.new(working_obj, restored_payload).update!
+            orig_state = @history[working_obj.object_id].last
+            if orig_state
+              working_obj.restore(orig_state)
             else
               id = res.object.id
               RuntimeError "Cannot rollback #{res.object.class} with identity (id=#{id.nil? ? 'nil' : id })\n"+
@@ -110,14 +109,14 @@ module Dilithium
             @object_tracker.fetch_in_dependency_order(STATE_NEW).each do |res|
               working_obj = res.object
               @mapper.insert(working_obj)
-              @history << working_obj
+              @history << working_obj.save
             end
 
             @object_tracker.fetch_by_state(STATE_DIRTY).each do |res|
               working_obj = res.object
-              orig_obj = @history[working_obj.object_id].last
+              orig_obj = @history[working_obj.object_id].last.unmarshal
               @mapper.update(working_obj, orig_obj)
-              @history << working_obj
+              @history << working_obj.save
             end
 
             #TODO handle nested transactions (@history)
@@ -163,7 +162,7 @@ module Dilithium
                       @object_tracker.change_object_state(res.object, state)
                     end
         @committed = false
-        @history << obj
+        @history << obj.save
         registry_id
       end
 
@@ -180,14 +179,10 @@ module Dilithium
       end
 
       def check_valid(obj, state, must_have_id=true)
-        case obj
-          when BaseEntity
-            check_valid_entity(obj, state, must_have_id)
-          when BaseValue
-            check_valid_value(obj, state)
-          else
-            raise ArgumentError, "Only BaseEntities and BaseValues can be registered in the Transaction. Got: #{obj.class}"
-        end
+        raise ArgumentError, "Only BaseEntities can be registered in the Transaction. Got: #{obj.class}" unless
+          obj.class <= BaseEntity
+        check_valid_entity(obj, state, must_have_id)
+
       end
 
       def check_valid_entity(obj, state, must_have_id=true)
@@ -211,14 +206,6 @@ module Dilithium
             end
           end
         end
-      end
-
-      def check_valid_value(obj, state)
-        unless obj.class < BaseValue
-          raise ArgumentError, "Only BaseEntities and BaseValues can be registered in the Transaction. Got: #{obj.class}"
-        end
-
-        raise ArgumentError, 'BaseValues cannot be registered as dirty or deleted' if state == STATE_DIRTY
       end
 
       def check_valid_uow

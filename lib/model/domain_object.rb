@@ -6,7 +6,6 @@ module Dilithium
     extend BaseMethods::Attributes
     extend BaseMethods::References
 
-    #TODO basic_attributes should use these methods
     class Namespace
       class Path
         SEPARATOR = '::'
