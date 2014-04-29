@@ -48,11 +48,9 @@ module Dilithium
 
     def update!
       unless @sanitized_payload_h.empty?
-        @entity.send(:_detach_children)
-        @entity.send(:_detach_multi_references)
         update_attributes
-        update_immutable_references
         update_children
+        update_immutable_references
         update_multi_references
       end
     end
@@ -90,7 +88,9 @@ module Dilithium
 
     def update_attributes
       @entity.class.attribute_descriptors.each do |k,v|
-        @entity.instance_variable_set("@#{k}".to_sym, v.default) unless v.is_a? BasicAttributes::ParentReference
+        unless [BasicAttributes::ParentReference, BasicAttributes::ChildReference].include?(v.class)
+          @entity.instance_variable_set("@#{k}".to_sym, v.default)
+        end
       end
 
       @entity.class.attributes.select { |attr| attr.is_attribute? }.each do |attr|
@@ -115,6 +115,9 @@ module Dilithium
     end
 
     def update_children
+      child_ids = []
+      @entity.each_child{|child| child_ids << @entity.send(:_detach_child!, child)}
+
       @entity.class.each_attribute(BasicAttributes::ChildReference) do |attr|
         child_name = attr.name
         children_h = if @sanitized_payload_h[child_name].nil?
@@ -126,8 +129,7 @@ module Dilithium
         children_h.each do |child_h|
           child_payload = ChildPayload.new(child_h)
           @entity.send("make_#{child_name.to_s.singularize}", child_payload.child_type(@entity.class)) do |child|
-            # FIXME (SECURITY ISSUE): only assign id from children with an existing id
-            child.id = child_h[:id]
+            child.id = child_h[:id] if child_h[:id] && child_ids.include?(child_h[:id])
             BaseEntityMassUpdater.new(child, child_payload).update!
           end
         end
@@ -135,6 +137,8 @@ module Dilithium
     end
 
     def update_multi_references
+      @entity.send(:_detach_multi_references)
+
       @entity.class.each_attribute(BasicAttributes::MultiReference) do |attr|
         __attr_name = attr.name
         value = if @sanitized_payload_h[__attr_name].nil?

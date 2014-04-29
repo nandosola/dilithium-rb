@@ -258,12 +258,12 @@ module Dilithium
       end
     end
 
-    def _detach_children
-      each_child do |child|
-        child_attr = child.class.to_s.split('::').last.underscore.downcase.pluralize
-        child._detach_parent(self)
-        instance_variable_get("@#{child_attr}".to_sym).clear
-      end
+    def _detach_child!(child)
+      child_id = child.id
+      child_attr = child.class.to_s.split('::').last.underscore.downcase.pluralize
+      child._detach_parent(self)
+      instance_variable_get("@#{child_attr}".to_sym).clear
+      child_id
     end
 
     def _detach_multi_references
