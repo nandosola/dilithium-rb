@@ -289,9 +289,6 @@ module Dilithium
 
         singular_name = plural_child_name.to_s.singularize
         singular_make_method_name = "make_#{singular_name}".to_sym
-        plural_make_method_name = "make_#{plural_child_name}".to_sym
-
-        # Single-model methods:
 
         define_method(singular_make_method_name) do |type = nil, &b|
           child_class = self.class.attribute_descriptors[plural_child_name].inner_type
