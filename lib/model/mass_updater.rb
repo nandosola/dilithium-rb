@@ -115,8 +115,7 @@ module Dilithium
     end
 
     def update_children
-      child_ids = []
-      @entity.each_child{|child| child_ids << @entity.send(:_detach_child!, child)}
+      child_ids = @entity.send(:_detach_children!)
 
       @entity.class.each_attribute(BasicAttributes::ChildReference) do |attr|
         child_name = attr.name
